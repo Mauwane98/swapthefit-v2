@@ -1,0 +1,40 @@
+{% extends "_layouts/base.html" %}
+
+{% block title %}
+    Manage Listings
+{% endblock %}
+
+{% block content %}
+<h1 class="display-4 mb-4">Manage Listings</h1>
+
+<div class="card bg-secondary">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-dark table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Owner</th>
+                        <th>Category</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for listing in listings %}
+                    <tr>
+                        <td>{{ listing.title }}</td>
+                        <td>{{ listing.owner_info.name }}</td>
+                        <td>{{ listing.category|title }}</td>
+                        <td><span class="badge bg-info">{{ listing.status|title }}</span></td>
+                        <td>
+                            <a href="{{ url_for('listings_bp.listing_detail', listing_id=listing._id) }}" class="btn btn-sm btn-outline-light">View</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

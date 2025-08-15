@@ -1,0 +1,44 @@
+{% extends "_layouts/base.html" %}
+
+{% block title %}
+    {{ listing.title }}
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <!-- Main Image -->
+        <img src="{{ url_for('static', filename='uploads/' + listing.images[0]) }}" class="img-fluid rounded mb-4" alt="{{ listing.title }}">
+        
+        <h1 class="display-5">{{ listing.title }}</h1>
+        <p class="lead">{{ listing.description }}</p>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-secondary">
+            <div class="card-body">
+                <h4 class="card-title">Item Details</h4>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item bg-secondary"><strong>Category:</strong> {{ listing.category|title }}</li>
+                    <li class="list-group-item bg-secondary"><strong>Condition:</strong> {{ listing.condition.replace('-', ' ')|title }}</li>
+                    <li class="list-group-item bg-secondary"><strong>Size:</strong> {{ listing.size }}</li>
+                    {% if listing.school %}
+                    <li class="list-group-item bg-secondary"><strong>School:</strong> {{ listing.school }}</li>
+                    {% endif %}
+                </ul>
+                <div class="d-grid mt-4">
+                    <a href="#" class="btn btn-primary btn-lg">Contact Seller</a>
+                </div>
+            </div>
+        </div>
+        <div class="card bg-secondary mt-3">
+             <div class="card-body">
+                <h5 class="card-title">Seller Information</h5>
+                <p class="card-text">
+                    <strong>Name:</strong> {{ owner.name }}<br>
+                    <small class="text-muted">Contact seller to arrange swap/purchase.</small>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

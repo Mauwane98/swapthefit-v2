@@ -1,0 +1,56 @@
+{% extends "_layouts/base.html" %}
+
+{% block title %}
+    Edit Listing
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card bg-secondary">
+            <div class="card-body">
+                <h2 class="card-title text-center mb-4">Edit Your Listing</h2>
+                <form method="POST" action="" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+                    <!-- All form fields are the same as create_listing.html -->
+                    <div class="mb-3">
+                        {{ form.title.label(class="form-label") }}
+                        {{ form.title(class="form-control form-control-lg") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control form-control-lg", rows=3) }}
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.category.label(class="form-label") }}
+                            {{ form.category(class="form-select form-select-lg") }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.condition.label(class="form-label") }}
+                            {{ form.condition(class="form-select form-select-lg") }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.school.label(class="form-label") }}
+                            {{ form.school(class="form-control form-control-lg") }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.size.label(class="form-label") }}
+                            {{ form.size(class="form-control form-control-lg") }}
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        {{ form.photos.label(class="form-label") }}
+                        {{ form.photos(class="form-control form-control-lg") }}
+                    </div>
+                    <div class="d-grid">
+                        {{ form.submit(class="btn btn-primary btn-lg") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

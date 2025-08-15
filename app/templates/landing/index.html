@@ -1,0 +1,17 @@
+{% extends "_layouts/base.html" %}
+
+{% block title %}
+    Welcome to SwapTheFit
+{% endblock %}
+
+{% block content %}
+    <div class="text-center">
+        <h1 class="display-3 fw-bold">SwapTheFit</h1>
+        <p class="lead my-4">The smart way to handle school uniforms and fitness gear.</p>
+        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+            <!-- This is the updated link -->
+            <a href="{{ url_for('auth_bp.register') }}" class="btn btn-primary btn-lg px-4 gap-3">Get Started</a>
+            <button type="button" class="btn btn-outline-secondary btn-lg px-4">Learn More</button>
+        </div>
+    </div>
+{% endblock %}
