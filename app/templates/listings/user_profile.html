@@ -1,0 +1,51 @@
+{% extends "_layouts/base.html" %}
+
+{% block title %}
+    {{ user.name }}'s Profile
+{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="display-4">{{ user.name }}</h1>
+            <p class="lead text-muted">{{ user.email }}</p>
+            {% if user.role %}
+                <p class="mb-0"><strong>Role:</strong> <span class="badge bg-secondary">{{ user.role|title }}</span></p>
+            {% endif %}
+            {% if user.school_name %}
+                <p class="mb-0"><strong>School:</strong> {{ user.school_name }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <hr>
+
+    <h2 class="mt-5">{{ user.name }}'s Listings</h2>
+    {% if listings %}
+        <div class="row">
+            {% for listing in listings %}
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card bg-secondary h-100">
+                        <!-- Display the uploaded image -->
+                        {% if listing.images %}
+                            <img src="{{ url_for('static', filename='uploads/' + listing.images[0]) }}" class="card-img-top" alt="Image of {{ listing.title }}" style="height: 200px; object-fit: cover;">
+                        {% else %}
+                            <div class="card-img-top bg-dark" style="height: 200px; display: flex; align-items: center; justify-content: center;">
+                               <span class="text-muted">No Image</span>
+                            </div>
+                        {% endif %}
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title text-white">{{ listing.title }}</h5>
+                            <p class="card-text text-white-50 flex-grow-1">
+                                <strong>Condition:</strong> <span class="badge bg-info">{{ listing.condition.replace('-', ' ')|title }}</span>
+                            </p>
+                            <a href="{{ url_for('listings_bp.listing_detail', listing_id=listing._id) }}" class="btn btn-primary mt-auto">View Details</a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="lead text-center mt-5">{{ user.name }} has no active listings.</p>
+    {% endif %}
+{% endblock %}

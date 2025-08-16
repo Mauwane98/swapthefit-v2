@@ -1,0 +1,65 @@
+{% extends "_layouts/base.html" %}
+
+{% block title %}
+    Marketplace
+{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="display-4">Marketplace</h1>
+        <p class="lead text-muted">{{ listings|length }} listings found</p>
+    </div>
+
+    <div class="mb-4">
+        <form action="{{ url_for('listings_bp.marketplace') }}" method="GET">
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <input type="text" name="query" class="form-control" placeholder="Search for items..." value="{{ query }}">
+                </div>
+                <div class="col-md-3">
+                    <select name="category" class="form-select">
+                        <option value="">All Categories</option>
+                        <option value="uniform" {% if category == 'uniform' %}selected{% endif %}>School Uniform</option>
+                        <option value="shoes" {% if category == 'shoes' %}selected{% endif %}>Shoes</option>
+                        <option value="accessory" {% if category == 'accessory' %}selected{% endif %}>Accessory</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <input type="text" name="size" class="form-control" placeholder="Size" value="{{ size }}">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Filter</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <hr>
+
+    {% if listings %}
+        <div class="row">
+            {% for listing in listings %}
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card bg-secondary h-100">
+                        {% if listing.images %}
+                            <img src="{{ url_for('static', filename='uploads/' + listing.images[0]) }}" class="card-img-top" alt="Image of {{ listing.title }}" style="height: 200px; object-fit: cover;">
+                        {% else %}
+                            <div class="card-img-top bg-dark" style="height: 200px; display: flex; align-items: center; justify-content: center;">
+                               <span class="text-muted">No Image</span>
+                            </div>
+                        {% endif %}
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title text-white">{{ listing.title }}</h5>
+                            <p class="card-text text-white-50 flex-grow-1">
+                                <strong>Condition:</strong> <span class="badge bg-info">{{ listing.condition.replace('-', ' ')|title }}</span>
+                            </p>
+                            <a href="{{ url_for('listings_bp.listing_detail', listing_id=listing._id) }}" class="btn btn-primary mt-auto">View Details</a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="lead text-center mt-5">No listings found matching your criteria.</p>
+    {% endif %}
+{% endblock %}
