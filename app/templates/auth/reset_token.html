@@ -5,39 +5,177 @@
 {% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card bg-secondary">
-            <div class="card-body">
-                <h2 class="card-title text-center mb-4">Reset Your Password</h2>
+<style>
+    /*
+     * Custom styles inspired by Uber's UI/UX principles.
+     * Reuses the same consistent styles as the other authentication pages.
+     */
+    :root {
+        --primary-color: #4f46e5;
+        --secondary-color: #7c3aed;
+        --text-dark: #1f2937;
+        --text-gray: #4b5563;
+        --bg-light: #f9fafb;
+        --font-sans: 'Inter', sans-serif;
+    }
 
-                <p class="text-center text-muted">Enter your new password below.</p>
-                
-                <form method="POST" action="{{ url_for('auth_bp.reset_token', token=token) }}">
-                    {{ form.hidden_tag() }} <!-- CSRF Token -->
+    body {
+        font-family: var(--font-sans);
+    }
 
-                    <div class="mb-3">
-                        {{ form.password.label(class="form-label") }}
-                        {{ form.password(class="form-control form-control-lg", placeholder="New password") }}
-                        {% for error in form.password.errors %}
-                            <div class="text-danger mt-1">{{ error }}</div>
-                        {% endfor %}
-                    </div>
-                    
-                    <div class="mb-3">
-                        {{ form.confirm_password.label(class="form-label") }}
-                        {{ form.confirm_password(class="form-control form-control-lg", placeholder="Confirm new password") }}
-                        {% for error in form.confirm_password.errors %}
-                            <div class="text-danger mt-1">{{ error }}</div>
-                        {% endfor %}
-                    </div>
+    .form-container {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 1rem;
+        background-color: white;
+        padding: 2.5rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
 
-                    <div class="d-grid">
-                        {{ form.submit(class="btn btn-primary btn-lg") }}
+    .form-input {
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+        border-width: 1px;
+        border-color: #d1d5db;
+        width: 100%;
+        font-size: 0.875rem;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+    }
+
+    .form-button {
+        transition: background-color 0.3s ease, transform 0.3s ease;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+        font-weight: 600;
+        color: white;
+        background-color: var(--primary-color);
+        width: 100%;
+        cursor: pointer;
+    }
+
+    .form-button:hover {
+        background-color: #4338ca;
+        transform: scale(1.01);
+    }
+
+    .link-animated {
+        transition: color 0.3s ease;
+        color: var(--primary-color);
+    }
+
+    .link-animated:hover {
+        color: #6366f1;
+    }
+</style>
+
+<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        <div class="text-center">
+            <h2 class="mt-6 text-3xl font-extrabold text-gray-900">
+                Create a New Password
+            </h2>
+            <p class="mt-2 text-sm text-gray-600">
+                Enter your new password below to complete the reset process.
+            </p>
+        </div>
+
+        <div class="form-container">
+            <form id="reset-token-form" class="space-y-6" method="POST" action="{{ url_for('auth.reset_token', token=token) }}">
+                {{ form.hidden_tag() }} <!-- CSRF Token -->
+
+                <div>
+                    {{ form.password.label(class="block text-sm font-medium text-gray-700") }}
+                    <div class="mt-1">
+                        {{ form.password(id="password-input", class="form-input block w-full", placeholder="New password") }}
+                        <p id="password-error" class="text-red-500 text-xs mt-1 hidden"></p>
                     </div>
-                </form>
-            </div>
+                </div>
+
+                <div>
+                    {{ form.confirm_password.label(class="block text-sm font-medium text-gray-700") }}
+                    <div class="mt-1">
+                        {{ form.confirm_password(id="confirm-password-input", class="form-input block w-full", placeholder="Confirm new password") }}
+                        <p id="confirm-password-error" class="text-red-500 text-xs mt-1 hidden"></p>
+                    </div>
+                </div>
+
+                <div>
+                    <button type="submit" class="form-button">
+                        Reset Password
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const form = document.getElementById('reset-token-form');
+        const passwordInput = document.getElementById('password-input');
+        const confirmPasswordInput = document.getElementById('confirm-password-input');
+        const passwordError = document.getElementById('password-error');
+        const confirmPasswordError = document.getElementById('confirm-password-error');
+
+        const debounce = (func, delay) => {
+            let timeoutId;
+            return (...args) => {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => func.apply(this, args), delay);
+            };
+        };
+
+        const validatePassword = () => {
+            const password = passwordInput.value;
+            if (password.length < 6) {
+                passwordError.textContent = 'Password must be at least 6 characters long.';
+                passwordError.classList.remove('hidden');
+                return false;
+            } else {
+                passwordError.classList.add('hidden');
+                return true;
+            }
+        };
+
+        const validateConfirmPassword = () => {
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+            if (password !== confirmPassword) {
+                confirmPasswordError.textContent = 'Passwords do not match.';
+                confirmPasswordError.classList.remove('hidden');
+                return false;
+            } else {
+                confirmPasswordError.classList.add('hidden');
+                return true;
+            }
+        };
+
+        if (passwordInput) {
+            passwordInput.addEventListener('input', debounce(validatePassword, 300));
+            passwordInput.addEventListener('input', debounce(validateConfirmPassword, 300));
+        }
+
+        if (confirmPasswordInput) {
+            confirmPasswordInput.addEventListener('input', debounce(validateConfirmPassword, 300));
+        }
+
+        if (form) {
+            form.addEventListener('submit', (event) => {
+                const isPasswordValid = validatePassword();
+                const isConfirmPasswordValid = validateConfirmPassword();
+
+                if (!isPasswordValid || !isConfirmPasswordValid) {
+                    event.preventDefault();
+                    if (!isPasswordValid) passwordInput.focus();
+                    else if (!isConfirmPasswordValid) confirmPasswordInput.focus();
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}

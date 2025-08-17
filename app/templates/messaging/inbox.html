@@ -5,63 +5,140 @@
 {% endblock %}
 
 {% block content %}
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<style>
+    /*
+     * Custom styles for the Inbox page, consistent with other pages.
+     */
+    :root {
+        --primary-color: #4f46e5;
+        --secondary-color: #7c3aed;
+        --text-dark: #1f2937;
+        --text-gray: #4b5563;
+        --bg-light: #f9fafb;
+        --font-sans: 'Inter', sans-serif;
+    }
+
+    body {
+        font-family: var(--font-sans);
+    }
+
+    .conversation-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 1rem;
+        background-color: white;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    .message-bubble {
+        border-radius: 0.75rem;
+        padding: 0.75rem 1rem;
+    }
+
+    .message-bubble.sent {
+        background-color: #eef2ff;
+        color: var(--text-dark);
+    }
+
+    .message-bubble.received {
+        background-color: #f3f4f6;
+        color: var(--text-dark);
+    }
+
+    .form-input {
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+        border-width: 1px;
+        border-color: #d1d5db;
+        width: 100%;
+        font-size: 0.875rem;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+    }
+
+    .form-button {
+        transition: background-color 0.3s ease, transform 0.3s ease;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+        font-weight: 600;
+        color: white;
+        background-color: var(--primary-color);
+        width: 100%;
+        cursor: pointer;
+    }
+
+    .form-button:hover {
+        background-color: #4338ca;
+        transform: scale(1.01);
+    }
+</style>
+
+<div class="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6">
         <div>
-            <h1 class="display-4">Your Inbox</h1>
-            <p class="lead text-muted">Manage all your messages in one place.</p>
+            <h1 class="text-4xl font-extrabold text-gray-900">Your Inbox</h1>
+            <p class="text-lg text-gray-600">Manage all your messages in one place.</p>
         </div>
     </div>
 
-    <hr>
+    <hr class="mb-8">
     
     {% if messages_by_listing %}
-        <div class="row">
+        <div class="space-y-8">
             {% for listing_id, conversation in messages_by_listing.items() %}
-                <div class="col-12 mb-5">
-                    <div class="card bg-secondary rounded shadow">
-                        <div class="card-header bg-dark text-white-50">
-                            Conversation about: <a href="{{ url_for('listings_bp.listing_detail', listing_id=listing_id) }}" class="text-decoration-none text-info">{{ conversation[0].listing_info.title }}</a>
-                        </div>
-                        <div class="card-body bg-secondary text-white-50">
-                            <div class="list-group list-group-flush">
-                                {% for message in conversation %}
-                                    <div class="list-group-item bg-secondary text-white-50 border-bottom border-secondary">
-                                        <div class="d-flex w-100 justify-content-between">
-                                            <h6 class="mb-1 text-white">
-                                                {% if message.sender_info._id|string == user._id|string %}
-                                                    <span class="fw-bold">You</span>
-                                                {% else %}
-                                                    <span class="fw-bold">{{ message.sender_info.name }}</span>
-                                                {% endif %}
-                                            </h6>
-                                            <small class="text-white-50">
-                                                {{ message.created_at.strftime('%B %d, %Y at %I:%M %p') }}
-                                            </small>
+                <div class="conversation-card border border-gray-200">
+                    <div class="p-6">
+                        <h2 class="text-xl font-semibold mb-2">
+                            Conversation about: 
+                            <a href="{{ url_for('listings.listing_detail', listing_id=listing_id) }}" class="text-indigo-600 hover:text-indigo-800 transition-colors">
+                                {{ conversation[0].listing_info.title }}
+                            </a>
+                        </h2>
+                        
+                        <div class="space-y-4 max-h-80 overflow-y-auto pr-2">
+                            {% for message in conversation %}
+                                {% if message.sender_info._id|string == user._id|string %}
+                                    <!-- Sent Message -->
+                                    <div class="flex justify-end">
+                                        <div class="max-w-xs md:max-w-md w-fit message-bubble sent">
+                                            <p class="font-semibold text-sm mb-1">You</p>
+                                            <p class="text-sm mb-1">{{ message.content }}</p>
+                                            <p class="text-xs text-gray-500 text-right">{{ message.created_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
                                         </div>
-                                        <p class="mb-1">{{ message.content }}</p>
                                     </div>
-                                {% endfor %}
-                            </div>
+                                {% else %}
+                                    <!-- Received Message -->
+                                    <div class="flex justify-start">
+                                        <div class="max-w-xs md:max-w-md w-fit message-bubble received">
+                                            <p class="font-semibold text-sm mb-1">{{ message.sender_info.name }}</p>
+                                            <p class="text-sm mb-1">{{ message.content }}</p>
+                                            <p class="text-xs text-gray-500 text-right">{{ message.created_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
 
-                            <!-- Reply Form -->
-                            <div class="mt-3">
-                                <form action="{{ url_for('messaging_bp.send_message', listing_id=listing_id) }}" method="POST">
-                                    <div class="mb-3">
-                                        <label for="replyContent-{{ listing_id }}" class="form-label text-white">Your Reply</label>
-                                        <textarea name="content" id="replyContent-{{ listing_id }}" class="form-control" rows="3" required></textarea>
-                                    </div>
-                                    <div class="d-grid">
-                                        <input type="hidden" name="receiver_id" value="{{ conversation[0].sender_info._id }}">
-                                        <button type="submit" class="btn btn-success">Send Reply</button>
-                                    </div>
-                                </form>
-                            </div>
+                        <!-- Reply Form -->
+                        <div class="mt-4">
+                            <form action="{{ url_for('messaging.send_message', listing_id=listing_id) }}" method="POST" class="space-y-3">
+                                <div class="relative">
+                                    <textarea name="content" id="replyContent-{{ listing_id }}" class="form-input" rows="2" placeholder="Write a reply..." required></textarea>
+                                </div>
+                                <input type="hidden" name="receiver_id" value="{{ conversation[0].sender_info._id }}">
+                                <button type="submit" class="form-button">Send Reply</button>
+                            </form>
                         </div>
                     </div>
                 </div>
             {% endfor %}
         </div>
     {% else %}
-        <p class="lead text-center mt-5">Your inbox is empty.</p>
+        <p class="text-center text-gray-500 text-lg py-10">Your inbox is empty. Start a conversation by messaging a seller from a listing!</p>
     {% endif %}
+</div>
 {% endblock %}

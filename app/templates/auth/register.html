@@ -4,30 +4,114 @@
 
 {% block content %}
 <style>
-    /* Custom radio button styling */
-    .role-radio-label {
-        border: 2px solid #e5e7eb;
-        transition: border-color 0.2s;
+    /*
+     * Custom styles inspired by Uber's UI/UX principles.
+     * Reuses the same consistent styles as the login page for uniformity.
+     */
+    :root {
+        --primary-color: #4f46e5;
+        --secondary-color: #7c3aed;
+        --text-dark: #1f2937;
+        --text-gray: #4b5563;
+        --bg-light: #f9fafb;
+        --font-sans: 'Inter', sans-serif;
     }
+
+    body {
+        font-family: var(--font-sans);
+    }
+
+    .form-container {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 1rem;
+        background-color: white;
+        padding: 2.5rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    .form-input {
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+        border-width: 1px;
+        border-color: #d1d5db;
+        width: 100%;
+        font-size: 0.875rem;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+    }
+
+    .form-button {
+        transition: background-color 0.3s ease, transform 0.3s ease;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+        font-weight: 600;
+        color: white;
+        background-color: var(--primary-color);
+        width: 100%;
+        cursor: pointer;
+    }
+
+    .form-button:hover {
+        background-color: #4338ca;
+        transform: scale(1.01);
+    }
+
+    .link-animated {
+        transition: color 0.3s ease;
+        color: var(--primary-color);
+    }
+
+    .link-animated:hover {
+        color: #6366f1;
+    }
+
+    /* Additional styles for radio buttons specific to this page */
+    .role-radio-label {
+        border: 2px solid #d1d5db;
+        transition: border-color 0.3s ease, background-color 0.3s ease;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        padding: 1rem;
+    }
+
     .role-radio-input:checked + .role-radio-label {
-        border-color: #4f46e5;
-        background-color: #f0f2ff;
+        border-color: var(--primary-color);
+        background-color: #eef2ff;
+        color: var(--primary-color);
     }
 </style>
 
 <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-md w-full space-y-8">
-        <div>
-            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        <div class="text-center">
+            <h2 class="mt-6 text-3xl font-extrabold text-gray-900">
                 Create your free account
             </h2>
-            <p class="mt-2 text-center text-sm text-gray-600">
+            <p class="mt-2 text-sm text-gray-600">
                 Join our community and start saving
             </p>
         </div>
+        
+        <!-- Flash messages can be displayed here -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="space-y-4">
+                    {% for category, message in messages %}
+                        <div class="bg-{{ 'green' if category == 'success' else 'red' }}-100 border-l-4 border-{{ 'green' if category == 'success' else 'red' }}-500 text-{{ 'green' if category == 'success' else 'red' }}-700 p-4 rounded-md animate-fade-in" role="alert">
+                            <p>{{ message }}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
 
-        <div class="bg-white p-8 rounded-lg shadow-md">
-            <form class="space-y-6" method="POST" action="{{ url_for('auth.register') }}">
+        <div class="form-container">
+            <form id="register-form" class="space-y-6" method="POST" action="{{ url_for('auth.register') }}">
                 {{ form.hidden_tag() }}
                 
                 <!-- Role Selection -->
@@ -35,24 +119,22 @@
                     {{ form.role.label(class="block text-sm font-medium text-gray-700 mb-2") }}
                     <div class="grid grid-cols-2 gap-4">
                         {% for subfield in form.role %}
-                        <div>
+                        <div class="relative">
                             {{ subfield(class="sr-only role-radio-input", id=subfield.id) }}
-                            <label for="{{ subfield.id }}" class="role-radio-label cursor-pointer rounded-md p-4 text-center block">
-                                <span class="font-semibold">{{ subfield.label.text }}</span>
+                            <label for="{{ subfield.id }}" class="role-radio-label cursor-pointer block text-center">
+                                <span class="font-semibold text-gray-700">{{ subfield.label.text }}</span>
                             </label>
                         </div>
                         {% endfor %}
                     </div>
                 </div>
 
-                <!-- Name Field (Label changes dynamically) -->
+                <!-- Name Field -->
                 <div>
                     {{ form.name.label(id="name-label", class="block text-sm font-medium text-gray-700") }}
                     <div class="mt-1">
-                        {{ form.name(class="appearance-none block w-full px-3 py-3 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm") }}
-                        {% if form.name.errors %}
-                            <p class="text-red-500 text-xs mt-1">{{ form.name.errors[0] }}</p>
-                        {% endif %}
+                        {{ form.name(id="name-input", class="form-input block w-full") }}
+                        <p id="name-error" class="text-red-500 text-xs mt-1 hidden"></p>
                     </div>
                 </div>
                 
@@ -60,48 +142,45 @@
                 <div id="contact-person-field" class="hidden">
                     {{ form.contact_person.label(class="block text-sm font-medium text-gray-700") }}
                     <div class="mt-1">
-                        {{ form.contact_person(class="appearance-none block w-full px-3 py-3 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm", placeholder="e.g. Jane Doe") }}
+                        {{ form.contact_person(id="contact-person-input", class="form-input block w-full", placeholder="e.g. Jane Doe") }}
+                        <p id="contact-person-error" class="text-red-500 text-xs mt-1 hidden"></p>
                     </div>
                 </div>
                 
                 <div>
                     {{ form.email.label(class="block text-sm font-medium text-gray-700") }}
                     <div class="mt-1">
-                        {{ form.email(class="appearance-none block w-full px-3 py-3 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm", placeholder="you@example.com") }}
-                        {% if form.email.errors %}
-                            <p class="text-red-500 text-xs mt-1">{{ form.email.errors[0] }}</p>
-                        {% endif %}
+                        {{ form.email(id="email-input", class="form-input block w-full", placeholder="you@example.com") }}
+                        <p id="email-error" class="text-red-500 text-xs mt-1 hidden"></p>
                     </div>
                 </div>
 
                 <div>
                     {{ form.password.label(class="block text-sm font-medium text-gray-700") }}
                     <div class="mt-1">
-                        {{ form.password(class="appearance-none block w-full px-3 py-3 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm", placeholder="Create a password") }}
-                        {% if form.password.errors %}
-                            <p class="text-red-500 text-xs mt-1">{{ form.password.errors[0] }}</p>
-                        {% endif %}
+                        {{ form.password(id="password-input", class="form-input block w-full", placeholder="Create a password") }}
+                        <p id="password-error" class="text-red-500 text-xs mt-1 hidden"></p>
                     </div>
                 </div>
                 
                 <div>
                     {{ form.confirm_password.label(class="block text-sm font-medium text-gray-700") }}
                     <div class="mt-1">
-                        {{ form.confirm_password(class="appearance-none block w-full px-3 py-3 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm", placeholder="Confirm your password") }}
-                        {% if form.confirm_password.errors %}
-                            <p class="text-red-500 text-xs mt-1">{{ form.confirm_password.errors[0] }}</p>
-                        {% endif %}
+                        {{ form.confirm_password(id="confirm-password-input", class="form-input block w-full", placeholder="Confirm your password") }}
+                        <p id="confirm-password-error" class="text-red-500 text-xs mt-1 hidden"></p>
                     </div>
                 </div>
 
                 <div>
-                    {{ form.submit(class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500") }}
+                    <button type="submit" class="form-button">
+                        Create Account
+                    </button>
                 </div>
             </form>
         </div>
         <p class="mt-4 text-center text-sm text-gray-600">
             Already have an account?
-            <a href="{{ url_for('auth.login') }}" class="font-medium text-indigo-600 hover:text-indigo-500">
+            <a href="{{ url_for('auth.login') }}" class="font-medium link-animated">
                 Sign in
             </a>
         </p>
@@ -109,34 +188,169 @@
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', () => {
+        // Debounce utility to prevent too many function calls
+        const debounce = (func, delay) => {
+            let timeoutId;
+            return (...args) => {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => func.apply(this, args), delay);
+            };
+        };
+        
+        // Form elements
+        const form = document.getElementById('register-form');
         const roleRadios = document.querySelectorAll('input[name="role"]');
         const nameLabel = document.getElementById('name-label');
-        const nameInput = document.getElementById('name');
+        const nameInput = document.getElementById('name-input');
         const contactPersonField = document.getElementById('contact-person-field');
+        const contactPersonInput = document.getElementById('contact-person-input');
+        const emailInput = document.getElementById('email-input');
+        const passwordInput = document.getElementById('password-input');
+        const confirmPasswordInput = document.getElementById('confirm-password-input');
 
-        function updateFormFields(role) {
-            if (role === 'school_ngo') {
-                nameLabel.textContent = 'Organization Name';
-                nameInput.placeholder = 'e.g. Springfield High';
-                contactPersonField.classList.remove('hidden');
-            } else {
-                nameLabel.textContent = 'Your Name';
-                nameInput.placeholder = 'e.g. John Doe';
-                contactPersonField.classList.add('hidden');
+        // Error message elements
+        const nameError = document.getElementById('name-error');
+        const contactPersonError = document.getElementById('contact-person-error');
+        const emailError = document.getElementById('email-error');
+        const passwordError = document.getElementById('password-error');
+        const confirmPasswordError = document.getElementById('confirm-password-error');
+
+        // Function to update fields based on user role
+        const updateFormFields = (role) => {
+            if (nameLabel && nameInput && contactPersonField) {
+                if (role === 'school' || role === 'ngo') {
+                    nameLabel.textContent = 'Organization Name';
+                    nameInput.placeholder = 'e.g. Springfield High';
+                    contactPersonField.classList.remove('hidden');
+                } else {
+                    nameLabel.textContent = 'Your Name';
+                    nameInput.placeholder = 'e.g. John Doe';
+                    contactPersonField.classList.add('hidden');
+                }
             }
+        };
+
+        // Real-time validation functions
+        const validateName = () => {
+            if (!nameInput) return true;
+            const name = nameInput.value;
+            if (!name) {
+                nameError.textContent = 'This field is required.';
+                nameError.classList.remove('hidden');
+                return false;
+            } else {
+                nameError.classList.add('hidden');
+                return true;
+            }
+        };
+
+        const validateContactPerson = () => {
+            if (!contactPersonField || contactPersonField.classList.contains('hidden')) return true;
+            if (!contactPersonInput) return true;
+            const contactPerson = contactPersonInput.value;
+            if (!contactPerson) {
+                contactPersonError.textContent = 'This field is required.';
+                contactPersonError.classList.remove('hidden');
+                return false;
+            } else {
+                contactPersonError.classList.add('hidden');
+                return true;
+            }
+        };
+
+        const validateEmail = () => {
+            if (!emailInput) return true;
+            const email = emailInput.value;
+            if (!email) {
+                emailError.textContent = 'Email is required.';
+                emailError.classList.remove('hidden');
+                return false;
+            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                emailError.textContent = 'Please enter a valid email address.';
+                emailError.classList.remove('hidden');
+                return false;
+            } else {
+                emailError.classList.add('hidden');
+                return true;
+            }
+        };
+
+        const validatePassword = () => {
+            if (!passwordInput) return true;
+            const password = passwordInput.value;
+            if (password.length < 6) {
+                passwordError.textContent = 'Password must be at least 6 characters long.';
+                passwordError.classList.remove('hidden');
+                return false;
+            } else {
+                passwordError.classList.add('hidden');
+                return true;
+            }
+        };
+
+        const validateConfirmPassword = () => {
+            if (!passwordInput || !confirmPasswordInput) return true;
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+            if (password !== confirmPassword) {
+                confirmPasswordError.textContent = 'Passwords do not match.';
+                confirmPasswordError.classList.remove('hidden');
+                return false;
+            } else {
+                confirmPasswordError.classList.add('hidden');
+                return true;
+            }
+        };
+
+        // Event listeners with checks for element existence
+        if (roleRadios) {
+            roleRadios.forEach(radio => {
+                radio.addEventListener('change', () => {
+                    updateFormFields(radio.value);
+                    // Clear validation on role change
+                    if (nameError) nameError.classList.add('hidden');
+                    if (contactPersonError) contactPersonError.classList.add('hidden');
+                });
+            });
+        }
+        
+        if (nameInput) nameInput.addEventListener('input', debounce(validateName, 300));
+        if (contactPersonInput) contactPersonInput.addEventListener('input', debounce(validateContactPerson, 300));
+        if (emailInput) emailInput.addEventListener('input', debounce(validateEmail, 300));
+        if (passwordInput) passwordInput.addEventListener('input', debounce(validatePassword, 300));
+        if (confirmPasswordInput) confirmPasswordInput.addEventListener('input', debounce(validateConfirmPassword, 300));
+        if (passwordInput && confirmPasswordInput) {
+            passwordInput.addEventListener('input', debounce(validateConfirmPassword, 300));
+            confirmPasswordInput.addEventListener('input', debounce(validateConfirmPassword, 300));
+        }
+
+        // Handle form submission
+        if (form) {
+            form.addEventListener('submit', (event) => {
+                const isNameValid = validateName();
+                const isContactPersonValid = validateContactPerson();
+                const isEmailValid = validateEmail();
+                const isPasswordValid = validatePassword();
+                const isConfirmPasswordValid = validateConfirmPassword();
+
+                if (!isNameValid || !isContactPersonValid || !isEmailValid || !isPasswordValid || !isConfirmPasswordValid) {
+                    event.preventDefault();
+                    // Focus on the first invalid input
+                    if (!isNameValid && nameInput) nameInput.focus();
+                    else if (!isContactPersonValid && contactPersonInput) contactPersonInput.focus();
+                    else if (!isEmailValid && emailInput) emailInput.focus();
+                    else if (!isPasswordValid && passwordInput) passwordInput.focus();
+                    else if (!isConfirmPasswordValid && confirmPasswordInput) confirmPasswordInput.focus();
+                }
+            });
         }
 
         // Set initial state
-        const selectedRole = document.querySelector('input[name="role"]:checked').value;
-        updateFormFields(selectedRole);
-
-        // Add event listeners
-        roleRadios.forEach(radio => {
-            radio.addEventListener('change', function() {
-                updateFormFields(this.value);
-            });
-        });
+        const selectedRole = document.querySelector('input[name="role"]:checked');
+        if (selectedRole) {
+            updateFormFields(selectedRole.value);
+        }
     });
 </script>
 {% endblock %}

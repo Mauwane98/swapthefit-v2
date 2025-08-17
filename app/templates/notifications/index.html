@@ -3,12 +3,64 @@
 {% block title %}Your Notifications{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
+<style>
+    /*
+     * Custom styles for the Notifications page, consistent with other pages.
+     */
+    :root {
+        --primary-color: #4f46e5;
+        --secondary-color: #7c3aed;
+        --text-dark: #1f2937;
+        --text-gray: #4b5563;
+        --bg-light: #f9fafb;
+        --font-sans: 'Inter', sans-serif;
+    }
+
+    body {
+        font-family: var(--font-sans);
+    }
+
+    .card {
+        transition: box-shadow 0.3s ease;
+        border-radius: 1rem;
+        background-color: white;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    .notification-item {
+        transition: background-color 0.3s ease;
+    }
+    
+    .notification-item:hover {
+        background-color: #f3f4f6;
+    }
+    
+    .notification-unread {
+        background-color: #eef2ff;
+        font-weight: 600;
+        border-left: 4px solid var(--primary-color);
+    }
+    .action-link {
+        transition: color 0.3s ease;
+        color: var(--primary-color);
+        font-weight: 600;
+        text-underline-offset: 4px;
+    }
+
+    .action-link:hover {
+        color: #6366f1;
+    }
+</style>
+
+<div class="container mx-auto px-4 py-12">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-gray-800">Notifications</h1>
+        <div>
+            <h1 class="text-4xl font-extrabold text-gray-900">Notifications</h1>
+            <p class="text-lg text-gray-600">You're all caught up!</p>
+        </div>
         {% if notifications %}
         <form action="{{ url_for('notifications.mark_all_as_read') }}" method="POST">
-            <button type="submit" class="text-sm text-indigo-600 hover:text-indigo-800 font-semibold">Mark all as read</button>
+            <button type="submit" class="text-sm text-indigo-600 hover:text-indigo-800 font-semibold action-link">Mark all as read</button>
         </form>
         {% endif %}
     </div>
@@ -23,24 +75,26 @@
         {% endif %}
     {% endwith %}
 
-    <div class="bg-white rounded-lg shadow-md">
+    <div class="card overflow-hidden">
         <ul class="divide-y divide-gray-200">
             {% if notifications %}
                 {% for notification in notifications %}
-                    <li class="p-4 hover:bg-gray-50 {% if not notification.is_read %}bg-indigo-50 font-bold{% endif %}">
+                    <li class="p-4 notification-item {% if not notification.is_read %}notification-unread{% endif %}">
                         <div class="flex items-center justify-between">
                             <div class="flex-grow">
                                 <p class="text-gray-800">{{ notification.message }}</p>
                                 <p class="text-xs text-gray-500 mt-1">{{ notification.timestamp.strftime('%B %d, %Y at %I:%M %p') }}</p>
                             </div>
-                            {% if not notification.is_read %}
-                            <form action="{{ url_for('notifications.mark_as_read', notification_id=notification.id) }}" method="POST">
-                                <button type="submit" class="ml-4 text-sm text-indigo-600 hover:underline">Mark as read</button>
-                            </form>
-                            {% endif %}
-                             {% if notification.link %}
-                                <a href="{{ notification.link }}" class="ml-4 text-sm text-indigo-600 hover:underline">View</a>
-                            {% endif %}
+                            <div class="flex space-x-4 ml-4">
+                                {% if not notification.is_read %}
+                                <form action="{{ url_for('notifications.mark_as_read', notification_id=notification.id) }}" method="POST">
+                                    <button type="submit" class="text-sm action-link">Mark as read</button>
+                                </form>
+                                {% endif %}
+                                {% if notification.link %}
+                                    <a href="{{ notification.link }}" class="text-sm action-link">View</a>
+                                {% endif %}
+                            </div>
                         </div>
                     </li>
                 {% endfor %}

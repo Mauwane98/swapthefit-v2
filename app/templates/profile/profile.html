@@ -1,9 +1,259 @@
 {% extends '_layouts/base.html' %}
 
+{% block title %}
+    Profile
+{% endblock %}
+
 {% block content %}
-<div class="container">
-    <h1>{{ user.username }}'s Profile</h1>
-    <p>Email: {{ user.email }}</p>
-    <p>Role: {{ user.role }}</p>
+<style>
+    /*
+     * Custom styles for the User Profile Settings page, consistent with other pages.
+     */
+    :root {
+        --primary-color: #4f46e5;
+        --secondary-color: #7c3aed;
+        --text-dark: #1f2937;
+        --text-gray: #4b5563;
+        --bg-light: #f9fafb;
+        --font-sans: 'Inter', sans-serif;
+    }
+
+    body {
+        font-family: var(--font-sans);
+    }
+
+    .profile-card {
+        transition: box-shadow 0.3s ease;
+        border-radius: 1rem;
+        background-color: white;
+        padding: 2.5rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    .form-input {
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+        border-width: 1px;
+        border-color: #d1d5db;
+        width: 100%;
+        font-size: 0.875rem;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+    }
+
+    .form-button {
+        transition: background-color 0.3s ease, transform 0.3s ease;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+        font-weight: 600;
+        color: white;
+        background-color: var(--primary-color);
+        width: 100%;
+        cursor: pointer;
+    }
+
+    .form-button:hover {
+        background-color: #4338ca;
+        transform: scale(1.01);
+    }
+
+</style>
+
+<div class="container mx-auto px-4 py-12">
+    <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6">
+        <div>
+            <h1 class="text-4xl font-extrabold text-gray-900">Your Profile</h1>
+            <p class="text-lg text-gray-600">Update your account details.</p>
+        </div>
+    </div>
+
+    <div class="profile-card">
+        <div class="space-y-6">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Account Information</h2>
+                <p class="text-gray-600">Change your username or email address.</p>
+            </div>
+            
+            <form id="profile-form" action="{{ url_for('profile.update_profile') }}" method="POST" class="space-y-6">
+                {{ form.hidden_tag() }}
+
+                <div>
+                    {{ form.username.label(class="block text-sm font-medium text-gray-700") }}
+                    <div class="mt-1">
+                        {{ form.username(id="username-input", class="form-input") }}
+                        <p id="username-error" class="text-red-500 text-xs mt-1 hidden"></p>
+                    </div>
+                </div>
+
+                <div>
+                    {{ form.email.label(class="block text-sm font-medium text-gray-700") }}
+                    <div class="mt-1">
+                        {{ form.email(id="email-input", class="form-input") }}
+                        <p id="email-error" class="text-red-500 text-xs mt-1 hidden"></p>
+                    </div>
+                </div>
+                
+                <div>
+                    <button type="submit" class="form-button">Save Changes</button>
+                </div>
+            </form>
+        </div>
+        
+        <hr class="my-8">
+
+        <div class="space-y-6">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Password</h2>
+                <p class="text-gray-600">Update your password to keep your account secure.</p>
+            </div>
+            <form id="password-form" action="{{ url_for('profile.change_password') }}" method="POST" class="space-y-6">
+                {{ password_form.hidden_tag() }}
+
+                <div>
+                    {{ password_form.old_password.label(class="block text-sm font-medium text-gray-700") }}
+                    <div class="mt-1">
+                        {{ password_form.old_password(id="old-password-input", class="form-input") }}
+                        <p id="old-password-error" class="text-red-500 text-xs mt-1 hidden"></p>
+                    </div>
+                </div>
+                
+                <div>
+                    {{ password_form.new_password.label(class="block text-sm font-medium text-gray-700") }}
+                    <div class="mt-1">
+                        {{ password_form.new_password(id="new-password-input", class="form-input") }}
+                        <p id="new-password-error" class="text-red-500 text-xs mt-1 hidden"></p>
+                    </div>
+                </div>
+                
+                <div>
+                    {{ password_form.confirm_password.label(class="block text-sm font-medium text-gray-700") }}
+                    <div class="mt-1">
+                        {{ password_form.confirm_password(id="confirm-password-input", class="form-input") }}
+                        <p id="confirm-password-error" class="text-red-500 text-xs mt-1 hidden"></p>
+                    </div>
+                </div>
+
+                <div>
+                    <button type="submit" class="form-button">Change Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const debounce = (func, delay) => {
+            let timeoutId;
+            return (...args) => {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => func.apply(this, args), delay);
+            };
+        };
+
+        // Profile Form Validation
+        const profileForm = document.getElementById('profile-form');
+        const usernameInput = document.getElementById('username-input');
+        const emailInput = document.getElementById('email-input');
+        const usernameError = document.getElementById('username-error');
+        const emailError = document.getElementById('email-error');
+
+        const validateProfileForm = (e) => {
+            let isFormValid = true;
+
+            if (usernameInput && !usernameInput.value.trim()) {
+                usernameError.textContent = "Username is required.";
+                usernameError.classList.remove('hidden');
+                isFormValid = false;
+            } else if (usernameError) {
+                usernameError.classList.add('hidden');
+            }
+
+            if (emailInput && !emailInput.value.trim()) {
+                emailError.textContent = "Email is required.";
+                emailError.classList.remove('hidden');
+                isFormValid = false;
+            } else if (emailInput && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput.value)) {
+                emailError.textContent = "Please enter a valid email address.";
+                emailError.classList.remove('hidden');
+                isFormValid = false;
+            } else if (emailError) {
+                emailError.classList.add('hidden');
+            }
+
+            if (!isFormValid) {
+                e.preventDefault();
+            }
+        };
+
+        if (profileForm) {
+            profileForm.addEventListener('submit', validateProfileForm);
+            if (usernameInput) {
+                usernameInput.addEventListener('input', debounce(() => validateProfileForm({ preventDefault: () => {} }), 300));
+            }
+            if (emailInput) {
+                emailInput.addEventListener('input', debounce(() => validateProfileForm({ preventDefault: () => {} }), 300));
+            }
+        }
+
+        // Password Form Validation
+        const passwordForm = document.getElementById('password-form');
+        const oldPasswordInput = document.getElementById('old-password-input');
+        const newPasswordInput = document.getElementById('new-password-input');
+        const confirmPasswordInput = document.getElementById('confirm-password-input');
+        const oldPasswordError = document.getElementById('old-password-error');
+        const newPasswordError = document.getElementById('new-password-error');
+        const confirmPasswordError = document.getElementById('confirm-password-error');
+
+        const validatePasswordForm = (e) => {
+            let isFormValid = true;
+
+            if (oldPasswordInput && !oldPasswordInput.value.trim()) {
+                oldPasswordError.textContent = "Current password is required.";
+                oldPasswordError.classList.remove('hidden');
+                isFormValid = false;
+            } else if (oldPasswordError) {
+                oldPasswordError.classList.add('hidden');
+            }
+
+            if (newPasswordInput && newPasswordInput.value.length < 6) {
+                newPasswordError.textContent = "New password must be at least 6 characters long.";
+                newPasswordError.classList.remove('hidden');
+                isFormValid = false;
+            } else if (newPasswordError) {
+                newPasswordError.classList.add('hidden');
+            }
+
+            if (newPasswordInput && confirmPasswordInput && newPasswordInput.value !== confirmPasswordInput.value) {
+                confirmPasswordError.textContent = "Passwords do not match.";
+                confirmPasswordError.classList.remove('hidden');
+                isFormValid = false;
+            } else if (confirmPasswordError) {
+                confirmPasswordError.classList.add('hidden');
+            }
+            
+            if (!isFormValid) {
+                e.preventDefault();
+            }
+        };
+        
+        if (passwordForm) {
+            passwordForm.addEventListener('submit', validatePasswordForm);
+            if (oldPasswordInput) {
+                oldPasswordInput.addEventListener('input', debounce(() => validatePasswordForm({ preventDefault: () => {} }), 300));
+            }
+            if (newPasswordInput) {
+                newPasswordInput.addEventListener('input', debounce(() => validatePasswordForm({ preventDefault: () => {} }), 300));
+            }
+            if (confirmPasswordInput) {
+                confirmPasswordInput.addEventListener('input', debounce(() => validatePasswordForm({ preventDefault: () => {} }), 300));
+            }
+        }
+    });
+</script>
 {% endblock %}

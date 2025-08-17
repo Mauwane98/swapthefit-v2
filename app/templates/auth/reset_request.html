@@ -5,31 +5,148 @@
 {% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card bg-secondary">
-            <div class="card-body">
-                <h2 class="card-title text-center mb-4">Request Password Reset</h2>
-                
-                <p class="text-center text-muted">Enter your email address below to receive a password reset link.</p>
+<style>
+    /* Custom styles inspired by Uber's UI/UX principles */
+    :root {
+        --primary-color: #4f46e5;
+        --secondary-color: #7c3aed;
+        --text-dark: #1f2937;
+        --text-gray: #4b5563;
+        --bg-light: #f9fafb;
+        --font-sans: 'Inter', sans-serif;
+    }
 
-                <form method="POST" action="{{ url_for('auth_bp.reset_request') }}">
-                    {{ form.hidden_tag() }} <!-- CSRF Token -->
+    body {
+        font-family: var(--font-sans);
+    }
 
-                    <div class="mb-3">
-                        {{ form.email.label(class="form-label") }}
-                        {{ form.email(class="form-control form-control-lg", placeholder="Enter your email") }}
-                        {% for error in form.email.errors %}
-                            <div class="text-danger mt-1">{{ error }}</div>
-                        {% endfor %}
+    .form-container {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 1rem;
+        background-color: white;
+        padding: 2.5rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    .form-input {
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+        border-width: 1px;
+        border-color: #d1d5db;
+        width: 100%;
+        font-size: 0.875rem;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+    }
+
+    .form-button {
+        transition: background-color 0.3s ease, transform 0.3s ease;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+        font-weight: 600;
+        color: white;
+        background-color: var(--primary-color);
+        width: 100%;
+        cursor: pointer;
+    }
+
+    .form-button:hover {
+        background-color: #4338ca;
+        transform: scale(1.01);
+    }
+
+    .link-animated {
+        transition: color 0.3s ease;
+        color: var(--primary-color);
+    }
+
+    .link-animated:hover {
+        color: #6366f1;
+    }
+</style>
+
+<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        <div class="text-center">
+            <h2 class="mt-6 text-3xl font-extrabold text-gray-900">
+                Reset Your Password
+            </h2>
+            <p class="mt-2 text-sm text-gray-600">
+                Enter your email address below to receive a password reset link.
+            </p>
+        </div>
+
+        <div class="form-container">
+            <form id="reset-request-form" class="space-y-6" method="POST" action="{{ url_for('auth.reset_request') }}">
+                {{ form.hidden_tag() }} <!-- CSRF Token -->
+
+                <div>
+                    {{ form.email.label(class="block text-sm font-medium text-gray-700") }}
+                    <div class="mt-1">
+                        {{ form.email(id="email-input", class="form-input block w-full", placeholder="Enter your email") }}
+                        <p id="email-error" class="text-red-500 text-xs mt-1 hidden"></p>
                     </div>
+                </div>
 
-                    <div class="d-grid">
-                        {{ form.submit(class="btn btn-primary btn-lg") }}
-                    </div>
-                </form>
-            </div>
+                <div>
+                    <button type="submit" class="form-button">
+                        Request Reset Link
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const form = document.getElementById('reset-request-form');
+        const emailInput = document.getElementById('email-input');
+        const emailError = document.getElementById('email-error');
+
+        const debounce = (func, delay) => {
+            let timeoutId;
+            return (...args) => {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => func.apply(this, args), delay);
+            };
+        };
+
+        const validateEmail = () => {
+            const email = emailInput.value;
+            if (!email) {
+                emailError.textContent = 'Email is required.';
+                emailError.classList.remove('hidden');
+                return false;
+            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                emailError.textContent = 'Please enter a valid email address.';
+                emailError.classList.remove('hidden');
+                return false;
+            } else {
+                emailError.textContent = '';
+                emailError.classList.add('hidden');
+                return true;
+            }
+        };
+
+        if (emailInput) {
+            emailInput.addEventListener('input', debounce(validateEmail, 300));
+        }
+
+        if (form) {
+            form.addEventListener('submit', (event) => {
+                const isEmailValid = validateEmail();
+                if (!isEmailValid) {
+                    event.preventDefault();
+                    emailInput.focus();
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}

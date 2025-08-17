@@ -5,52 +5,262 @@
 {% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card bg-secondary">
-            <div class="card-body">
-                <h2 class="card-title text-center mb-4">Edit Your Listing</h2>
-                <form method="POST" action="" enctype="multipart/form-data">
-                    {{ form.hidden_tag() }}
-                    <!-- All form fields are the same as create_listing.html -->
-                    <div class="mb-3">
-                        {{ form.title.label(class="form-label") }}
-                        {{ form.title(class="form-control form-control-lg") }}
+<style>
+    /*
+     * Custom styles for the Edit Listing page, consistent with the Create Listing page.
+     * Reuses the same modern form and button styles.
+     */
+    :root {
+        --primary-color: #4f46e5;
+        --secondary-color: #7c3aed;
+        --text-dark: #1f2937;
+        --text-gray: #4b5563;
+        --bg-light: #f9fafb;
+        --font-sans: 'Inter', sans-serif;
+    }
+
+    body {
+        font-family: var(--font-sans);
+    }
+
+    .form-container {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 1rem;
+        background-color: white;
+        padding: 2.5rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    .form-input, .form-select, .form-textarea {
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+        border-width: 1px;
+        border-color: #d1d5db;
+        width: 100%;
+        font-size: 0.875rem;
+    }
+
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+    }
+
+    .form-button {
+        transition: background-color 0.3s ease, transform 0.3s ease;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+        font-weight: 600;
+        color: white;
+        background-color: var(--primary-color);
+        width: 100%;
+        cursor: pointer;
+    }
+
+    .form-button:hover {
+        background-color: #4338ca;
+        transform: scale(1.01);
+    }
+
+    .file-input-wrapper {
+        position: relative;
+        overflow: hidden;
+        display: inline-block;
+        width: 100%;
+    }
+
+    .file-input-button {
+        border: 2px dashed #d1d5db;
+        border-radius: 0.5rem;
+        background-color: #f9fafb;
+        color: #4b5563;
+        padding: 1.5rem 1rem;
+        text-align: center;
+        cursor: pointer;
+        transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+
+    .file-input-button:hover {
+        background-color: #e5e7eb;
+        border-color: #9ca3af;
+    }
+
+    .file-input-wrapper input[type=file] {
+        font-size: 100px;
+        position: absolute;
+        left: 0;
+        top: 0;
+        opacity: 0;
+        cursor: pointer;
+    }
+</style>
+
+<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-3xl w-full space-y-8">
+        <div class="text-center">
+            <h2 class="mt-6 text-3xl font-extrabold text-gray-900">
+                Edit Your Listing
+            </h2>
+            <p class="mt-2 text-sm text-gray-600">
+                Make changes to your existing item.
+            </p>
+        </div>
+
+        <div class="form-container">
+            <form id="edit-listing-form" method="POST" action="" enctype="multipart/form-data" class="space-y-6">
+                {{ form.hidden_tag() }} <!-- CSRF Token -->
+
+                <div>
+                    {{ form.title.label(class="block text-sm font-medium text-gray-700") }}
+                    <div class="mt-1">
+                        {{ form.title(id="title-input", class="form-input") }}
+                        <p id="title-error" class="text-red-500 text-xs mt-1 hidden"></p>
                     </div>
-                    <div class="mb-3">
-                        {{ form.description.label(class="form-label") }}
-                        {{ form.description(class="form-control form-control-lg", rows=3) }}
+                </div>
+
+                <div>
+                    {{ form.description.label(class="block text-sm font-medium text-gray-700") }}
+                    <div class="mt-1">
+                        {{ form.description(id="description-input", class="form-textarea", rows=4) }}
+                        <p id="description-error" class="text-red-500 text-xs mt-1 hidden"></p>
                     </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            {{ form.category.label(class="form-label") }}
-                            {{ form.category(class="form-select form-select-lg") }}
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        {{ form.category.label(class="block text-sm font-medium text-gray-700") }}
+                        <div class="mt-1">
+                            {{ form.category(id="category-input", class="form-select bg-white") }}
+                            <p id="category-error" class="text-red-500 text-xs mt-1 hidden"></p>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            {{ form.condition.label(class="form-label") }}
-                            {{ form.condition(class="form-select form-select-lg") }}
+                    </div>
+                    <div>
+                        {{ form.condition.label(class="block text-sm font-medium text-gray-700") }}
+                        <div class="mt-1">
+                            {{ form.condition(id="condition-input", class="form-select bg-white") }}
+                            <p id="condition-error" class="text-red-500 text-xs mt-1 hidden"></p>
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            {{ form.school.label(class="form-label") }}
-                            {{ form.school(class="form-control form-control-lg") }}
+                </div>
+
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        {{ form.school.label(class="block text-sm font-medium text-gray-700") }}
+                        <div class="mt-1">
+                            {{ form.school(id="school-input", class="form-input") }}
+                            <p id="school-error" class="text-red-500 text-xs mt-1 hidden"></p>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            {{ form.size.label(class="form-label") }}
-                            {{ form.size(class="form-control form-control-lg") }}
+                    </div>
+                    <div>
+                        {{ form.size.label(class="block text-sm font-medium text-gray-700") }}
+                        <div class="mt-1">
+                            {{ form.size(id="size-input", class="form-input") }}
+                            <p id="size-error" class="text-red-500 text-xs mt-1 hidden"></p>
                         </div>
                     </div>
-                    <div class="mb-4">
-                        {{ form.photos.label(class="form-label") }}
-                        {{ form.photos(class="form-control form-control-lg") }}
+                </div>
+                
+                <div>
+                    {{ form.photos.label(class="block text-sm font-medium text-gray-700") }}
+                    <div class="mt-1 file-input-wrapper">
+                        <div class="file-input-button">
+                            <span id="file-label">Drag & drop new photos or click to browse</span>
+                        </div>
+                        {{ form.photos(id="photos-input", class="block w-full text-sm text-gray-500") }}
                     </div>
-                    <div class="d-grid">
-                        {{ form.submit(class="btn btn-primary btn-lg") }}
-                    </div>
-                </form>
-            </div>
+                    <p id="photos-error" class="text-red-500 text-xs mt-1 hidden"></p>
+                </div>
+
+                <div>
+                    <button type="submit" class="form-button">
+                        Update Listing
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const form = document.getElementById('edit-listing-form');
+        const titleInput = document.getElementById('title-input');
+        const descriptionInput = document.getElementById('description-input');
+        const categoryInput = document.getElementById('category-input');
+        const conditionInput = document.getElementById('condition-input');
+        const schoolInput = document.getElementById('school-input');
+        const sizeInput = document.getElementById('size-input');
+        const photosInput = document.getElementById('photos-input');
+        const fileLabel = document.getElementById('file-label');
+
+        const titleError = document.getElementById('title-error');
+        const descriptionError = document.getElementById('description-error');
+        const categoryError = document.getElementById('category-error');
+        const conditionError = document.getElementById('condition-error');
+        const schoolError = document.getElementById('school-error');
+        const sizeError = document.getElementById('size-error');
+        const photosError = document.getElementById('photos-error');
+
+        const debounce = (func, delay) => {
+            let timeoutId;
+            return (...args) => {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => func.apply(this, args), delay);
+            };
+        };
+
+        const validateField = (input, errorElement, errorMessage) => {
+            if (!input.value.trim()) {
+                errorElement.textContent = errorMessage;
+                errorElement.classList.remove('hidden');
+                return false;
+            } else {
+                errorElement.classList.add('hidden');
+                return true;
+            }
+        };
+
+        if (titleInput) titleInput.addEventListener('input', debounce(() => validateField(titleInput, titleError, 'Title is required.'), 300));
+        if (descriptionInput) descriptionInput.addEventListener('input', debounce(() => validateField(descriptionInput, descriptionError, 'Description is required.'), 300));
+        if (categoryInput) categoryInput.addEventListener('change', () => validateField(categoryInput, categoryError, 'Category is required.'));
+        if (conditionInput) conditionInput.addEventListener('change', () => validateField(conditionInput, conditionError, 'Condition is required.'));
+        if (schoolInput) schoolInput.addEventListener('input', debounce(() => validateField(schoolInput, schoolError, 'School is required.'), 300));
+        if (sizeInput) sizeInput.addEventListener('input', debounce(() => validateField(sizeInput, sizeError, 'Size is required.'), 300));
+        
+        if (photosInput) {
+            photosInput.addEventListener('change', () => {
+                const files = photosInput.files;
+                if (files.length > 0) {
+                    fileLabel.textContent = `${files.length} new file(s) selected`;
+                    photosError.classList.add('hidden');
+                } else {
+                    fileLabel.textContent = 'Drag & drop new photos or click to browse';
+                }
+            });
+        }
+
+        if (form) {
+            form.addEventListener('submit', (event) => {
+                const isTitleValid = validateField(titleInput, titleError, 'Title is required.');
+                const isDescriptionValid = validateField(descriptionInput, descriptionError, 'Description is required.');
+                const isCategoryValid = validateField(categoryInput, categoryError, 'Category is required.');
+                const isConditionValid = validateField(conditionInput, conditionError, 'Condition is required.');
+                const isSchoolValid = validateField(schoolInput, schoolError, 'School is required.');
+                const isSizeValid = validateField(sizeInput, sizeError, 'Size is required.');
+                
+                if (!isTitleValid || !isDescriptionValid || !isCategoryValid || !isConditionValid || !isSchoolValid || !isSizeValid) {
+                    event.preventDefault();
+                    const firstInvalid = [titleInput, descriptionInput, categoryInput, conditionInput, schoolInput, sizeInput].find(input => {
+                        const errorElement = document.getElementById(`${input.id.replace('-input', '')}-error`);
+                        return errorElement && !errorElement.classList.contains('hidden');
+                    });
+                    if (firstInvalid) {
+                        firstInvalid.focus();
+                    }
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}

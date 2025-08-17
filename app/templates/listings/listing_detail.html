@@ -3,8 +3,82 @@
 {% block title %}{{ listing.item_name }}{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+<style>
+    /*
+     * Custom styles for the Listing Detail page, consistent with other pages.
+     */
+    :root {
+        --primary-color: #4f46e5;
+        --secondary-color: #7c3aed;
+        --text-dark: #1f2937;
+        --text-gray: #4b5563;
+        --bg-light: #f9fafb;
+        --font-sans: 'Inter', sans-serif;
+    }
+
+    body {
+        font-family: var(--font-sans);
+    }
+
+    .card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 1rem;
+        background-color: white;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    .action-button {
+        transition: background-color 0.3s ease, transform 0.3s ease;
+        border-radius: 9999px;
+        font-weight: 600;
+        padding: 0.75rem 2rem;
+        display: inline-block;
+        text-align: center;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    .primary-button {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    .primary-button:hover {
+        background-color: #4338ca;
+        transform: scale(1.05);
+    }
+
+    .secondary-button {
+        background-color: #d1d5db;
+        color: var(--text-gray);
+    }
+
+    .secondary-button:hover {
+        background-color: #9ca3af;
+        transform: scale(1.05);
+    }
+
+    .danger-button {
+        background-color: #ef4444;
+        color: white;
+    }
+
+    .danger-button:hover {
+        background-color: #dc2626;
+        transform: scale(1.05);
+    }
+
+    .link-animated {
+        transition: color 0.3s ease;
+        color: var(--primary-color);
+    }
+
+    .link-animated:hover {
+        color: #6366f1;
+    }
+</style>
+
+<div class="container mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200 card">
         <div class="md:flex">
             <div class="md:flex-shrink-0">
                 <img class="h-80 md:h-full w-full object-cover md:w-96 rounded-t-xl md:rounded-l-xl md:rounded-tr-none transition-transform duration-300 hover:scale-105" 
@@ -13,7 +87,7 @@
                      onerror="this.onerror=null;this.src='https://placehold.co/600x400/F8F8F8/333333?text=No+Image';">
             </div>
             <div class="p-6 md:p-8 flex flex-col justify-center">
-                <div class="uppercase tracking-wide text-sm font-semibold text-[var(--color-accent)]">{{ listing.school_name }}</div>
+                <div class="uppercase tracking-wide text-sm font-semibold text-indigo-600">{{ listing.school_name }}</div>
                 <h1 class="block mt-1 text-3xl sm:text-4xl leading-tight font-extrabold text-gray-900 mb-2">{{ listing.item_name }}</h1>
                 <p class="mt-2 text-gray-700 text-base leading-relaxed">{{ listing.description }}</p>
 
@@ -24,22 +98,22 @@
                 <div class="mt-4 space-y-3 text-gray-700">
                     <p class="flex items-center"><span class="font-semibold text-gray-800 w-24">Size:</span> <span class="text-gray-600">{{ listing.size }}</span></p>
                     <p class="flex items-center"><span class="font-semibold text-gray-800 w-24">Condition:</span> <span class="text-gray-600">{{ listing.condition }}</span></p>
-                    <p class="flex items-center"><span class="font-semibold text-gray-800 w-24">Seller:</span> <a href="{{ url_for('listings.user_profile', user_id=listing.user.id) }}" class="text-[var(--color-accent)] hover:underline ml-1">{{ listing.user.username }}</a></p>
+                    <p class="flex items-center"><span class="font-semibold text-gray-800 w-24">Seller:</span> <a href="{{ url_for('listings.user_profile', user_id=listing.user.id) }}" class="text-indigo-600 hover:underline ml-1">{{ listing.user.username }}</a></p>
                     <p class="text-sm text-gray-500 pt-2">Posted on {{ listing.date_posted.strftime('%B %d, %Y') }}</p>
                 </div>
 
                 <div class="mt-8 flex flex-wrap items-center gap-4">
                     {% if current_user.is_authenticated %}
                         {% if current_user.id == listing.user_id %}
-                            <a href="{{ url_for('listings.edit_listing', listing_id=listing.id) }}" class="flex-grow md:flex-none bg-blue-600 text-white font-semibold py-3 px-6 rounded-full hover:bg-blue-700 transition-all duration-300 shadow-md">Edit Listing</a>
+                            <a href="{{ url_for('listings.edit_listing', listing_id=listing.id) }}" class="flex-grow md:flex-none action-button primary-button">Edit Listing</a>
                             <form action="{{ url_for('listings.delete_listing', listing_id=listing.id) }}" method="POST">
-                                <button type="submit" class="flex-grow md:flex-none bg-red-600 text-white font-semibold py-3 px-6 rounded-full hover:bg-red-700 transition-all duration-300 shadow-md">Delete Listing</button>
+                                <button type="submit" class="flex-grow md:flex-none action-button danger-button">Delete Listing</button>
                             </form>
                         {% else %}
-                             <a href="{{ url_for('messaging.send_message', recipient_id=listing.user.id, listing_id=listing.id) }}" class="flex-grow md:flex-none bg-[var(--color-accent)] text-white font-semibold py-3 px-6 rounded-full hover:bg-[#2F9C6E] transition-all duration-300 shadow-md">Message Seller</a>
-                             <a href="{{ url_for('swaps.propose_swap', listing_id=listing.id) }}" class="flex-grow md:flex-none bg-purple-600 text-white font-semibold py-3 px-6 rounded-full hover:bg-purple-700 transition-all duration-300 shadow-md">Propose Swap</a>
-                            <form action="{{ url_for('wishlist.add_to_wishlist', listing_id=listing.id) }}" method="POST">
-                                <button type="submit" class="flex items-center justify-center flex-grow md:flex-none bg-gray-100 text-gray-600 font-semibold py-3 px-6 rounded-full hover:bg-red-100 hover:text-red-500 transition-colors duration-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50">
+                            <a href="{{ url_for('messaging.send_message', recipient_id=listing.user.id, listing_id=listing.id) }}" class="flex-grow md:flex-none action-button primary-button">Message Seller</a>
+                            <a href="{{ url_for('swaps.propose_swap', listing_id=listing.id) }}" class="flex-grow md:flex-none action-button bg-purple-600 text-white hover:bg-purple-700">Propose Swap</a>
+                            <form action="{{ url_for('wishlist.add_to_wishlist', listing_id=listing.id) }}" method="POST" class="flex-grow md:flex-none">
+                                <button type="submit" class="flex items-center justify-center w-full action-button secondary-button hover:bg-red-100 hover:text-red-500">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                                     </svg>
@@ -48,7 +122,7 @@
                             </form>
                         {% endif %}
                     {% else %}
-                        <a href="{{ url_for('auth.login') }}" class="flex-grow md:flex-none bg-[var(--color-accent)] text-white font-semibold py-3 px-6 rounded-full hover:bg-[#2F9C6E] transition-all duration-300 shadow-md">Log in to contact seller</a>
+                        <a href="{{ url_for('auth.login') }}" class="flex-grow md:flex-none action-button primary-button">Log in to contact seller</a>
                     {% endif %}
                 </div>
             </div>

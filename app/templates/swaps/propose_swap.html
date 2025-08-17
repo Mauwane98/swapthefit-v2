@@ -3,29 +3,90 @@
 {% block title %}Propose a Swap{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8 max-w-2xl">
-    <h1 class="text-3xl font-bold text-gray-800 mb-6">Propose a Swap</h1>
+<style>
+    /*
+     * Custom styles for the Propose Swap page, consistent with other pages.
+     */
+    :root {
+        --primary-color: #4f46e5;
+        --secondary-color: #7c3aed;
+        --text-dark: #1f2937;
+        --text-gray: #4b5563;
+        --bg-light: #f9fafb;
+        --font-sans: 'Inter', sans-serif;
+    }
 
-    <div class="bg-white p-6 rounded-lg shadow-md mb-8">
-        <h2 class="text-xl font-semibold mb-2">Item You Want:</h2>
-        <div class="flex items-center">
-            <img src="{{ url_for('static', filename='uploads/' + requested_listing.image_url) if requested_listing.image_url else 'https://placehold.co/100x100' }}" alt="{{ requested_listing.item_name }}" class="w-24 h-24 object-cover rounded-md mr-4">
+    body {
+        font-family: var(--font-sans);
+    }
+
+    .card {
+        transition: box-shadow 0.3s ease;
+        border-radius: 1rem;
+        background-color: white;
+        padding: 2rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    .form-button {
+        transition: background-color 0.3s ease, transform 0.3s ease;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+        font-weight: 600;
+        color: white;
+        background-color: var(--primary-color);
+        width: 100%;
+        cursor: pointer;
+    }
+
+    .form-button:hover {
+        background-color: #4338ca;
+        transform: scale(1.01);
+    }
+    
+    .radio-card {
+        transition: background-color 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+        border-radius: 0.75rem;
+        border: 2px solid #e5e7eb;
+        cursor: pointer;
+    }
+
+    .radio-card:hover {
+        background-color: #f9fafb;
+    }
+
+    .radio-card.selected {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+    }
+    
+</style>
+
+<div class="container mx-auto px-4 py-12 max-w-3xl">
+    <h1 class="text-4xl font-extrabold text-gray-900 mb-2">Propose a Swap</h1>
+    <p class="text-lg text-gray-600 mb-8">Select an item you want to offer in exchange for the item listed below.</p>
+
+    <div class="card mb-8">
+        <h2 class="text-2xl font-semibold mb-4">Item You Want:</h2>
+        <div class="flex items-center space-x-4">
+            <img src="{{ url_for('static', filename='uploads/' + requested_listing.image_url) if requested_listing.image_url else 'https://placehold.co/100x100' }}" alt="{{ requested_listing.item_name }}" class="w-24 h-24 object-cover rounded-md flex-shrink-0">
             <div>
                 <h3 class="text-lg font-bold">{{ requested_listing.item_name }}</h3>
                 <p class="text-gray-600">Listed by: {{ requested_listing.user.username }}</p>
+                <p class="text-gray-500 text-sm">Condition: {{ requested_listing.condition }}</p>
             </div>
         </div>
     </div>
 
-    <div class="bg-white p-6 rounded-lg shadow-md">
-        <h2 class="text-xl font-semibold mb-4">Select an Item to Offer:</h2>
-        <form action="{{ url_for('swaps.propose_swap', listing_id=requested_listing.id) }}" method="POST">
+    <div class="card">
+        <h2 class="text-2xl font-semibold mb-4">Select an Item to Offer:</h2>
+        <form id="propose-form" action="{{ url_for('swaps.propose_swap', listing_id=requested_listing.id) }}" method="POST">
             {% if user_listings %}
                 <div class="space-y-4">
                     {% for listing in user_listings %}
-                    <label class="flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
-                        <input type="radio" name="offered_listing_id" value="{{ listing.id }}" class="mr-4">
-                        <img src="{{ url_for('static', filename='uploads/' + listing.image_url) if listing.image_url else 'https://placehold.co/100x100' }}" alt="{{ listing.item_name }}" class="w-16 h-16 object-cover rounded-md mr-4">
+                    <label class="flex items-center p-4 radio-card">
+                        <input type="radio" name="offered_listing_id" value="{{ listing.id }}" class="mr-4 peer hidden">
+                        <img src="{{ url_for('static', filename='uploads/' + listing.image_url) if listing.image_url else 'https://placehold.co/100x100' }}" alt="{{ listing.item_name }}" class="w-16 h-16 object-cover rounded-md mr-4 flex-shrink-0">
                         <div>
                             <h4 class="font-semibold">{{ listing.item_name }}</h4>
                             <p class="text-sm text-gray-500">{{ listing.condition }}</p>
@@ -33,11 +94,38 @@
                     </label>
                     {% endfor %}
                 </div>
-                <button type="submit" class="mt-6 w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded hover:bg-indigo-700 transition-colors">Send Swap Proposal</button>
+                <button type="submit" class="mt-6 form-button">Send Swap Proposal</button>
             {% else %}
                 <p class="text-gray-600">You have no items to offer. <a href="{{ url_for('listings.create_listing') }}" class="text-indigo-600 hover:underline">Create a listing</a> first.</p>
             {% endif %}
         </form>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('propose-form');
+        const radioCards = document.querySelectorAll('.radio-card');
+        const radioInputs = document.querySelectorAll('input[name="offered_listing_id"]');
+
+        radioInputs.forEach((radio, index) => {
+            radio.addEventListener('change', () => {
+                radioCards.forEach(card => card.classList.remove('selected'));
+                if (radio.checked) {
+                    radioCards[index].classList.add('selected');
+                }
+            });
+        });
+
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                const selected = Array.from(radioInputs).some(radio => radio.checked);
+                if (!selected) {
+                    e.preventDefault();
+                    alert("Please select an item to propose for the swap.");
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}

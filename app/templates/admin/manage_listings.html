@@ -5,31 +5,147 @@
 {% endblock %}
 
 {% block content %}
-<h1 class="display-4 mb-4">Manage Listings</h1>
+<style>
+    /*
+     * Custom styles for the Manage Listings page, consistent with other pages.
+     */
+    :root {
+        --primary-color: #4f46e5;
+        --secondary-color: #7c3aed;
+        --text-dark: #1f2937;
+        --text-gray: #4b5563;
+        --bg-light: #f9fafb;
+        --font-sans: 'Inter', sans-serif;
+    }
 
-<div class="card bg-secondary">
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-dark table-striped table-hover">
-                <thead>
+    body {
+        font-family: var(--font-sans);
+    }
+
+    .card {
+        transition: box-shadow 0.3s ease;
+        border-radius: 1rem;
+        background-color: white;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    
+    .table-container {
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        overflow-x: auto;
+    }
+
+    .action-button {
+        transition: background-color 0.3s ease, transform 0.3s ease;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        color: white;
+        cursor: pointer;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        display: inline-block;
+        text-align: center;
+    }
+    .approve-button {
+        background-color: #22c55e; /* green-500 */
+    }
+    .approve-button:hover {
+        background-color: #16a34a; /* green-600 */
+        transform: scale(1.05);
+    }
+    .reject-button {
+        background-color: #ef4444; /* red-500 */
+    }
+    .reject-button:hover {
+        background-color: #dc2626; /* red-600 */
+        transform: scale(1.05);
+    }
+</style>
+
+<div class="container mx-auto px-4 py-12 md:py-16">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-4xl font-extrabold text-gray-900">Manage Listings</h1>
+    </div>
+
+    <div class="card p-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Pending Listings</h2>
+        <div class="table-container bg-white p-4 border border-gray-200">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
                     <tr>
-                        <th>Title</th>
-                        <th>Owner</th>
-                        <th>Category</th>
-                        <th>Status</th>
-                        <th>Actions</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">Item Name</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Seller</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Condition</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Posted</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
-                    {% for listing in listings %}
-                    <tr>
-                        <td>{{ listing.title }}</td>
-                        <td>{{ listing.owner_info.name }}</td>
-                        <td>{{ listing.category|title }}</td>
-                        <td><span class="badge bg-info">{{ listing.status|title }}</span></td>
-                        <td>
-                            <a href="{{ url_for('listings_bp.listing_detail', listing_id=listing._id) }}" class="btn btn-sm btn-outline-light">View</a>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for listing in pending_listings %}
+                    <tr class="hover:bg-gray-50 transition-colors duration-150">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ listing.item_name }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ listing.user.username }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ listing.condition }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ listing.date_posted.strftime('%B %d, %Y') }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <form action="{{ url_for('admin.approve_listing', listing_id=listing.id) }}" method="POST" class="inline-block">
+                                <button type="submit" class="action-button approve-button mr-2">Approve</button>
+                            </form>
+                            <form action="{{ url_for('admin.reject_listing', listing_id=listing.id) }}" method="POST" class="inline-block">
+                                <button type="submit" class="action-button reject-button">Reject</button>
+                            </form>
                         </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-4 text-center text-gray-500">No pending listings.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div class="card p-6 mt-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">All Listings</h2>
+        <div class="table-container bg-white p-4 border border-gray-200">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">Item Name</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Seller</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Posted</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for listing in all_listings %}
+                    <tr class="hover:bg-gray-50 transition-colors duration-150">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ listing.item_name }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ listing.user.username }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                         {% if listing.status == 'approved' %} bg-green-100 text-green-800
+                                         {% elif listing.status == 'rejected' %} bg-red-100 text-red-800
+                                         {% else %} bg-yellow-100 text-yellow-800
+                                         {% endif %}">
+                                {{ listing.status|title }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ listing.date_posted.strftime('%B %d, %Y') }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <a href="{{ url_for('listings.listing_detail', listing_id=listing.id) }}" class="text-indigo-600 hover:text-indigo-900 transition-colors duration-200 mr-3">View</a>
+                            <form action="{{ url_for('admin.delete_listing', listing_id=listing.id) }}" method="POST" class="inline-block">
+                                <button type="submit" class="text-red-600 hover:text-red-900 transition-colors duration-200">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-4 text-center text-gray-500">No listings found.</td>
                     </tr>
                     {% endfor %}
                 </tbody>

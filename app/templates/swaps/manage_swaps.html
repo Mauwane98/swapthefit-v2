@@ -3,8 +3,92 @@
 {% block title %}Manage Swaps{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold text-gray-800 mb-8">Manage Your Swaps</h1>
+<style>
+    /*
+     * Custom styles for the Manage Swaps page, consistent with other pages.
+     */
+    :root {
+        --primary-color: #4f46e5;
+        --secondary-color: #7c3aed;
+        --text-dark: #1f2937;
+        --text-gray: #4b5563;
+        --bg-light: #f9fafb;
+        --font-sans: 'Inter', sans-serif;
+    }
+
+    body {
+        font-family: var(--font-sans);
+    }
+
+    .card {
+        transition: box-shadow 0.3s ease;
+        border-radius: 1rem;
+        background-color: white;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    .list-item {
+        transition: background-color 0.3s ease;
+        padding: 1rem;
+        border-radius: 0.75rem;
+    }
+
+    .list-item:hover {
+        background-color: #f9fafb;
+    }
+    
+    .status-badge {
+        font-weight: 600;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.8rem;
+        display: inline-block;
+        text-transform: capitalize;
+    }
+    .status-pending {
+        background-color: #fffbeb;
+        color: #d97706;
+    }
+    .status-accepted {
+        background-color: #dcfce7;
+        color: #16a34a;
+    }
+    .status-declined {
+        background-color: #fee2e2;
+        color: #ef4444;
+    }
+
+    .action-button {
+        transition: background-color 0.3s ease, transform 0.3s ease;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        color: white;
+        cursor: pointer;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+
+    .accept-button {
+        background-color: #22c55e; /* green-500 */
+    }
+    .accept-button:hover {
+        background-color: #16a34a; /* green-600 */
+        transform: scale(1.05);
+    }
+    .decline-button {
+        background-color: #ef4444; /* red-500 */
+    }
+    .decline-button:hover {
+        background-color: #dc2626; /* red-600 */
+        transform: scale(1.05);
+    }
+</style>
+
+<div class="container mx-auto px-4 py-12">
+    <h1 class="text-4xl font-extrabold text-gray-900 mb-2">Manage Your Swaps</h1>
+    <p class="text-lg text-gray-600 mb-8">Review incoming proposals and track your outgoing requests.</p>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -18,24 +102,24 @@
 
     <!-- Incoming Requests -->
     <div class="mb-12">
-        <h2 class="text-2xl font-semibold text-gray-700 mb-4">Incoming Requests</h2>
-        <div class="bg-white rounded-lg shadow-md p-4">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Incoming Requests</h2>
+        <div class="card">
             {% if incoming %}
                 <ul class="divide-y divide-gray-200">
                     {% for swap in incoming %}
-                    <li class="p-4">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="mb-2"><span class="font-semibold">{{ swap.proposer.username }}</span> wants to swap their <span class="font-semibold">{{ swap.offered_listing.item_name }}</span> for your <span class="font-semibold">{{ swap.requested_listing.item_name }}</span>.</p>
-                                <p class="text-sm text-gray-500">Status: <span class="font-medium capitalize text-{{ 'green' if swap.status == 'accepted' else ('red' if swap.status == 'declined' else 'yellow') }}-600">{{ swap.status }}</span></p>
+                    <li class="list-item">
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                            <div class="mb-2 md:mb-0">
+                                <p class="mb-1"><span class="font-semibold">{{ swap.proposer.username }}</span> wants to swap their <a href="{{ url_for('listings.listing_detail', listing_id=swap.offered_listing.id) }}" class="text-indigo-600 hover:underline">{{ swap.offered_listing.item_name }}</a> for your <a href="{{ url_for('listings.listing_detail', listing_id=swap.requested_listing.id) }}" class="text-indigo-600 hover:underline">{{ swap.requested_listing.item_name }}</a>.</p>
+                                <p class="text-sm text-gray-500">Status: <span class="status-badge status-{{ 'accepted' if swap.status == 'accepted' else ('declined' if swap.status == 'declined' else 'pending') }}">{{ swap.status }}</span></p>
                             </div>
                             {% if swap.status == 'pending' %}
-                            <div class="flex space-x-2">
+                            <div class="flex space-x-2 mt-2 md:mt-0">
                                 <form action="{{ url_for('swaps.respond_swap', swap_id=swap.id, action='accept') }}" method="POST">
-                                    <button type="submit" class="bg-green-500 text-white font-bold py-2 px-4 rounded hover:bg-green-600">Accept</button>
+                                    <button type="submit" class="action-button accept-button">Accept</button>
                                 </form>
                                 <form action="{{ url_for('swaps.respond_swap', swap_id=swap.id, action='decline') }}" method="POST">
-                                    <button type="submit" class="bg-red-500 text-white font-bold py-2 px-4 rounded hover:bg-red-600">Decline</button>
+                                    <button type="submit" class="action-button decline-button">Decline</button>
                                 </form>
                             </div>
                             {% endif %}
@@ -44,26 +128,26 @@
                     {% endfor %}
                 </ul>
             {% else %}
-                <p class="text-gray-500 p-4">You have no incoming swap requests.</p>
+                <p class="text-gray-500 p-4 text-center">You have no incoming swap requests.</p>
             {% endif %}
         </div>
     </div>
 
     <!-- Outgoing Requests -->
     <div>
-        <h2 class="text-2xl font-semibold text-gray-700 mb-4">Outgoing Requests</h2>
-        <div class="bg-white rounded-lg shadow-md p-4">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Outgoing Requests</h2>
+        <div class="card">
             {% if outgoing %}
                 <ul class="divide-y divide-gray-200">
                      {% for swap in outgoing %}
-                    <li class="p-4">
-                         <p class="mb-2">You proposed to swap your <span class="font-semibold">{{ swap.offered_listing.item_name }}</span> for <span class="font-semibold">{{ swap.receiver.username }}</span>'s <span class="font-semibold">{{ swap.requested_listing.item_name }}</span>.</p>
-                         <p class="text-sm text-gray-500">Status: <span class="font-medium capitalize text-{{ 'green' if swap.status == 'accepted' else ('red' if swap.status == 'declined' else 'yellow') }}-600">{{ swap.status }}</span></p>
+                    <li class="list-item">
+                         <p class="mb-1">You proposed to swap your <a href="{{ url_for('listings.listing_detail', listing_id=swap.offered_listing.id) }}" class="text-indigo-600 hover:underline">{{ swap.offered_listing.item_name }}</a> for <span class="font-semibold">{{ swap.receiver.username }}</span>'s <a href="{{ url_for('listings.listing_detail', listing_id=swap.requested_listing.id) }}" class="text-indigo-600 hover:underline">{{ swap.requested_listing.item_name }}</a>.</p>
+                         <p class="text-sm text-gray-500">Status: <span class="status-badge status-{{ 'accepted' if swap.status == 'accepted' else ('declined' if swap.status == 'declined' else 'pending') }}">{{ swap.status }}</span></p>
                     </li>
                     {% endfor %}
                 </ul>
             {% else %}
-                <p class="text-gray-500 p-4">You have not made any swap proposals.</p>
+                <p class="text-gray-500 p-4 text-center">You have not made any swap proposals.</p>
             {% endif %}
         </div>
     </div>

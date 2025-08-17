@@ -3,64 +3,315 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <h1 class="text-4xl font-extrabold text-gray-900 mb-4">Welcome, {{ current_user.username }}!</h1>
-    <p class="text-lg text-gray-600 mb-8 max-w-2xl">This is your personalized dashboard. Easily manage your listings, track your swaps, and stay updated with messages and notifications.</p>
+<style>
+    /*
+     * Custom styles for the dynamic dashboard, consistent with other pages.
+     */
+    :root {
+        --primary-color: #4f46e5;
+        --secondary-color: #7c3aed;
+        --text-dark: #1f2937;
+        --text-gray: #4b5563;
+        --bg-light: #f9fafb;
+        --font-sans: 'Inter', sans-serif;
+    }
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- Manage Listings -->
-        <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200 transition-transform duration-200 hover:scale-[1.01] hover:shadow-lg">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-3">Manage Your Listings</h2>
-            <p class="text-gray-600 mb-5">View, edit, or remove your active items listed for swap or sale.</p>
-            <a href="{{ url_for('listings.user_profile', user_id=current_user.id) }}" class="inline-block bg-[var(--color-accent)] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#2F9C6E] transition-all duration-300 shadow-md">
-                View My Listings &rarr;
-            </a>
-        </div>
+    body {
+        font-family: var(--font-sans);
+    }
 
-        <!-- Create New Listing -->
-        <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200 transition-transform duration-200 hover:scale-[1.01] hover:shadow-lg">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-3">Create a New Listing</h2>
-            <p class="text-gray-600 mb-5">Have something new to swap or sell? Create a fresh listing for it now.</p>
-            <a href="{{ url_for('listings.create_listing') }}" class="inline-block bg-[var(--color-accent)] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#2F9C6E] transition-all duration-300 shadow-md">
-                Create Listing &rarr;
-            </a>
-        </div>
-        
-        <!-- Manage Swaps -->
-        <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200 transition-transform duration-200 hover:scale-[1.01] hover:shadow-lg">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-3">Manage Swaps</h2>
-            <p class="text-gray-600 mb-5">Review incoming swap requests and manage your ongoing swap agreements.</p>
-            <a href="{{ url_for('swaps.manage_swaps') }}" class="inline-block bg-[var(--color-accent)] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#2F9C6E] transition-all duration-300 shadow-md">
-                Manage Swaps &rarr;
-            </a>
-        </div>
-        
-        <!-- View Wishlist -->
-        <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200 transition-transform duration-200 hover:scale-[1.01] hover:shadow-lg">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-3">My Wishlist</h2>
-            <p class="text-gray-600 mb-5">Explore items you've saved and keep track of your desired swaps.</p>
-            <a href="{{ url_for('wishlist.view_wishlist') }}" class="inline-block bg-[var(--color-accent)] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#2F9C6E] transition-all duration-300 shadow-md">
-                View My Wishlist &rarr;
-            </a>
-        </div>
+    .card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 1rem;
+        background-color: white;
+        padding: 2.5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
 
-        <!-- Inbox -->
-        <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200 transition-transform duration-200 hover:scale-[1.01] hover:shadow-lg">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-3">Your Inbox</h2>
-            <p class="text-gray-600 mb-5">Catch up on messages from other users and manage your conversations.</p>
-            <a href="{{ url_for('messaging.inbox') }}" class="inline-block bg-[var(--color-accent)] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#2F9C6E] transition-all duration-300 shadow-md">
-                Go to Inbox &rarr;
-            </a>
-        </div>
+    .card-with-hover:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
 
-        <!-- Profile Settings -->
-        <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200 transition-transform duration-200 hover:scale-[1.01] hover:shadow-lg">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-3">Profile Settings</h2>
-            <p class="text-gray-600 mb-5">Update your personal information, contact details, or password.</p>
-            <a href="{{ url_for('profile.view_profile') }}" class="inline-block bg-[var(--color-accent)] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#2F9C6E] transition-all duration-300 shadow-md">
-                Edit Profile &rarr;
-            </a>
+    .action-button {
+        transition: background-color 0.3s ease, transform 0.3s ease;
+        border-radius: 9999px;
+        font-weight: 600;
+        color: white;
+        background-color: var(--primary-color);
+        padding: 0.75rem 2rem;
+        display: inline-block;
+    }
+
+    .action-button:hover {
+        background-color: #4338ca;
+        transform: scale(1.05);
+    }
+
+    .table-container {
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        overflow-x: auto;
+    }
+
+    .stat-card {
+        border-radius: 1rem;
+        background-color: white;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    }
+</style>
+
+<div class="container mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+    <!-- Check if a user is authenticated and has a valid role -->
+    {% if current_user.is_authenticated %}
+        {% if current_user.role == 'parent' %}
+            <div class="mb-8">
+                <h1 class="text-4xl font-extrabold text-gray-900 mb-2">Welcome, {{ current_user.username }}!</h1>
+                <p class="text-lg text-gray-600 max-w-2xl">This is your personalized dashboard. Easily manage your listings, track your swaps, and stay updated with messages and notifications.</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Manage Listings -->
+                <div class="card border border-gray-200 card-with-hover">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-3">Manage Your Listings</h2>
+                    <p class="text-gray-600 mb-5">View, edit, or remove your active items listed for swap or sale.</p>
+                    <a href="{{ url_for('listings.user_profile', user_id=current_user.id) }}" class="action-button shadow-md">
+                        View My Listings &rarr;
+                    </a>
+                </div>
+
+                <!-- Create New Listing -->
+                <div class="card border border-gray-200 card-with-hover">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-3">Create a New Listing</h2>
+                    <p class="text-gray-600 mb-5">Have something new to swap or sell? Create a fresh listing for it now.</p>
+                    <a href="{{ url_for('listings.create_listing') }}" class="action-button shadow-md">
+                        Create Listing &rarr;
+                    </a>
+                </div>
+                
+                <!-- Manage Swaps -->
+                <div class="card border border-gray-200 card-with-hover">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-3">Manage Swaps</h2>
+                    <p class="text-gray-600 mb-5">Review incoming swap requests and manage your ongoing swap agreements.</p>
+                    <a href="{{ url_for('swaps.manage_swaps') }}" class="action-button shadow-md">
+                        Manage Swaps &rarr;
+                    </a>
+                </div>
+                
+                <!-- View Wishlist -->
+                <div class="card border border-gray-200 card-with-hover">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-3">My Wishlist</h2>
+                    <p class="text-gray-600 mb-5">Explore items you've saved and keep track of your desired swaps.</p>
+                    <a href="{{ url_for('wishlist.view_wishlist') }}" class="action-button shadow-md">
+                        View My Wishlist &rarr;
+                    </a>
+                </div>
+
+                <!-- Inbox -->
+                <div class="card border border-gray-200 card-with-hover">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-3">Your Inbox</h2>
+                    <p class="text-gray-600 mb-5">Catch up on messages from other users and manage your conversations.</p>
+                    <a href="{{ url_for('messaging.inbox') }}" class="action-button shadow-md">
+                        Go to Inbox &rarr;
+                    </a>
+                </div>
+
+                <!-- Profile Settings -->
+                <div class="card border border-gray-200 card-with-hover">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-3">Profile Settings</h2>
+                    <p class="text-gray-600 mb-5">Update your personal information, contact details, or password.</p>
+                    <a href="{{ url_for('profile.view_profile') }}" class="action-button shadow-md">
+                        Edit Profile &rarr;
+                    </a>
+                </div>
+            </div>
+
+        {% elif current_user.role == 'school' %}
+            <div class="mb-8">
+                <h1 class="text-4xl font-extrabold text-gray-900 mb-2">School Dashboard</h1>
+                <p class="text-lg text-gray-600 max-w-2xl">Manage your school's uniform program and view key statistics.</p>
+            </div>
+            
+            <!-- Key Metrics Section -->
+            <div class="mb-12">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Key Metrics</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="stat-card">
+                        <p class="text-sm font-medium text-gray-500">Total Listings</p>
+                        <p class="text-3xl font-bold text-gray-900 mt-1">456</p>
+                    </div>
+                    <div class="stat-card">
+                        <p class="text-sm font-medium text-gray-500">Items Needed</p>
+                        <p class="text-3xl font-bold text-gray-900 mt-1">120</p>
+                    </div>
+                    <div class="stat-card">
+                        <p class="text-sm font-medium text-gray-500">Donations Received</p>
+                        <p class="text-3xl font-bold text-gray-900 mt-1">98</p>
+                    </div>
+                    <div class="stat-card">
+                        <p class="text-sm font-medium text-gray-500">Pending Swaps</p>
+                        <p class="text-3xl font-bold text-gray-900 mt-1">15</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+                <div class="card border border-gray-200 card-with-hover">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-3">Post a Wish List</h2>
+                    <p class="text-gray-600 mb-5">Create a list of specific uniforms and sizes your school needs from the community.</p>
+                    <a href="#" class="action-button shadow-md">
+                        Create Wish List
+                    </a>
+                </div>
+                <div class="card border border-gray-200 card-with-hover">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-3">School Announcements</h2>
+                    <p class="text-gray-600 mb-5">Create and manage announcements to keep parents and the community updated.</p>
+                    <a href="#" class="action-button shadow-md">
+                        Manage Announcements
+                    </a>
+                </div>
+            </div>
+
+            <!-- Donation Wishlist Table -->
+            <div class="mb-12">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Donation Wishlist</h2>
+                <div class="table-container bg-white p-4 border border-gray-200">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">Item Name</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Needed</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <!-- Mock data for school wishlist -->
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">School Blazer</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">M</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">5</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <a href="#" class="text-indigo-600 hover:text-indigo-900 transition-colors duration-200">Edit</a>
+                                    <a href="#" class="text-red-600 hover:text-red-900 transition-colors duration-200 ml-3">Remove</a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Grey Trousers</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">L</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">8</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <a href="#" class="text-indigo-600 hover:text-indigo-900 transition-colors duration-200">Edit</a>
+                                    <a href="#" class="text-red-600 hover:text-red-900 transition-colors duration-200 ml-3">Remove</a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+
+        {% elif current_user.role == 'ngo' %}
+            <div class="mb-8">
+                <h1 class="text-4xl font-extrabold text-gray-900 mb-2">NGO Dashboard</h1>
+                <p class="text-lg text-gray-600 max-w-2xl">Track your impact, manage donations, and coordinate volunteers.</p>
+            </div>
+
+            <!-- Key Metrics Section -->
+            <div class="mb-12">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Key Metrics</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="stat-card">
+                        <p class="text-sm font-medium text-gray-500">Total Donations</p>
+                        <p class="text-3xl font-bold text-gray-900 mt-1">789</p>
+                    </div>
+                    <div class="stat-card">
+                        <p class="text-sm font-medium text-gray-500">Active Volunteers</p>
+                        <p class="text-3xl font-bold text-gray-900 mt-1">25</p>
+                    </div>
+                    <div class="stat-card">
+                        <p class="text-sm font-medium text-gray-500">Impact Stories</p>
+                        <p class="text-3xl font-bold text-gray-900 mt-1">112</p>
+                    </div>
+                    <div class="stat-card">
+                        <p class="text-sm font-medium text-gray-500">Funding Goal Met</p>
+                        <p class="text-3xl font-bold text-gray-900 mt-1">85%</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Impact Stories Section -->
+            <div class="mb-12">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Impact Stories</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                     <!-- Mock Impact Story 1 -->
+                    <div class="card border border-gray-200">
+                        <h3 class="text-xl font-semibold mb-2">Providing Uniforms for Needy Students</h3>
+                        <p class="text-gray-600 mb-4">Thanks to the community's generous donations, we were able to provide 50 students at a local school with new and gently-used uniforms, ensuring they feel confident and ready to learn.</p>
+                        <a href="#" class="text-indigo-600 hover:text-indigo-900 font-semibold">Read More &rarr;</a>
+                    </div>
+                    <!-- Mock Impact Story 2 -->
+                    <div class="card border border-gray-200">
+                        <h3 class="text-xl font-semibold mb-2">Volunteer Drive Success</h3>
+                        <p class="text-gray-600 mb-4">Our recent volunteer drive saw a record turnout of 25 new volunteers who helped sort and distribute donations, significantly increasing our operational efficiency.</p>
+                        <a href="#" class="text-indigo-600 hover:text-indigo-900 font-semibold">Read More &rarr;</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Volunteer Management Table -->
+            <div class="mb-12">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Volunteer Management</h2>
+                <div class="table-container bg-white p-4 border border-gray-200">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">Name</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Activity</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <!-- Mock data for volunteers -->
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Jane Doe</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">jane.doe@example.com</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">2 days ago</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <a href="#" class="text-indigo-600 hover:text-indigo-900 transition-colors duration-200">Contact</a>
+                                    <a href="#" class="text-red-600 hover:text-red-900 transition-colors duration-200 ml-3">Remove</a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">John Smith</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">john.smith@example.com</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">5 days ago</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <a href="#" class="text-indigo-600 hover:text-indigo-900 transition-colors duration-200">Contact</a>
+                                    <a href="#" class="text-red-600 hover:text-red-900 transition-colors duration-200 ml-3">Remove</a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% else %}
+            <div class="text-center bg-white p-12 rounded-xl shadow-md border border-gray-200">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Access Denied</h2>
+                <p class="text-gray-600 mb-6">You do not have access to a specific dashboard. Please contact support.</p>
+                <a href="{{ url_for('auth.logout') }}" class="action-button">Log Out</a>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="text-center bg-white p-12 rounded-xl shadow-md border border-gray-200">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Please Log In</h2>
+            <p class="text-gray-600 mb-6">You need to be logged in to view your dashboard.</p>
+            <a href="{{ url_for('auth.login') }}" class="action-button">Go to Login</a>
         </div>
-    </div>
+    {% endif %}
+
 </div>
 {% endblock %}
