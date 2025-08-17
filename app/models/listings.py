@@ -25,7 +25,12 @@ class Listing:
     @staticmethod
     def get_all():
         listings_data = mongo.db.listings.find()
-        return [Listing(**data) for data in listings_data]
+        listings = []
+        for data in listings_data:
+            if 'id' in data:
+                del data['id']
+            listings.append(Listing(**data))
+        return listings
 
     @staticmethod
     def get_by_id(listing_id):
@@ -40,10 +45,13 @@ class Listing:
         return [Listing(**data) for data in listings_data]
 
     def save(self):
+        data = self.__dict__.copy()
+        data.pop('id', None)
+
         if self.id:
-            mongo.db.listings.update_one({'_id': ObjectId(self.id)}, {'$set': self.__dict__})
+            mongo.db.listings.update_one({'_id': ObjectId(self.id)}, {'$set': data})
         else:
-            result = mongo.db.listings.insert_one(self.__dict__)
+            result = mongo.db.listings.insert_one(data)
             self.id = str(result.inserted_id)
 
     def delete(self):

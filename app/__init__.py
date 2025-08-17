@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_login import current_user
 from app.config import Config
-from app.extensions import mongo, login_manager, mail
+from app.extensions import mongo, login_manager, mail, moment
 
 def create_app(config_class=Config):
     """
@@ -14,6 +14,7 @@ def create_app(config_class=Config):
     mongo.init_app(app)
     login_manager.init_app(app)
     mail.init_app(app)
+    moment.init_app(app)
 
     # CRITICAL: Import models and blueprints *inside* the factory function.
     # This avoids circular import errors by ensuring extensions like 'db' are

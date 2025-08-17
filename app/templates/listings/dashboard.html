@@ -3,51 +3,63 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold text-gray-800 mb-4">Welcome, {{ current_user.username }}!</h1>
-    <p class="text-gray-600 mb-8">This is your dashboard. From here you can manage your listings, view your messages, and update your profile.</p>
+<div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <h1 class="text-4xl font-extrabold text-gray-900 mb-4">Welcome, {{ current_user.username }}!</h1>
+    <p class="text-lg text-gray-600 mb-8 max-w-2xl">This is your personalized dashboard. Easily manage your listings, track your swaps, and stay updated with messages and notifications.</p>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <!-- Manage Listings -->
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-xl font-semibold mb-4">Manage Your Listings</h2>
-            <p class="text-gray-600 mb-4">View, edit, or delete your current listings.</p>
-            <a href="{{ url_for('listings.user_profile', user_id=current_user.id) }}" class="text-indigo-600 hover:text-indigo-800 font-semibold">View My Listings &rarr;</a>
+        <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200 transition-transform duration-200 hover:scale-[1.01] hover:shadow-lg">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-3">Manage Your Listings</h2>
+            <p class="text-gray-600 mb-5">View, edit, or remove your active items listed for swap or sale.</p>
+            <a href="{{ url_for('listings.user_profile', user_id=current_user.id) }}" class="inline-block bg-[var(--color-accent)] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#2F9C6E] transition-all duration-300 shadow-md">
+                View My Listings &rarr;
+            </a>
         </div>
 
         <!-- Create New Listing -->
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-xl font-semibold mb-4">Create a New Listing</h2>
-            <p class="text-gray-600 mb-4">Have something to sell or swap? Create a new listing for it.</p>
-            <a href="{{ url_for('listings.create_listing') }}" class="text-indigo-600 hover:text-indigo-800 font-semibold">Create Listing &rarr;</a>
+        <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200 transition-transform duration-200 hover:scale-[1.01] hover:shadow-lg">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-3">Create a New Listing</h2>
+            <p class="text-gray-600 mb-5">Have something new to swap or sell? Create a fresh listing for it now.</p>
+            <a href="{{ url_for('listings.create_listing') }}" class="inline-block bg-[var(--color-accent)] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#2F9C6E] transition-all duration-300 shadow-md">
+                Create Listing &rarr;
+            </a>
         </div>
         
         <!-- Manage Swaps -->
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-xl font-semibold mb-4">Manage Swaps</h2>
-            <p class="text-gray-600 mb-4">View and respond to swap requests.</p>
-            <a href="{{ url_for('swaps.manage_swaps') }}" class="text-indigo-600 hover:text-indigo-800 font-semibold">Manage Swaps &rarr;</a>
+        <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200 transition-transform duration-200 hover:scale-[1.01] hover:shadow-lg">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-3">Manage Swaps</h2>
+            <p class="text-gray-600 mb-5">Review incoming swap requests and manage your ongoing swap agreements.</p>
+            <a href="{{ url_for('swaps.manage_swaps') }}" class="inline-block bg-[var(--color-accent)] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#2F9C6E] transition-all duration-300 shadow-md">
+                Manage Swaps &rarr;
+            </a>
         </div>
         
         <!-- View Wishlist -->
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-xl font-semibold mb-4">My Wishlist</h2>
-            <p class="text-gray-600 mb-4">View items you have saved to your wishlist.</p>
-            <a href="{{ url_for('wishlist.view_wishlist') }}" class="text-indigo-600 hover:text-indigo-800 font-semibold">View My Wishlist &rarr;</a>
+        <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200 transition-transform duration-200 hover:scale-[1.01] hover:shadow-lg">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-3">My Wishlist</h2>
+            <p class="text-gray-600 mb-5">Explore items you've saved and keep track of your desired swaps.</p>
+            <a href="{{ url_for('wishlist.view_wishlist') }}" class="inline-block bg-[var(--color-accent)] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#2F9C6E] transition-all duration-300 shadow-md">
+                View My Wishlist &rarr;
+            </a>
         </div>
 
         <!-- Inbox -->
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-xl font-semibold mb-4">Your Inbox</h2>
-            <p class="text-gray-600 mb-4">Check your messages from other users.</p>
-            <a href="{{ url_for('messaging.inbox') }}" class="text-indigo-600 hover:text-indigo-800 font-semibold">Go to Inbox &rarr;</a>
+        <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200 transition-transform duration-200 hover:scale-[1.01] hover:shadow-lg">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-3">Your Inbox</h2>
+            <p class="text-gray-600 mb-5">Catch up on messages from other users and manage your conversations.</p>
+            <a href="{{ url_for('messaging.inbox') }}" class="inline-block bg-[var(--color-accent)] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#2F9C6E] transition-all duration-300 shadow-md">
+                Go to Inbox &rarr;
+            </a>
         </div>
 
         <!-- Profile Settings -->
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-xl font-semibold mb-4">Profile Settings</h2>
-            <p class="text-gray-600 mb-4">Update your personal information and password.</p>
-            <a href="#" class="text-indigo-600 hover:text-indigo-800 font-semibold">Edit Profile &rarr;</a>
+        <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200 transition-transform duration-200 hover:scale-[1.01] hover:shadow-lg">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-3">Profile Settings</h2>
+            <p class="text-gray-600 mb-5">Update your personal information, contact details, or password.</p>
+            <a href="{{ url_for('profile.view_profile') }}" class="inline-block bg-[var(--color-accent)] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#2F9C6E] transition-all duration-300 shadow-md">
+                Edit Profile &rarr;
+            </a>
         </div>
     </div>
 </div>
