@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Password Reset for SwapTheFit</title>
+    <title>Welcome to SwapTheFit!</title>
     <style>
         /* Global styles */
         body {
@@ -74,14 +74,6 @@
             background-color: #2F9C6E; /* Slightly darker accent on hover */
         }
 
-        /* Link specific style */
-        .reset-link {
-            word-break: break-all; /* Ensures long URLs wrap */
-            color: #36B37E;
-            text-decoration: underline;
-            font-size: 14px;
-        }
-
         /* Footer section */
         .footer {
             text-align: center;
@@ -102,20 +94,21 @@
             <h1>SwapTheFit</h1>
         </div>
         <div class="content">
-            <p>Hello {{ user.username }},</p>
-            <p>We received a request to reset your password for your SwapTheFit account. If you initiated this request, please click the button below to reset your password:</p>
+            <p>Hi {{ user.username }},</p>
+            <p>Welcome to SwapTheFit! We're thrilled to have you join our community.</p>
+            <p>You've successfully created your account. You can now start exploring the marketplace, listing your own items, and connecting with other members for seamless clothing swaps.</p>
             
-            <a href="{{ url_for('auth.reset_token', token=token, _external=True) }}" class="button">Reset Your Password</a>
+            <p style="text-align: center;">
+                <a href="{{ url_for('listings.marketplace', _external=True) }}" class="button">Explore the Marketplace</a>
+            </p>
             
-            <p>If the button doesn't work, you can also copy and paste the following link into your web browser:</p>
-            <p><a href="{{ url_for('auth.reset_token', token=token, _external=True) }}" class="reset-link">{{ url_for('auth.reset_token', token=token, _external=True) }}</a></p>
+            <p>We're committed to making sustainable fashion accessible and enjoyable. If you have any questions or need assistance, feel free to reach out to our support team.</p>
             
-            <p>If you did not request a password reset, please ignore this email. Your password will remain unchanged.</p>
-            
+            <p>Happy Swapping!</p>
             <p>Thanks,<br>The SwapTheFit Team</p>
         </div>
         <div class="footer">
-            <p>&copy; {{ datetime.datetime.now().year if datetime is defined else '2023' }} SwapTheFit. All rights reserved.</p>
+            <p>&copy; 2023 SwapTheFit. All rights reserved.</p>
             <p>This is an automated email. Please do not reply.</p>
         </div>
     </div>

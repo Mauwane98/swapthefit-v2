@@ -3,353 +3,180 @@
 {% block title %}Create an Account{% endblock %}
 
 {% block content %}
-<style>
-    /*
-     * Custom styles inspired by Uber's UI/UX principles.
-     * Reuses the same consistent styles as the login page for uniformity.
-     */
-    :root {
-        --primary-color: #4f46e5;
-        --secondary-color: #7c3aed;
-        --text-dark: #1f2937;
-        --text-gray: #4b5563;
-        --bg-light: #f9fafb;
-        --font-sans: 'Inter', sans-serif;
-    }
-
-    body {
-        font-family: var(--font-sans);
-    }
-
-    .form-container {
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        border-radius: 1rem;
-        background-color: white;
-        padding: 2.5rem;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    }
-
-    .form-input {
-        transition: border-color 0.3s ease, box-shadow 0.3s ease;
-        border-radius: 0.5rem;
-        padding: 0.75rem 1rem;
-        border-width: 1px;
-        border-color: #d1d5db;
-        width: 100%;
-        font-size: 0.875rem;
-    }
-
-    .form-input:focus {
-        outline: none;
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
-    }
-
-    .form-button {
-        transition: background-color 0.3s ease, transform 0.3s ease;
-        border-radius: 0.5rem;
-        padding: 0.75rem 1rem;
-        font-weight: 600;
-        color: white;
-        background-color: var(--primary-color);
-        width: 100%;
-        cursor: pointer;
-    }
-
-    .form-button:hover {
-        background-color: #4338ca;
-        transform: scale(1.01);
-    }
-
-    .link-animated {
-        transition: color 0.3s ease;
-        color: var(--primary-color);
-    }
-
-    .link-animated:hover {
-        color: #6366f1;
-    }
-
-    /* Additional styles for radio buttons specific to this page */
-    .role-radio-label {
-        border: 2px solid #d1d5db;
-        transition: border-color 0.3s ease, background-color 0.3s ease;
-        border-radius: 0.5rem;
-        font-weight: 500;
-        padding: 1rem;
-    }
-
-    .role-radio-input:checked + .role-radio-label {
-        border-color: var(--primary-color);
-        background-color: #eef2ff;
-        color: var(--primary-color);
-    }
-</style>
-
-<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8">
+<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-xl border border-gray-200">
         <div class="text-center">
-            <h2 class="mt-6 text-3xl font-extrabold text-gray-900">
+            <h2 class="mt-2 text-3xl font-extrabold text-gray-900">
                 Create your free account
             </h2>
-            <p class="mt-2 text-sm text-gray-600">
-                Join our community and start saving
+            <p class="mt-2 text-base text-gray-600">
+                Join our community and start swapping!
             </p>
         </div>
         
-        <!-- Flash messages can be displayed here -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="space-y-4">
-                    {% for category, message in messages %}
-                        <div class="bg-{{ 'green' if category == 'success' else 'red' }}-100 border-l-4 border-{{ 'green' if category == 'success' else 'red' }}-500 text-{{ 'green' if category == 'success' else 'red' }}-700 p-4 rounded-md animate-fade-in" role="alert">
-                            <p>{{ message }}</p>
-                        </div>
+        <form class="space-y-6" method="POST" action="{{ url_for('auth.register') }}">
+            {{ form.hidden_tag() }}
+            
+            <!-- Role Selection -->
+            <div>
+                {{ form.role.label(class="block text-sm font-semibold text-gray-700 mb-2") }}
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {% for subfield in form.role %}
+                    <div class="relative">
+                        {{ subfield(class="sr-only role-radio-input", id=subfield.id) }}
+                        <label for="{{ subfield.id }}" class="role-radio-label cursor-pointer block text-center py-3 px-4 border-2 border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-all duration-200">
+                            <span class="text-sm">{{ subfield.label.text }}</span>
+                        </label>
+                    </div>
                     {% endfor %}
                 </div>
-            {% endif %}
-        {% endwith %}
+                {% for error in form.role.errors %}
+                    <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                {% endfor %}
+            </div>
 
-        <div class="form-container">
-            <form id="register-form" class="space-y-6" method="POST" action="{{ url_for('auth.register') }}">
-                {{ form.hidden_tag() }}
-                
-                <!-- Role Selection -->
-                <div>
-                    {{ form.role.label(class="block text-sm font-medium text-gray-700 mb-2") }}
-                    <div class="grid grid-cols-2 gap-4">
-                        {% for subfield in form.role %}
-                        <div class="relative">
-                            {{ subfield(class="sr-only role-radio-input", id=subfield.id) }}
-                            <label for="{{ subfield.id }}" class="role-radio-label cursor-pointer block text-center">
-                                <span class="font-semibold text-gray-700">{{ subfield.label.text }}</span>
-                            </label>
-                        </div>
-                        {% endfor %}
-                    </div>
+            <!-- Username Field (changes label based on role) -->
+            <div>
+                {{ form.username.label(id="username-label", class="block text-sm font-semibold text-gray-700 mb-1") }}
+                <div class="mt-1">
+                    {{ form.username(class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-accent focus:border-accent sm:text-sm") }}
+                    {% for error in form.username.errors %}
+                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                    {% endfor %}
                 </div>
+            </div>
+            
+            <!-- Contact Person Field (conditionally hidden/shown) -->
+            <div id="contact-person-field" class="hidden">
+                {{ form.contact_person.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
+                <div class="mt-1">
+                    {{ form.contact_person(class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-accent focus:border-accent sm:text-sm", placeholder="e.g., Jane Doe, Main Contact") }}
+                    {% for error in form.contact_person.errors %}
+                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Email Field -->
+            <div>
+                {{ form.email.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
+                <div class="mt-1">
+                    {{ form.email(class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-accent focus:border-accent sm:text-sm", placeholder="you@example.com") }}
+                    {% for error in form.email.errors %}
+                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                    {% endfor %}
+                </div>
+            </div>
 
-                <!-- Name Field -->
-                <div>
-                    {{ form.name.label(id="name-label", class="block text-sm font-medium text-gray-700") }}
-                    <div class="mt-1">
-                        {{ form.name(id="name-input", class="form-input block w-full") }}
-                        <p id="name-error" class="text-red-500 text-xs mt-1 hidden"></p>
-                    </div>
+            <!-- Password Field -->
+            <div>
+                {{ form.password.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
+                <div class="mt-1">
+                    {{ form.password(class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-accent focus:border-accent sm:text-sm", placeholder="Create a strong password") }}
+                    {% for error in form.password.errors %}
+                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                    {% endfor %}
                 </div>
-                
-                <!-- Contact Person Field (Shows for NGOs/Schools) -->
-                <div id="contact-person-field" class="hidden">
-                    {{ form.contact_person.label(class="block text-sm font-medium text-gray-700") }}
-                    <div class="mt-1">
-                        {{ form.contact_person(id="contact-person-input", class="form-input block w-full", placeholder="e.g. Jane Doe") }}
-                        <p id="contact-person-error" class="text-red-500 text-xs mt-1 hidden"></p>
-                    </div>
+            </div>
+            
+            <!-- Confirm Password Field -->
+            <div>
+                {{ form.confirm_password.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
+                <div class="mt-1">
+                    {{ form.confirm_password(class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-accent focus:border-accent sm:text-sm", placeholder="Confirm your password") }}
+                    {% for error in form.confirm_password.errors %}
+                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                    {% endfor %}
                 </div>
-                
-                <div>
-                    {{ form.email.label(class="block text-sm font-medium text-gray-700") }}
-                    <div class="mt-1">
-                        {{ form.email(id="email-input", class="form-input block w-full", placeholder="you@example.com") }}
-                        <p id="email-error" class="text-red-500 text-xs mt-1 hidden"></p>
-                    </div>
-                </div>
+            </div>
 
-                <div>
-                    {{ form.password.label(class="block text-sm font-medium text-gray-700") }}
-                    <div class="mt-1">
-                        {{ form.password(id="password-input", class="form-input block w-full", placeholder="Create a password") }}
-                        <p id="password-error" class="text-red-500 text-xs mt-1 hidden"></p>
-                    </div>
-                </div>
-                
-                <div>
-                    {{ form.confirm_password.label(class="block text-sm font-medium text-gray-700") }}
-                    <div class="mt-1">
-                        {{ form.confirm_password(id="confirm-password-input", class="form-input block w-full", placeholder="Confirm your password") }}
-                        <p id="confirm-password-error" class="text-red-500 text-xs mt-1 hidden"></p>
-                    </div>
-                </div>
+            <div>
+                <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-[var(--color-accent)] hover:bg-[#2F9C6E] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-accent)] transition-all duration-300 shadow-md">
+                    Create Account
+                </button>
+            </div>
+        </form>
 
-                <div>
-                    <button type="submit" class="form-button">
-                        Create Account
-                    </button>
-                </div>
-            </form>
+        <div class="relative py-4">
+            <div class="absolute inset-0 flex items-center">
+                <div class="w-full border-t border-gray-300"></div>
+            </div>
+            <div class="relative flex justify-center text-sm">
+                <span class="px-2 bg-white text-gray-500">Or register with</span>
+            </div>
         </div>
+
+        <div>
+            <a href="{{ url_for('google_login') }}" class="w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200">
+                <img class="h-5 w-5 mr-2" src="https://www.svgrepo.com/show/355037/google.svg" alt="Google logo">
+                Sign up with Google
+            </a>
+        </div>
+
         <p class="mt-4 text-center text-sm text-gray-600">
             Already have an account?
-            <a href="{{ url_for('auth.login') }}" class="font-medium link-animated">
+            <a href="{{ url_for('auth.login') }}" class="font-medium text-accent hover:text-green-700 transition-colors duration-200">
                 Sign in
             </a>
         </p>
     </div>
 </div>
 
+<style>
+    /* Additional styles for radio buttons specific to this page */
+    .role-radio-input:checked + label {
+        border-color: var(--color-accent) !important;
+        background-color: rgba(54, 179, 126, 0.1) !important; /* Light accent background */
+        color: var(--color-accent) !important;
+    }
+</style>
+
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Debounce utility to prevent too many function calls
-        const debounce = (func, delay) => {
-            let timeoutId;
-            return (...args) => {
-                clearTimeout(timeoutId);
-                timeoutId = setTimeout(() => func.apply(this, args), delay);
-            };
-        };
-        
         // Form elements
-        const form = document.getElementById('register-form');
         const roleRadios = document.querySelectorAll('input[name="role"]');
-        const nameLabel = document.getElementById('name-label');
-        const nameInput = document.getElementById('name-input');
+        const usernameLabel = document.getElementById('username-label');
+        const usernameInput = document.querySelector('[name="username"]'); // Use name attribute for consistency
         const contactPersonField = document.getElementById('contact-person-field');
         const contactPersonInput = document.getElementById('contact-person-input');
-        const emailInput = document.getElementById('email-input');
-        const passwordInput = document.getElementById('password-input');
-        const confirmPasswordInput = document.getElementById('confirm-password-input');
-
-        // Error message elements
-        const nameError = document.getElementById('name-error');
-        const contactPersonError = document.getElementById('contact-person-error');
-        const emailError = document.getElementById('email-error');
-        const passwordError = document.getElementById('password-error');
-        const confirmPasswordError = document.getElementById('confirm-password-error');
 
         // Function to update fields based on user role
         const updateFormFields = (role) => {
-            if (nameLabel && nameInput && contactPersonField) {
+            if (usernameLabel && usernameInput && contactPersonField) {
                 if (role === 'school' || role === 'ngo') {
-                    nameLabel.textContent = 'Organization Name';
-                    nameInput.placeholder = 'e.g. Springfield High';
+                    usernameLabel.textContent = 'Organization Name';
+                    usernameInput.placeholder = 'e.g., Springfield High School or Green NGO';
                     contactPersonField.classList.remove('hidden');
+                    if (contactPersonInput) contactPersonInput.setAttribute('required', 'true');
                 } else {
-                    nameLabel.textContent = 'Your Name';
-                    nameInput.placeholder = 'e.g. John Doe';
+                    usernameLabel.textContent = 'Your Username';
+                    usernameInput.placeholder = 'e.g., john_doe';
                     contactPersonField.classList.add('hidden');
+                    if (contactPersonInput) contactPersonInput.removeAttribute('required');
                 }
             }
         };
 
-        // Real-time validation functions
-        const validateName = () => {
-            if (!nameInput) return true;
-            const name = nameInput.value;
-            if (!name) {
-                nameError.textContent = 'This field is required.';
-                nameError.classList.remove('hidden');
-                return false;
-            } else {
-                nameError.classList.add('hidden');
-                return true;
-            }
-        };
-
-        const validateContactPerson = () => {
-            if (!contactPersonField || contactPersonField.classList.contains('hidden')) return true;
-            if (!contactPersonInput) return true;
-            const contactPerson = contactPersonInput.value;
-            if (!contactPerson) {
-                contactPersonError.textContent = 'This field is required.';
-                contactPersonError.classList.remove('hidden');
-                return false;
-            } else {
-                contactPersonError.classList.add('hidden');
-                return true;
-            }
-        };
-
-        const validateEmail = () => {
-            if (!emailInput) return true;
-            const email = emailInput.value;
-            if (!email) {
-                emailError.textContent = 'Email is required.';
-                emailError.classList.remove('hidden');
-                return false;
-            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                emailError.textContent = 'Please enter a valid email address.';
-                emailError.classList.remove('hidden');
-                return false;
-            } else {
-                emailError.classList.add('hidden');
-                return true;
-            }
-        };
-
-        const validatePassword = () => {
-            if (!passwordInput) return true;
-            const password = passwordInput.value;
-            if (password.length < 6) {
-                passwordError.textContent = 'Password must be at least 6 characters long.';
-                passwordError.classList.remove('hidden');
-                return false;
-            } else {
-                passwordError.classList.add('hidden');
-                return true;
-            }
-        };
-
-        const validateConfirmPassword = () => {
-            if (!passwordInput || !confirmPasswordInput) return true;
-            const password = passwordInput.value;
-            const confirmPassword = confirmPasswordInput.value;
-            if (password !== confirmPassword) {
-                confirmPasswordError.textContent = 'Passwords do not match.';
-                confirmPasswordError.classList.remove('hidden');
-                return false;
-            } else {
-                confirmPasswordError.classList.add('hidden');
-                return true;
-            }
-        };
-
-        // Event listeners with checks for element existence
+        // Event listeners for role selection
         if (roleRadios) {
             roleRadios.forEach(radio => {
                 radio.addEventListener('change', () => {
                     updateFormFields(radio.value);
-                    // Clear validation on role change
-                    if (nameError) nameError.classList.add('hidden');
-                    if (contactPersonError) contactPersonError.classList.add('hidden');
                 });
             });
         }
-        
-        if (nameInput) nameInput.addEventListener('input', debounce(validateName, 300));
-        if (contactPersonInput) contactPersonInput.addEventListener('input', debounce(validateContactPerson, 300));
-        if (emailInput) emailInput.addEventListener('input', debounce(validateEmail, 300));
-        if (passwordInput) passwordInput.addEventListener('input', debounce(validatePassword, 300));
-        if (confirmPasswordInput) confirmPasswordInput.addEventListener('input', debounce(validateConfirmPassword, 300));
-        if (passwordInput && confirmPasswordInput) {
-            passwordInput.addEventListener('input', debounce(validateConfirmPassword, 300));
-            confirmPasswordInput.addEventListener('input', debounce(validateConfirmPassword, 300));
-        }
 
-        // Handle form submission
-        if (form) {
-            form.addEventListener('submit', (event) => {
-                const isNameValid = validateName();
-                const isContactPersonValid = validateContactPerson();
-                const isEmailValid = validateEmail();
-                const isPasswordValid = validatePassword();
-                const isConfirmPasswordValid = validateConfirmPassword();
-
-                if (!isNameValid || !isContactPersonValid || !isEmailValid || !isPasswordValid || !isConfirmPasswordValid) {
-                    event.preventDefault();
-                    // Focus on the first invalid input
-                    if (!isNameValid && nameInput) nameInput.focus();
-                    else if (!isContactPersonValid && contactPersonInput) contactPersonInput.focus();
-                    else if (!isEmailValid && emailInput) emailInput.focus();
-                    else if (!isPasswordValid && passwordInput) passwordInput.focus();
-                    else if (!isConfirmPasswordValid && confirmPasswordInput) confirmPasswordInput.focus();
-                }
-            });
-        }
-
-        // Set initial state
+        // Set initial state based on default or pre-selected role
         const selectedRole = document.querySelector('input[name="role"]:checked');
         if (selectedRole) {
             updateFormFields(selectedRole.value);
+        } else if (roleRadios.length > 0) {
+            // If no role is checked, check the default 'parent' and update fields
+            const defaultParentRadio = document.querySelector('input[name="role"][value="parent"]');
+            if (defaultParentRadio) {
+                defaultParentRadio.checked = true;
+                updateFormFields('parent');
+            }
         }
     });
 </script>

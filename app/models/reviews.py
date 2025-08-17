@@ -1,47 +1,55 @@
-from app.extensions import mongo
+from app.extensions import db
 from datetime import datetime
-from bson.objectid import ObjectId
 
-class Review:
+class Review(db.Document):
     """
-    Represents a review given by one user to another.
+    Represents a review given by one user to another within the SwapTheFit application.
+    This model uses MongoEngine to interact with MongoDB.
     """
+    # Reference to the User who provided the review.
+    reviewer = db.ReferenceField('User', required=True, help_text="The user who wrote this review.")
 
-    def __init__(self, rating, reviewer_id, reviewed_user_id, comment=None, date_posted=None, _id=None):
-        self.rating = rating
-        self.comment = comment
-        self.date_posted = date_posted or datetime.utcnow()
-        self.reviewer_id = reviewer_id
-        self.reviewed_user_id = reviewed_user_id
-        if _id:
-            self.id = str(_id)
-        else:
-            self.id = None
+    # Reference to the User who is being reviewed.
+    reviewed_user = db.ReferenceField('User', required=True, help_text="The user who is being reviewed.")
 
-    @staticmethod
-    def get_by_reviewed_user(user_id):
-        reviews_data = mongo.db.reviews.find({'reviewed_user_id': user_id})
-        return [Review(**data) for data in reviews_data]
+    # Numerical rating given by the reviewer (e.g., 1 to 5 stars).
+    # Choices enforce valid rating values.
+    rating = db.IntField(required=True, min_value=1, max_value=5, help_text="The numerical rating (1-5 stars).")
+
+    # Optional text comment accompanying the review.
+    comment = db.StringField(max_length=500, help_text="Optional text comment for the review.")
+
+    # Timestamp for when the review was posted.
+    date_posted = db.DateTimeField(default=datetime.utcnow, help_text="Timestamp when the review was posted.")
+
+    # Define a Meta class for MongoEngine specific configurations.
+    meta = {
+        'collection': 'reviews',  # Explicitly set the collection name in MongoDB
+        'indexes': [
+            {'fields': ('reviewer',)},      # Index by reviewer for faster lookup of reviews given by a user
+            {'fields': ('reviewed_user',)}, # Index by reviewed user for faster retrieval of reviews for a user
+            {'fields': ('-date_posted',)} # Descending index on date_posted for latest reviews
+        ],
+        'strict': False # Allows for dynamic fields not explicitly defined in the schema
+    }
 
     @staticmethod
     def get_average_rating(user_id):
-        pipeline = [
-            {'$match': {'reviewed_user_id': user_id}},
-            {'$group': {'_id': None, 'averageRating': {'$avg': '$rating'}}}
-        ]
-        result = list(mongo.db.reviews.aggregate(pipeline))
-        return result[0]['averageRating'] if result else 0
+        reviews = Review.objects(reviewed_user=user_id)
+        if reviews:
+            total_rating = sum(review.rating for review in reviews)
+            return total_rating / len(reviews)
+        return 0
 
     @staticmethod
     def has_reviewed(reviewer_id, reviewed_user_id):
-        return mongo.db.reviews.find_one({'reviewer_id': reviewer_id, 'reviewed_user_id': reviewed_user_id}) is not None
-
-    def save(self):
-        if self.id:
-            mongo.db.reviews.update_one({'_id': ObjectId(self.id)}, {'$set': self.__dict__})
-        else:
-            result = mongo.db.reviews.insert_one(self.__dict__)
-            self.id = str(result.inserted_id)
+        return Review.objects(reviewer=reviewer_id, reviewed_user=reviewed_user_id).first() is not None
 
     def __repr__(self):
-        return f'<Review {self.reviewer_id} -> {self.reviewed_user_id}: {self.rating} stars>'
+        """
+        String representation of the Review object, useful for debugging.
+        """
+        reviewer_name = self.reviewer.username if self.reviewer else "Unknown Reviewer"
+        reviewed_name = self.reviewed_user.username if self.reviewed_user else "Unknown Reviewed User"
+        return f"Review by '{reviewer_name}' for '{reviewed_name}': {self.rating} stars"
+

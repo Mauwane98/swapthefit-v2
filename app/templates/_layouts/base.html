@@ -8,6 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Inter Font from Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         /* Custom CSS Variables for Uber-inspired Palette */
         :root {
@@ -47,6 +49,15 @@
         .btn-primary:hover {
             background-color: #2F9C6E; /* Slightly darker accent on hover */
         }
+        /* Custom animation for pulsating notification badge */
+        @keyframes pulse-once {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pulse-once {
+            animation: pulse-once 0.5s ease-in-out;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -64,10 +75,12 @@
                     {% if current_user.is_authenticated %}
                         <a class="text-gray-700 hover:text-gray-900 font-medium transition-colors duration-200" href="{{ url_for('listings.dashboard') }}">Dashboard</a>
                         <a class="text-gray-700 hover:text-gray-900 font-medium relative transition-colors duration-200" href="{{ url_for('notifications.index') }}">
-                            Notifications
-                            {% if unread_notifications > 0 %}
-                                <span class="absolute -top-1 -right-1 inline-flex items-center justify-center h-4 w-4 text-xs font-bold text-white bg-red-500 rounded-full animate-pulse">{{ unread_notifications }}</span>
-                            {% endif %}
+                            <i class="fas fa-bell"></i> Notifications
+                            <span id="notification-badge" class="absolute -top-1 -right-1 inline-flex items-center justify-center h-4 w-4 text-xs font-bold text-white bg-red-500 rounded-full animate-pulse-once {% if unread_notifications == 0 %}hidden{% endif %}">{{ unread_notifications }}</span>
+                        </a>
+                        <a class="text-gray-700 hover:text-gray-900 font-medium transition-colors duration-200" href="{{ url_for('profile.user_profile', user_id=current_user.id) }}">
+                            <img src="{{ current_user.profile_pic }}" alt="Profile" class="w-8 h-8 rounded-full inline-block mr-1 object-cover">
+                            {{ current_user.username }}
                         </a>
                         <a class="text-gray-700 hover:text-gray-900 font-medium transition-colors duration-200" href="{{ url_for('auth.logout') }}">Logout</a>
                     {% else %}
@@ -77,7 +90,13 @@
                 </div>
 
                 <!-- Mobile Menu Button -->
-                <div class="md:hidden">
+                <div class="md:hidden flex items-center">
+                    {% if current_user.is_authenticated %}
+                        <a class="text-gray-700 hover:text-gray-900 font-medium relative mr-4" href="{{ url_for('notifications.index') }}">
+                            <i class="fas fa-bell"></i>
+                            <span id="mobile-notification-badge" class="absolute -top-1 -right-1 inline-flex items-center justify-center h-4 w-4 text-xs font-bold text-white bg-red-500 rounded-full animate-pulse-once {% if unread_notifications == 0 %}hidden{% endif %}">{{ unread_notifications }}</span>
+                        </a>
+                    {% endif %}
                     <button id="mobile-menu-button" class="text-gray-700 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] rounded-md p-2">
                         <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
@@ -93,12 +112,7 @@
                 <a class="block py-3 px-6 text-gray-700 hover:bg-gray-50 transition-colors duration-200" href="{{ url_for('listings.marketplace') }}">Marketplace</a>
                 {% if current_user.is_authenticated %}
                     <a class="block py-3 px-6 text-gray-700 hover:bg-gray-50 transition-colors duration-200" href="{{ url_for('listings.dashboard') }}">Dashboard</a>
-                    <a class="block py-3 px-6 text-gray-700 hover:bg-gray-50 relative transition-colors duration-200" href="{{ url_for('notifications.index') }}">
-                        Notifications 
-                        {% if unread_notifications > 0 %}
-                            <span class="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-500 rounded-full animate-pulse">{{ unread_notifications }}</span>
-                        {% endif %}
-                    </a>
+                    <a class="block py-3 px-6 text-gray-700 hover:bg-gray-50 transition-colors duration-200" href="{{ url_for('profile.user_profile', user_id=current_user.id) }}">Profile</a>
                     <a class="block py-3 px-6 text-gray-700 hover:bg-gray-50 transition-colors duration-200" href="{{ url_for('auth.logout') }}">Logout</a>
                 {% else %}
                     <a class="block py-3 px-6 text-gray-700 hover:bg-gray-50 transition-colors duration-200" href="{{ url_for('auth.login') }}">Login</a>
@@ -116,7 +130,7 @@
                     {% for category, message in messages %}
                         <div class="flex items-center justify-between p-4 mb-4 rounded-lg shadow-sm
                                     {% if category == 'success' %} bg-green-100 border border-green-400 text-green-700
-                                    {% elif category == 'error' %} bg-red-100 border border-red-400 text-red-700
+                                    {% elif category == 'error' or category == 'danger' %} bg-red-100 border border-red-400 text-red-700
                                     {% else %} bg-blue-100 border border-blue-400 text-blue-700
                                     {% endif %}" role="alert">
                             <span class="block sm:inline font-medium">{{ message }}</span>
@@ -135,7 +149,7 @@
     <!-- Footer -->
     <footer class="bg-gray-800 text-white py-6 mt-12">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm">
-            <p>&copy; {{ moment().format('YYYY') }} SwapTheFit. All rights reserved.</p>
+            <p>&copy; {{ datetime.now().year if datetime is defined else '2023' }} SwapTheFit. All rights reserved.</p>
             <div class="flex justify-center space-x-4 mt-2">
                 <a href="#" class="text-gray-300 hover:text-white transition-colors duration-200">Privacy Policy</a>
                 <span class="text-gray-500">|</span>
@@ -144,16 +158,71 @@
         </div>
     </footer>
 
+    <!-- Socket.IO Client Script -->
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            // Mobile menu toggle functionality
             const mobileMenuButton = document.getElementById('mobile-menu-button');
             const mobileMenu = document.getElementById('mobile-menu');
 
-            mobileMenuButton.addEventListener('click', function () {
-                mobileMenu.classList.toggle('hidden');
-            });
+            if (mobileMenuButton && mobileMenu) {
+                mobileMenuButton.addEventListener('click', function () {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+
+            // Socket.IO client setup for real-time notifications
+            // Flask renders 'true' or 'false' for isAuthenticated based on current_user.is_authenticated
+            const isAuthenticated = {{ current_user.is_authenticated | tojson }};
+
+            if (isAuthenticated) {
+                const socket = io(); // Connect to the Socket.IO server
+
+                // Event listener for successful connection
+                socket.on('connect', function() {
+                    console.log('Socket.IO connected!');
+                    // Emit 'connect' event to server to join user-specific room
+                    socket.emit('connect'); 
+                });
+
+                // Event listener for disconnection
+                socket.on('disconnect', function() {
+                    console.log('Socket.IO disconnected!');
+                });
+
+                // Event listener for 'update_notification_count' from the server
+                socket.on('update_notification_count', function(data) {
+                    const badge = document.getElementById('notification-badge');
+                    const mobileBadge = document.getElementById('mobile-notification-badge');
+                    if (badge && mobileBadge) {
+                        badge.textContent = data.count;
+                        mobileBadge.textContent = data.count;
+                        if (data.count > 0) {
+                            badge.classList.remove('hidden');
+                            mobileBadge.classList.remove('hidden');
+                            // Add a pulse animation for a brief moment
+                            badge.classList.add('animate-pulse-once');
+                            mobileBadge.classList.add('animate-pulse-once');
+                            setTimeout(() => {
+                                badge.classList.remove('animate-pulse-once');
+                                mobileBadge.classList.remove('animate-pulse-once');
+                            }, 500); // Remove animation class after 0.5 seconds
+                        } else {
+                            badge.classList.add('hidden');
+                            mobileBadge.classList.add('hidden');
+                        }
+                    }
+                });
+
+                // Event listener for 'new_notification' (e.g., from messages or swaps)
+                socket.on('new_notification', function(data) {
+                    console.log('New notification received:', data);
+                    // Optionally, display a toast or banner notification here
+                    // For now, we rely on the badge update.
+                });
+            }
         });
     </script>
-
 </body>
 </html>

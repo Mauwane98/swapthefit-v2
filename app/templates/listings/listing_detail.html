@@ -1,132 +1,274 @@
 {% extends "_layouts/base.html" %}
 
-{% block title %}{{ listing.item_name }}{% endblock %}
+{% block title %}{{ listing.title }}{% endblock %}
 
 {% block content %}
-<style>
-    /*
-     * Custom styles for the Listing Detail page, consistent with other pages.
-     */
-    :root {
-        --primary-color: #4f46e5;
-        --secondary-color: #7c3aed;
-        --text-dark: #1f2937;
-        --text-gray: #4b5563;
-        --bg-light: #f9fafb;
-        --font-sans: 'Inter', sans-serif;
-    }
-
-    body {
-        font-family: var(--font-sans);
-    }
-
-    .card {
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        border-radius: 1rem;
-        background-color: white;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    }
-
-    .action-button {
-        transition: background-color 0.3s ease, transform 0.3s ease;
-        border-radius: 9999px;
-        font-weight: 600;
-        padding: 0.75rem 2rem;
-        display: inline-block;
-        text-align: center;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    }
-
-    .primary-button {
-        background-color: var(--primary-color);
-        color: white;
-    }
-
-    .primary-button:hover {
-        background-color: #4338ca;
-        transform: scale(1.05);
-    }
-
-    .secondary-button {
-        background-color: #d1d5db;
-        color: var(--text-gray);
-    }
-
-    .secondary-button:hover {
-        background-color: #9ca3af;
-        transform: scale(1.05);
-    }
-
-    .danger-button {
-        background-color: #ef4444;
-        color: white;
-    }
-
-    .danger-button:hover {
-        background-color: #dc2626;
-        transform: scale(1.05);
-    }
-
-    .link-animated {
-        transition: color 0.3s ease;
-        color: var(--primary-color);
-    }
-
-    .link-animated:hover {
-        color: #6366f1;
-    }
-</style>
-
-<div class="container mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
-    <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200 card">
-        <div class="md:flex">
-            <div class="md:flex-shrink-0">
-                <img class="h-80 md:h-full w-full object-cover md:w-96 rounded-t-xl md:rounded-l-xl md:rounded-tr-none transition-transform duration-300 hover:scale-105" 
-                     src="{{ url_for('static', filename='uploads/' + listing.image_url) if listing.image_url else 'https://placehold.co/600x400/F8F8F8/333333?text=No+Image' }}" 
-                     alt="{{ listing.item_name }}"
-                     onerror="this.onerror=null;this.src='https://placehold.co/600x400/F8F8F8/333333?text=No+Image';">
+<div class="container mx-auto px-4 py-8 md:py-12">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Listing Details Section -->
+        <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-xl border border-gray-200">
+            <!-- Image Carousel (if multiple images) or Single Image -->
+            <div class="mb-6 relative">
+                {% if listing.images and listing.images|length > 1 %}
+                <div id="listingCarousel" class="relative overflow-hidden rounded-lg">
+                    <div class="flex transition-transform duration-500 ease-in-out" id="carousel-inner">
+                        {% for image_url in listing.images %}
+                            <img src="{{ image_url }}" alt="{{ listing.title }} - Image {{ loop.index }}" 
+                                 class="w-full h-96 object-cover flex-shrink-0 rounded-lg">
+                        {% endfor %}
+                    </div>
+                    <button type="button" class="absolute top-1/2 left-4 -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-colors duration-200" id="prevBtn">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <button type="button" class="absolute top-1/2 right-4 -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-colors duration-200" id="nextBtn">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    <div class="absolute bottom-4 left-0 right-0 flex justify-center space-x-2">
+                        {% for _ in listing.images %}
+                            <span class="carousel-dot w-2 h-2 bg-white bg-opacity-50 rounded-full cursor-pointer hover:bg-opacity-75 transition-colors duration-200"></span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% elif listing.images %}
+                    <img src="{{ listing.images[0] }}" alt="{{ listing.title }}" 
+                         class="w-full h-96 object-cover rounded-lg">
+                {% else %}
+                    <img src="https://placehold.co/800x600/CCCCCC/333333?text=No+Image" alt="No Image Available" 
+                         class="w-full h-96 object-cover rounded-lg">
+                {% endif %}
             </div>
-            <div class="p-6 md:p-8 flex flex-col justify-center">
-                <div class="uppercase tracking-wide text-sm font-semibold text-indigo-600">{{ listing.school_name }}</div>
-                <h1 class="block mt-1 text-3xl sm:text-4xl leading-tight font-extrabold text-gray-900 mb-2">{{ listing.item_name }}</h1>
-                <p class="mt-2 text-gray-700 text-base leading-relaxed">{{ listing.description }}</p>
 
-                <div class="mt-4 mb-6">
-                    <span class="text-gray-900 font-bold text-3xl">R{{ "%.2f"|format(listing.price) }}</span>
+            <h1 class="text-3xl font-extrabold text-gray-900 mb-3">{{ listing.title }}</h1>
+            <p class="text-gray-700 text-lg mb-4 leading-relaxed">{{ listing.description }}</p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-700 mb-6">
+                <div class="flex items-center">
+                    <i class="fas fa-tag text-accent mr-2"></i>
+                    <span class="font-semibold">Category:</span> {{ listing.category }}
                 </div>
-
-                <div class="mt-4 space-y-3 text-gray-700">
-                    <p class="flex items-center"><span class="font-semibold text-gray-800 w-24">Size:</span> <span class="text-gray-600">{{ listing.size }}</span></p>
-                    <p class="flex items-center"><span class="font-semibold text-gray-800 w-24">Condition:</span> <span class="text-gray-600">{{ listing.condition }}</span></p>
-                    <p class="flex items-center"><span class="font-semibold text-gray-800 w-24">Seller:</span> <a href="{{ url_for('listings.user_profile', user_id=listing.user.id) }}" class="text-indigo-600 hover:underline ml-1">{{ listing.user.username }}</a></p>
-                    <p class="text-sm text-gray-500 pt-2">Posted on {{ listing.date_posted.strftime('%B %d, %Y') }}</p>
+                <div class="flex items-center">
+                    <i class="fas fa-ruler-combined text-accent mr-2"></i>
+                    <span class="font-semibold">Size:</span> {{ listing.size }}
                 </div>
+                <div class="flex items-center">
+                    <i class="fas fa-hand-holding-medical text-accent mr-2"></i>
+                    <span class="font-semibold">Condition:</span> {{ listing.condition }}
+                </div>
+                {% if listing.school_name %}
+                <div class="flex items-center">
+                    <i class="fas fa-school text-accent mr-2"></i>
+                    <span class="font-semibold">School:</span> {{ listing.school_name }}
+                </div>
+                {% endif %}
+                <div class="flex items-center">
+                    <i class="fas fa-calendar-alt text-accent mr-2"></i>
+                    <span class="font-semibold">Listed On:</span> {{ listing.created_at.strftime('%b %d, %Y') }}
+                </div>
+            </div>
 
-                <div class="mt-8 flex flex-wrap items-center gap-4">
-                    {% if current_user.is_authenticated %}
-                        {% if current_user.id == listing.user_id %}
-                            <a href="{{ url_for('listings.edit_listing', listing_id=listing.id) }}" class="flex-grow md:flex-none action-button primary-button">Edit Listing</a>
-                            <form action="{{ url_for('listings.delete_listing', listing_id=listing.id) }}" method="POST">
-                                <button type="submit" class="flex-grow md:flex-none action-button danger-button">Delete Listing</button>
-                            </form>
+            {% if listing.desired_swap_items %}
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
+                <p class="text-sm font-semibold text-gray-800 mb-2"><i class="fas fa-exchange-alt text-accent mr-2"></i> Desired Swap Items:</p>
+                <p class="text-gray-700 text-base">{{ listing.desired_swap_items }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Action Buttons -->
+            <div class="flex flex-wrap gap-4 mt-6">
+                {% if current_user.is_authenticated and current_user.id == listing.owner.id %}
+                    <!-- Owner's Actions -->
+                    <a href="{{ url_for('listings.edit_listing', listing_id=listing.id) }}" 
+                       class="flex-1 min-w-[150px] inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 shadow-md">
+                        <i class="fas fa-edit mr-2"></i> Edit Listing
+                    </a>
+                    <form action="{{ url_for('listings.delete_listing', listing_id=listing.id) }}" method="POST" class="flex-1 min-w-[150px]">
+                        {{ csrf_token() }}
+                        <button type="submit" onclick="return confirm('Are you sure you want to delete this listing? This action cannot be undone.');"
+                                class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200 shadow-md">
+                            <i class="fas fa-trash-alt mr-2"></i> Delete Listing
+                        </button>
+                    </form>
+                {% elif current_user.is_authenticated %}
+                    <!-- Other User's Actions -->
+                    <a href="{{ url_for('swaps.propose_swap', listing_id=listing.id) }}" 
+                       class="flex-1 min-w-[150px] inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[var(--color-accent)] hover:bg-[#2F9C6E] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-accent)] transition-colors duration-200 shadow-md">
+                        <i class="fas fa-exchange-alt mr-2"></i> Propose Swap
+                    </a>
+                    <a href="{{ url_for('messaging.send_message', recipient_id=listing.owner.id, listing_id=listing.id) }}" 
+                       class="flex-1 min-w-[150px] inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200 shadow-md">
+                        <i class="fas fa-comment-dots mr-2"></i> Message Owner
+                    </a>
+                    {% if current_user.has_role('parent') %}
+                        {% if not is_wishlisted %}
+                        <form action="{{ url_for('listings.add_to_wishlist', listing_id=listing.id) }}" method="POST" class="flex-1 min-w-[150px]">
+                            {{ csrf_token() }}
+                            <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200">
+                                <i class="far fa-heart mr-2"></i> Add to Wishlist
+                            </button>
+                        </form>
                         {% else %}
-                            <a href="{{ url_for('messaging.send_message', recipient_id=listing.user.id, listing_id=listing.id) }}" class="flex-grow md:flex-none action-button primary-button">Message Seller</a>
-                            <a href="{{ url_for('swaps.propose_swap', listing_id=listing.id) }}" class="flex-grow md:flex-none action-button bg-purple-600 text-white hover:bg-purple-700">Propose Swap</a>
-                            <form action="{{ url_for('wishlist.add_to_wishlist', listing_id=listing.id) }}" method="POST" class="flex-grow md:flex-none">
-                                <button type="submit" class="flex items-center justify-center w-full action-button secondary-button hover:bg-red-100 hover:text-red-500">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                                    </svg>
-                                    Add to Wishlist
-                                </button>
-                            </form>
+                        <form action="{{ url_for('listings.remove_from_wishlist', listing_id=listing.id) }}" method="POST" class="flex-1 min-w-[150px]">
+                            {{ csrf_token() }}
+                            <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 border border-red-400 rounded-md shadow-sm text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200">
+                                <i class="fas fa-heart mr-2"></i> Remove from Wishlist
+                            </button>
+                        </form>
                         {% endif %}
+                    {% endif %}
+                {% else %}
+                    <!-- Guest User Actions -->
+                    <a href="{{ url_for('auth.login') }}" 
+                       class="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[var(--color-accent)] hover:bg-[#2F9C6E] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-accent)] transition-colors duration-200 shadow-md">
+                        <i class="fas fa-sign-in-alt mr-2"></i> Login to Interact
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Owner Profile & Reviews Section -->
+        <div class="lg:col-span-1 space-y-8">
+            <!-- Owner Profile Card -->
+            <div class="bg-white p-6 rounded-lg shadow-xl border border-gray-200 text-center">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Listing Owner</h2>
+                <a href="{{ url_for('listings.user_profile', user_id=listing.owner.id) }}" class="block">
+                    <img src="{{ listing.owner.profile_pic }}" alt="{{ listing.owner.username }}" 
+                         class="w-24 h-24 rounded-full mx-auto object-cover border-4 border-accent shadow-md mb-4">
+                    <h3 class="text-xl font-semibold text-gray-800 hover:text-accent transition-colors duration-200">{{ listing.owner.username }}</h3>
+                </a>
+                <p class="text-sm text-gray-600 mb-2">{{ listing.owner.email }}</p>
+                {% if listing.owner.roles %}
+                    <p class="text-sm text-gray-500">Role: <span class="capitalize">{{ listing.owner.roles[0] }}</span></p>
+                {% endif %}
+                <div class="flex items-center justify-center mt-3">
+                    {% if avg_rating > 0 %}
+                        <span class="text-yellow-500 text-lg mr-1"><i class="fas fa-star"></i></span>
+                        <span class="font-semibold text-gray-800">{{ "%.1f" | format(avg_rating) }}</span>
+                        <span class="text-gray-500 text-sm ml-1">({{ reviews|length }} reviews)</span>
                     {% else %}
-                        <a href="{{ url_for('auth.login') }}" class="flex-grow md:flex-none action-button primary-button">Log in to contact seller</a>
+                        <span class="text-gray-500 text-sm">No reviews yet.</span>
                     {% endif %}
                 </div>
+                <a href="{{ url_for('listings.user_profile', user_id=listing.owner.id) }}" 
+                   class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-colors duration-200">
+                    View Profile
+                </a>
+            </div>
+
+            <!-- Reviews Section -->
+            <div class="bg-white p-6 rounded-lg shadow-xl border border-gray-200">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Reviews for {{ listing.owner.username }}</h2>
+                {% if current_user.is_authenticated and current_user.id != listing.owner.id and not has_reviewed %}
+                <div class="mb-6 border-b pb-4 border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Leave a Review</h3>
+                    <form method="POST" action="{{ url_for('listings.listing_detail', listing_id=listing.id) }}" class="space-y-4">
+                        {{ review_form.hidden_tag() }}
+                        <div>
+                            {{ review_form.rating.label(class="block text-sm font-medium text-gray-700 mb-1") }}
+                            {{ review_form.rating(class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-accent focus:border-accent sm:text-sm rounded-md") }}
+                            {% for error in review_form.rating.errors %}
+                                <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        <div>
+                            {{ review_form.comment.label(class="block text-sm font-medium text-gray-700 mb-1") }}
+                            {{ review_form.comment(class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-accent focus:border-accent sm:text-sm h-24 resize-y") }}
+                            {% for error in review_form.comment.errors %}
+                                <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        <div>
+                            <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-[var(--color-accent)] hover:bg-[#2F9C6E] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-accent)] transition-all duration-300 shadow-md">
+                                Submit Review
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                {% elif has_reviewed %}
+                    <p class="text-center text-gray-600 mb-4">You have already reviewed this user.</p>
+                {% elif not current_user.is_authenticated %}
+                    <p class="text-center text-gray-600 mb-4">
+                        <a href="{{ url_for('auth.login') }}" class="text-accent hover:underline">Login</a> to leave a review.
+                    </p>
+                {% endif %}
+
+                {% if reviews %}
+                    <div class="space-y-4">
+                        {% for review in reviews %}
+                            <div class="border border-gray-200 p-4 rounded-lg bg-gray-50">
+                                <div class="flex items-center mb-2">
+                                    <img src="{{ review.reviewer.profile_pic }}" alt="{{ review.reviewer.username }}" class="w-8 h-8 rounded-full object-cover mr-3">
+                                    <div>
+                                        <p class="font-semibold text-gray-800">{{ review.reviewer.username }}</p>
+                                        <div class="flex items-center">
+                                            {% for _ in range(review.rating) %}
+                                                <i class="fas fa-star text-yellow-400 text-sm"></i>
+                                            {% endfor %}
+                                            {% for _ in range(5 - review.rating) %}
+                                                <i class="far fa-star text-gray-300 text-sm"></i>
+                                            {% endfor %}
+                                            <span class="text-xs text-gray-500 ml-2">{{ review.date_posted.strftime('%b %d, %Y') }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% if review.comment %}
+                                    <p class="text-gray-700 text-sm mt-2">{{ review.comment }}</p>
+                                {% else %}
+                                    <p class="text-gray-500 text-sm italic mt-2">No comment provided.</p>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-center text-gray-600">No reviews yet for this user.</p>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const carousel = document.getElementById('listingCarousel');
+        if (carousel) {
+            const carouselInner = document.getElementById('carousel-inner');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const dots = document.querySelectorAll('.carousel-dot');
+            const images = carouselInner.querySelectorAll('img');
+            let currentIndex = 0;
+
+            function updateCarousel() {
+                const offset = -currentIndex * 100; // Assuming each image takes 100% width
+                carouselInner.style.transform = `translateX(${offset}%)`;
+                dots.forEach((dot, index) => {
+                    if (index === currentIndex) {
+                        dot.classList.add('bg-opacity-100');
+                    } else {
+                        dot.classList.remove('bg-opacity-100');
+                    }
+                });
+            }
+
+            prevBtn.addEventListener('click', () => {
+                currentIndex = (currentIndex > 0) ? currentIndex - 1 : images.length - 1;
+                updateCarousel();
+            });
+
+            nextBtn.addEventListener('click', () => {
+                currentIndex = (currentIndex < images.length - 1) ? currentIndex + 1 : 0;
+                updateCarousel();
+            });
+
+            dots.forEach((dot, index) => {
+                dot.addEventListener('click', () => {
+                    currentIndex = index;
+                    updateCarousel();
+                });
+            });
+
+            // Initialize carousel
+            updateCarousel();
+        }
+    });
+</script>
 {% endblock %}

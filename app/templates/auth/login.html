@@ -3,236 +3,81 @@
 {% block title %}Login to Your Account{% endblock %}
 
 {% block content %}
-<style>
-    /* Custom styles inspired by Uber's UI/UX principles */
-    :root {
-        --primary-color: #4f46e5;
-        --secondary-color: #7c3aed;
-        --text-dark: #1f2937;
-        --text-gray: #4b5563;
-        --bg-light: #f9fafb;
-        --font-sans: 'Inter', sans-serif;
-    }
-
-    body {
-        font-family: var(--font-sans);
-    }
-
-    .form-container {
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        border-radius: 1rem;
-        background-color: white;
-        padding: 2.5rem;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    }
-
-    .form-input {
-        transition: border-color 0.3s ease, box-shadow 0.3s ease;
-        border-radius: 0.5rem;
-        padding: 0.75rem 1rem;
-        border-width: 1px;
-        border-color: #d1d5db;
-        width: 100%;
-        font-size: 0.875rem;
-    }
-
-    .form-input:focus {
-        outline: none;
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
-    }
-
-    .form-button {
-        transition: background-color 0.3s ease, transform 0.3s ease;
-        border-radius: 0.5rem;
-        padding: 0.75rem 1rem;
-        font-weight: 600;
-        color: white;
-        background-color: var(--primary-color);
-        width: 100%;
-        cursor: pointer;
-    }
-
-    .form-button:hover {
-        background-color: #4338ca;
-        transform: scale(1.01);
-    }
-
-    .link-animated {
-        transition: color 0.3s ease;
-        color: var(--primary-color);
-    }
-
-    .link-animated:hover {
-        color: #6366f1;
-    }
-</style>
-
-<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8">
+<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-xl border border-gray-200">
         <div class="text-center">
-            <h2 class="mt-6 text-3xl font-extrabold text-gray-900">
+            <h2 class="mt-2 text-3xl font-extrabold text-gray-900">
                 Welcome Back
             </h2>
-            <p class="mt-2 text-sm text-gray-600">
+            <p class="mt-2 text-base text-gray-600">
                 Sign in to continue to SwapTheFit
             </p>
         </div>
 
-        <!-- Replaced with a more modern, styled alert -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="space-y-4">
-                    {% for category, message in messages %}
-                        <div class="bg-{{ 'green' if category == 'success' else 'red' }}-100 border-l-4 border-{{ 'green' if category == 'success' else 'red' }}-500 text-{{ 'green' if category == 'success' else 'red' }}-700 p-4 rounded-md animate-fade-in" role="alert">
-                            <p>{{ message }}</p>
-                        </div>
+        <form class="space-y-6" method="POST" action="{{ url_for('auth.login') }}">
+            {{ form.hidden_tag() }}
+            <div>
+                {{ form.email.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
+                <div class="mt-1">
+                    {{ form.email(class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-accent focus:border-accent sm:text-sm", placeholder="Enter your email address") }}
+                    {% for error in form.email.errors %}
+                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
                     {% endfor %}
                 </div>
-            {% endif %}
-        {% endwith %}
+            </div>
 
-        <div class="form-container">
-            <form id="login-form" class="space-y-6" method="POST" action="{{ url_for('auth.login') }}">
-                {{ form.hidden_tag() }}
-                <div>
-                    {{ form.email.label(class="block text-sm font-medium text-gray-700") }}
-                    <div class="mt-1">
-                        {{ form.email(id="email", class="form-input block w-full", placeholder="you@example.com") }}
-                        <p id="email-error" class="text-red-500 text-xs mt-1 hidden"></p>
-                    </div>
+            <div>
+                {{ form.password.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
+                <div class="mt-1">
+                    {{ form.password(class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-accent focus:border-accent sm:text-sm", placeholder="Enter your password") }}
+                    {% for error in form.password.errors %}
+                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    {{ form.remember(class="h-4 w-4 text-accent focus:ring-accent border-gray-300 rounded") }}
+                    {{ form.remember.label(class="ml-2 block text-sm text-gray-900") }}
                 </div>
 
-                <div>
-                    {{ form.password.label(class="block text-sm font-medium text-gray-700") }}
-                    <div class="mt-1">
-                        {{ form.password(id="password", class="form-input block w-full", placeholder="Password") }}
-                        <p id="password-error" class="text-red-500 text-xs mt-1 hidden"></p>
-                    </div>
+                <div class="text-sm">
+                    <a href="{{ url_for('auth.reset_request') }}" class="font-medium text-accent hover:text-green-700 transition-colors duration-200">
+                        Forgot your password?
+                    </a>
                 </div>
+            </div>
 
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center">
-                        {{ form.remember(class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded") }}
-                        {{ form.remember.label(class="ml-2 block text-sm text-gray-900") }}
-                    </div>
+            <div>
+                <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-[var(--color-accent)] hover:bg-[#2F9C6E] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-accent)] transition-all duration-300 shadow-md">
+                    Sign In
+                </button>
+            </div>
+        </form>
 
-                    <div class="text-sm">
-                        <a href="{{ url_for('auth.reset_request') }}" class="font-medium link-animated">
-                            Forgot your password?
-                        </a>
-                    </div>
-                </div>
-
-                <div>
-                    <button type="submit" class="form-button">
-                        Sign in
-                    </button>
-                </div>
-            </form>
+        <div class="relative py-4">
+            <div class="absolute inset-0 flex items-center">
+                <div class="w-full border-t border-gray-300"></div>
+            </div>
+            <div class="relative flex justify-center text-sm">
+                <span class="px-2 bg-white text-gray-500">Or continue with</span>
+            </div>
         </div>
+
+        <div>
+            <a href="{{ url_for('google_login') }}" class="w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200">
+                <img class="h-5 w-5 mr-2" src="https://www.svgrepo.com/show/355037/google.svg" alt="Google logo">
+                Sign in with Google
+            </a>
+        </div>
+
         <p class="mt-4 text-center text-sm text-gray-600">
             Don't have an account?
-            <a href="{{ url_for('auth.register') }}" class="font-medium link-animated">
-                Sign up
+            <a href="{{ url_for('auth.register') }}" class="font-medium text-accent hover:text-green-700 transition-colors duration-200">
+                Register Now
             </a>
         </p>
     </div>
 </div>
-
-<script>
-    document.addEventListener("DOMContentLoaded", () => {
-        const form = document.getElementById('login-form');
-        const emailInput = document.getElementById('email');
-        const passwordInput = document.getElementById('password');
-        const emailError = document.getElementById('email-error');
-        const passwordError = document.getElementById('password-error');
-
-        // Helper function for debounce
-        const debounce = (func, delay) => {
-            let timeoutId;
-            return (...args) => {
-                clearTimeout(timeoutId);
-                timeoutId = setTimeout(() => func.apply(this, args), delay);
-            };
-        };
-
-        // Real-time validation for email
-        const validateEmail = () => {
-            const email = emailInput.value;
-            if (!email) {
-                emailError.textContent = 'Email is required.';
-                emailError.classList.remove('hidden');
-                return false;
-            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                emailError.textContent = 'Please enter a valid email address.';
-                emailError.classList.remove('hidden');
-                return false;
-            } else {
-                emailError.textContent = '';
-                emailError.classList.add('hidden');
-                return true;
-            }
-        };
-
-        // Real-time validation for password
-        const validatePassword = () => {
-            const password = passwordInput.value;
-            if (!password) {
-                passwordError.textContent = 'Password is required.';
-                passwordError.classList.remove('hidden');
-                return false;
-            } else {
-                passwordError.textContent = '';
-                passwordError.classList.add('hidden');
-                return true;
-            }
-        };
-
-        // Add input event listeners with debouncing, checking if the element exists
-        if (emailInput) {
-            emailInput.addEventListener('input', debounce(validateEmail, 300));
-        }
-        if (passwordInput) {
-            passwordInput.addEventListener('input', debounce(validatePassword, 300));
-        }
-
-        // Handle form submission, checking if the form exists
-        if (form) {
-            form.addEventListener('submit', (event) => {
-                const isEmailValid = validateEmail();
-                const isPasswordValid = validatePassword();
-                
-                if (!isEmailValid || !isPasswordValid) {
-                    event.preventDefault(); // Prevent form submission
-                    // Add a visual shake or highlight for a better UX
-                    if (!isEmailValid) emailInput.focus();
-                    else if (!isPasswordValid) passwordInput.focus();
-                }
-            });
-        }
-
-        // Example for using async/await, showing the intended pattern
-        const mockApiCall = async () => {
-            try {
-                // This is a placeholder for a real API call
-                const response = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        email: emailInput.value,
-                        password: passwordInput.value
-                    })
-                });
-                const data = await response.json();
-                console.log(data);
-            } catch (error) {
-                console.error('Login failed:', error);
-            }
-        };
-
-        // Call the mock function to demonstrate async/await usage
-        // mockApiCall();
-    });
-</script>
 {% endblock %}

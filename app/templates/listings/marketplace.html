@@ -3,202 +3,116 @@
 {% block title %}Marketplace{% endblock %}
 
 {% block content %}
-<style>
-    /*
-     * Custom styles for the marketplace page inspired by Uber's UI/UX principles.
-     * Uses CSS variables for consistency with other pages.
-     */
-    :root {
-        --primary-color: #4f46e5;
-        --secondary-color: #7c3aed;
-        --text-dark: #1f2937;
-        --text-gray: #4b5563;
-        --bg-light: #f9fafb;
-        --font-sans: 'Inter', sans-serif;
-    }
+<div class="container mx-auto px-4 py-8 md:py-12">
+    <h1 class="text-4xl font-extrabold text-gray-900 text-center mb-8 md:mb-12">Explore the Marketplace</h1>
 
-    body {
-        font-family: var(--font-sans);
-    }
-
-    .form-container {
-        transition: box-shadow 0.3s ease;
-        border-radius: 1rem;
-        background-color: white;
-        padding: 1.5rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    }
-
-    .form-input, .form-select {
-        transition: border-color 0.3s ease, box-shadow 0.3s ease;
-        border-radius: 0.5rem;
-        padding: 0.75rem 1rem;
-        border-width: 1px;
-        border-color: #d1d5db;
-        width: 100%;
-        font-size: 0.875rem;
-    }
-
-    .form-input:focus, .form-select:focus {
-        outline: none;
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
-    }
-
-    .form-button {
-        transition: background-color 0.3s ease, transform 0.3s ease;
-        border-radius: 0.5rem;
-        padding: 0.75rem 1rem;
-        font-weight: 600;
-        color: white;
-        background-color: var(--primary-color);
-        width: 100%;
-        cursor: pointer;
-    }
-
-    .form-button:hover {
-        background-color: #4338ca;
-        transform: scale(1.01);
-    }
-
-    .listing-card {
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        border-radius: 1rem;
-        overflow: hidden;
-        border: 1px solid #e5e7eb;
-    }
-
-    .listing-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    }
-
-    .pagination-link {
-        transition: background-color 0.3s ease, color 0.3s ease, transform 0.3s ease;
-        border-radius: 0.5rem;
-        font-weight: 500;
-        padding: 0.5rem 1rem;
-    }
-
-    .pagination-link:hover {
-        background-color: #eef2ff;
-        color: var(--primary-color);
-    }
-
-    .pagination-link.active {
-        background-color: var(--primary-color);
-        color: white;
-    }
-</style>
-
-<div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <h1 class="text-4xl font-extrabold text-gray-900 mb-6">Explore the Marketplace</h1>
-
-    <!-- Search and Filter Form -->
-    <div class="form-container mb-8">
-        <form id="filter-form" method="GET" action="{{ url_for('listings.marketplace') }}">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-                <div>
-                    <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search Item / School</label>
-                    <input type="text" id="search" name="search" placeholder="e.g., shoes, textbooks, uniforms" class="form-input" value="{{ request.args.get('search', '') }}">
-                </div>
-                <div>
-                    <label for="size" class="block text-sm font-medium text-gray-700 mb-1">Size</label>
-                    <input type="text" id="size" name="size" placeholder="e.g., M, 8, L" class="form-input" value="{{ request.args.get('size', '') }}">
-                </div>
-                <div>
-                    <label for="condition" class="block text-sm font-medium text-gray-700 mb-1">Condition</label>
-                    <select id="condition" name="condition" class="form-select bg-white">
-                        <option value="">All Conditions</option>
-                        <option value="New" {% if request.args.get('condition') == 'New' %}selected{% endif %}>New</option>
-                        <option value="Like New" {% if request.args.get('condition') == 'Like New' %}selected{% endif %}>Like New</option>
-                        <option value="Good" {% if request.args.get('condition') == 'Good' %}selected{% endif %}>Good</option>
-                        <option value="Fair" {% if request.args.get('condition') == 'Fair' %}selected{% endif %}>Fair</option>
-                    </select>
-                </div>
-                <button type="submit" class="form-button">
-                    Filter Listings
-                </button>
-            </div>
-        </form>
-    </div>
-    
-    <!-- Listing Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-        {% for listing in listings %}
-            <div class="bg-white rounded-xl shadow-md overflow-hidden transform hover:-translate-y-1 transition-all duration-300 group border border-gray-200 listing-card">
-                <a href="{{ url_for('listings.listing_detail', listing_id=listing.id) }}" class="block">
-                    <img src="{{ url_for('static', filename='uploads/' + listing.image_url) if listing.image_url else 'https://placehold.co/600x400/F8F8F8/333333?text=No+Image' }}" 
-                         alt="{{ listing.item_name }}" 
-                         class="w-full h-56 object-cover object-center transition-transform duration-300 group-hover:scale-105 lazy-load"
-                         onerror="this.onerror=null;this.src='https://placehold.co/600x400/F8F8F8/333333?text=No+Image';">
-                </a>
-                <div class="p-4">
-                    <h3 class="text-xl font-semibold text-gray-900 truncate mb-1">{{ listing.item_name }}</h3>
-                    <p class="text-gray-600 text-sm mb-2">{{ listing.school_name }}</p>
-                    <p class="text-gray-800 font-bold text-lg mt-2">R{{ "%.2f"|format(listing.price) }}</p>
-                    <div class="mt-4 flex justify-between items-center">
-                        <a href="{{ url_for('listings.listing_detail', listing_id=listing.id) }}" class="text-indigo-600 hover:text-indigo-800 font-medium text-sm transition-colors duration-200">View Details</a>
-                        
-                        {% if current_user.is_authenticated and current_user.id != listing.user_id %}
-                            <form action="{{ url_for('wishlist.add_to_wishlist', listing_id=listing.id) }}" method="POST">
-                                <button type="submit" class="text-gray-400 hover:text-red-500 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 rounded-full p-1">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                                    </svg>
-                                </button>
-                            </form>
-                        {% endif %}
+    <!-- Search and Filter Section -->
+    <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+        <form method="GET" action="{{ url_for('listings.marketplace') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <!-- Search Input -->
+            <div class="md:col-span-2">
+                <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search Listings</label>
+                <div class="relative">
+                    <input type="text" name="search" id="search" placeholder="Search by title or description..." 
+                           class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent sm:text-sm"
+                           value="{{ search_query if search_query }}">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-search text-gray-400"></i>
                     </div>
                 </div>
             </div>
-        {% endfor %}
+
+            <!-- Category Filter -->
+            <div>
+                <label for="category" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <select id="category" name="category" 
+                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-accent focus:border-accent sm:text-sm rounded-md">
+                    <option value="All">All Categories</option>
+                    {% for category in all_categories %}
+                        <option value="{{ category }}" {% if category_filter == category %}selected{% endif %}>{{ category }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Size Filter -->
+            <div>
+                <label for="size" class="block text-sm font-medium text-gray-700 mb-1">Size</label>
+                <select id="size" name="size" 
+                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-accent focus:border-accent sm:text-sm rounded-md">
+                    <option value="All">All Sizes</option>
+                    {% for size in all_sizes %}
+                        <option value="{{ size }}" {% if size_filter == size %}selected{% endif %}>{{ size }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Condition Filter -->
+            <div>
+                <label for="condition" class="block text-sm font-medium text-gray-700 mb-1">Condition</label>
+                <select id="condition" name="condition" 
+                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-accent focus:border-accent sm:text-sm rounded-md">
+                    <option value="All">All Conditions</option>
+                    {% for condition in all_conditions %}
+                        <option value="{{ condition }}" {% if condition_filter == condition %}selected{% endif %}>{{ condition }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="md:col-span-4 flex justify-end space-x-3">
+                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-[var(--color-accent)] hover:bg-[#2F9C6E] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-accent)] transition-colors duration-200">
+                    <i class="fas fa-filter mr-2"></i> Apply Filters
+                </button>
+                <a href="{{ url_for('listings.marketplace') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200">
+                    <i class="fas fa-redo-alt mr-2"></i> Clear Filters
+                </a>
+            </div>
+        </form>
     </div>
 
-    {% if listings and pagination %}
-    <div class="flex justify-center mt-8">
-        <nav class="relative z-0 inline-flex rounded-full shadow-sm -space-x-px" aria-label="Pagination">
-            {% if pagination.has_prev %}
-            <a href="{{ url_for('listings.marketplace', page=pagination.prev_num, search=request.args.get('search'), size=request.args.get('size'), condition=request.args.get('condition')) }}" class="relative inline-flex items-center px-4 py-2 rounded-l-full border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                <span class="sr-only">Previous</span>
-                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
-                </svg>
-            </a>
-            {% endif %}
-
-            {% for page_num in pagination.iter_pages() %}
-                {% if page_num %}
-                    {% if pagination.page == page_num %}
-                    <a href="#" aria-current="page" class="relative inline-flex items-center px-4 py-2 border border-indigo-600 bg-indigo-600 text-sm font-medium text-white">
-                        {{ page_num }}
+    <!-- Listings Grid -->
+    {% if listings %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {% for listing in listings %}
+                <div class="bg-white rounded-lg shadow-md overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl">
+                    <a href="{{ url_for('listings.listing_detail', listing_id=listing.id) }}">
+                        <img src="{{ listing.images[0] if listing.images else 'https://placehold.co/400x300/CCCCCC/333333?text=No+Image' }}" 
+                             alt="{{ listing.title }}" 
+                             class="w-full h-48 object-cover">
                     </a>
-                    {% else %}
-                    <a href="{{ url_for('listings.marketplace', page=page_num, search=request.args.get('search'), size=request.args.get('size'), condition=request.args.get('condition')) }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                        {{ page_num }}
-                    </a>
-                    {% endif %}
-                {% else %}
-                    <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
-                        ...
-                    </span>
-                {% endif %}
+                    <div class="p-4">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-1 truncate">{{ listing.title }}</h3>
+                        <p class="text-sm text-gray-600 mb-2">{{ listing.category }} | Size: {{ listing.size }}</p>
+                        <div class="flex items-center justify-between text-sm text-gray-700 mb-3">
+                            <span>Condition: <span class="font-medium">{{ listing.condition }}</span></span>
+                            <span class="text-xs text-gray-500">{{ listing.created_at.strftime('%b %d, %Y') }}</span>
+                        </div>
+                        <div class="flex justify-between items-center mt-3">
+                            <a href="{{ url_for('listings.listing_detail', listing_id=listing.id) }}" 
+                               class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-[var(--color-accent)] hover:bg-[#2F9C6E] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-accent)] transition-colors duration-200">
+                                View Details
+                            </a>
+                            {% if current_user.is_authenticated and current_user.id != listing.owner.id %}
+                                {% if current_user.has_role('parent') %}
+                                <form action="{{ url_for('listings.add_to_wishlist', listing_id=listing.id) }}" method="POST" class="inline-block">
+                                    {{ csrf_token() }}
+                                    <button type="submit" title="Add to Wishlist"
+                                            class="p-1.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200">
+                                        <i class="far fa-heart"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
             {% endfor %}
-
-            {% if pagination.has_next %}
-            <a href="{{ url_for('listings.marketplace', page=pagination.next_num, search=request.args.get('search'), size=request.args.get('size'), condition=request.args.get('condition')) }}" class="relative inline-flex items-center px-2 py-2 rounded-r-full border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                <span class="sr-only">Next</span>
-                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                </svg>
-            </a>
-            {% endif %}
-        </nav>
-    </div>
-    {% endif %}
-
-    {% if not listings %}
-        <p class="text-center text-gray-500 text-lg py-10">No listings found matching your criteria. Try adjusting your search!</p>
+        </div>
+    {% else %}
+        <div class="text-center py-10 bg-white rounded-lg shadow-md">
+            <p class="text-lg text-gray-600">No listings found matching your criteria.</p>
+            <p class="text-md text-gray-500 mt-2">Try adjusting your search or filters.</p>
+            <a href="{{ url_for('listings.marketplace') }}" class="mt-4 inline-block text-accent hover:underline">Browse All Listings</a>
+        </div>
     {% endif %}
 </div>
 {% endblock %}

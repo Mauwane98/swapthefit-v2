@@ -1,0 +1,117 @@
+{% extends "_layouts/base.html" %}
+
+{% block title %}Swap Request Details{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 md:py-12">
+    <div class="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-xl border border-gray-200">
+        <div class="text-center mb-8 pb-4 border-b border-gray-200">
+            <h1 class="text-3xl font-extrabold text-gray-900">Swap Request Details</h1>
+            <p class="mt-2 text-base text-gray-600">Review the details of this swap request.</p>
+        </div>
+
+        <!-- Swap Request Overview -->
+        <div class="mb-8 p-6 bg-gray-50 rounded-lg border border-gray-200">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-gray-700">
+                <div>
+                    <p class="text-sm font-semibold text-gray-800 mb-1">Proposer:</p>
+                    <a href="{{ url_for('listings.user_profile', user_id=swap_request.proposer.id) }}" class="flex items-center text-md text-[var(--color-accent)] hover:underline">
+                        <img src="{{ swap_request.proposer.profile_pic }}" alt="{{ swap_request.proposer.username }}" class="w-8 h-8 rounded-full object-cover mr-2">
+                        {{ swap_request.proposer.username }}
+                    </a>
+                </div>
+                <div>
+                    <p class="text-sm font-semibold text-gray-800 mb-1">Recipient:</p>
+                    <a href="{{ url_for('listings.user_profile', user_id=swap_request.recipient.id) }}" class="flex items-center text-md text-[var(--color-accent)] hover:underline">
+                        <img src="{{ swap_request.recipient.profile_pic }}" alt="{{ swap_request.recipient.username }}" class="w-8 h-8 rounded-full object-cover mr-2">
+                        {{ swap_request.recipient.username }}
+                    </a>
+                </div>
+                <div class="md:col-span-2">
+                    <p class="text-sm font-semibold text-gray-800 mb-1">Status:</p>
+                    <span class="text-lg font-bold capitalize 
+                        {% if swap_request.status == 'pending' %}text-blue-600
+                        {% elif swap_request.status == 'accepted' %}text-green-600
+                        {% elif swap_request.status == 'rejected' or swap_request.status == 'cancelled' %}text-red-600
+                        {% elif swap_request.status == 'completed' %}text-purple-600
+                        {% endif %}">
+                        {{ swap_request.status }}
+                    </span>
+                    <p class="text-xs text-gray-500 mt-1">Proposed on: {{ swap_request.date_proposed.strftime('%b %d, %Y at %I:%M %p') }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Requested Listing Details -->
+        <div class="mb-8">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">Item Requested:</h2>
+            <div class="flex flex-col sm:flex-row items-center bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                <img src="{{ swap_request.requested_listing.images[0] if swap_request.requested_listing.images else 'https://placehold.co/100x100/E0E0E0/888888?text=No+Image' }}" 
+                     alt="{{ swap_request.requested_listing.title }}" 
+                     class="w-24 h-24 object-cover rounded-md mr-4 mb-4 sm:mb-0">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">{{ swap_request.requested_listing.title }}</h3>
+                    <p class="text-sm text-gray-600">Category: {{ swap_request.requested_listing.category }} | Size: {{ swap_request.requested_listing.size }}</p>
+                    <p class="text-sm text-gray-600">Condition: {{ swap_request.requested_listing.condition }}</p>
+                    <a href="{{ url_for('listings.listing_detail', listing_id=swap_request.requested_listing.id) }}" 
+                       class="text-[var(--color-accent)] hover:underline text-sm font-medium mt-1 inline-block">View Listing</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Offered Listing Details -->
+        <div class="mb-8">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">Item Offered:</h2>
+            <div class="flex flex-col sm:flex-row items-center bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                <img src="{{ swap_request.offered_listing.images[0] if swap_request.offered_listing.images else 'https://placehold.co/100x100/E0E0E0/888888?text=No+Image' }}" 
+                     alt="{{ swap_request.offered_listing.title }}" 
+                     class="w-24 h-24 object-cover rounded-md mr-4 mb-4 sm:mb-0">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">{{ swap_request.offered_listing.title }}</h3>
+                    <p class="text-sm text-gray-600">Category: {{ swap_request.offered_listing.category }} | Size: {{ swap_request.offered_listing.size }}</p>
+                    <p class="text-sm text-gray-600">Condition: {{ swap_request.offered_listing.condition }}</p>
+                    <a href="{{ url_for('listings.listing_detail', listing_id=swap_request.offered_listing.id) }}" 
+                       class="text-[var(--color-accent)] hover:underline text-sm font-medium mt-1 inline-block">View Listing</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions Section -->
+        <div class="mt-8 pt-6 border-t border-gray-200">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">Actions</h2>
+            <div class="flex flex-wrap gap-4">
+                {% if current_user.id == swap_request.recipient.id and swap_request.status == 'pending' %}
+                    <!-- Recipient Actions (Accept/Reject) -->
+                    <form action="{{ url_for('swaps.respond_swap', request_id=swap_request.id, action='accept') }}" method="POST" class="inline-block">
+                        {{ csrf_token() }}
+                        <button type="submit" class="inline-flex items-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-md text-white bg-[var(--color-accent)] hover:bg-[#2F9C6E] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-accent)] transition-colors duration-200 shadow-md">
+                            <i class="fas fa-check-circle mr-2"></i> Accept Swap
+                        </button>
+                    </form>
+                    <form action="{{ url_for('swaps.respond_swap', request_id=swap_request.id, action='reject') }}" method="POST" class="inline-block">
+                        {{ csrf_token() }}
+                        <button type="submit" class="inline-flex items-center px-5 py-2.5 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200 shadow-md">
+                            <i class="fas fa-times-circle mr-2"></i> Reject Swap
+                        </button>
+                    </form>
+                {% elif current_user.id == swap_request.proposer.id and swap_request.status == 'pending' %}
+                    <!-- Proposer Action (Cancel) -->
+                    <form action="{{ url_for('swaps.respond_swap', request_id=swap_request.id, action='cancel') }}" method="POST" class="inline-block">
+                        {{ csrf_token() }}
+                        <button type="submit" class="inline-flex items-center px-5 py-2.5 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200 shadow-md">
+                            <i class="fas fa-ban mr-2"></i> Cancel Request
+                        </button>
+                    </form>
+                {% else %}
+                    <p class="text-gray-600">No actions available for this swap request at its current status.</p>
+                {% endif %}
+
+                <a href="{{ url_for('swaps.manage_swaps') }}" 
+                   class="inline-flex items-center px-5 py-2.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200 shadow-sm">
+                    <i class="fas fa-arrow-left mr-2"></i> Back to Manage Swaps
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

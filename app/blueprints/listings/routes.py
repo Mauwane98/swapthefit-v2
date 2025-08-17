@@ -22,7 +22,7 @@ def marketplace():
     size_filter = request.args.get('size', '').lower()
     condition_filter = request.args.get('condition', '').lower()
 
-    all_listings = Listing.get_all()
+    all_listings = Listing.objects()
     filtered_listings = []
 
     for listing in all_listings:
@@ -39,7 +39,7 @@ def marketplace():
             filtered_listings.append(listing)
 
     # Sort by date_posted in descending order
-    listings = sorted(filtered_listings, key=lambda x: x.date_posted, reverse=True)
+    listings = sorted(filtered_listings, key=lambda x: x.created_at, reverse=True)
     
     return render_template('listings/marketplace.html', listings=listings)
 
@@ -49,10 +49,31 @@ def listing_detail(listing_id):
     """
     Displays the details of a single listing.
     """
-    listing = Listing.get_by_id(listing_id)
+    listing = Listing.objects.get(id=listing_id)
     if not listing:
         abort(404)
-    return render_template('listings/listing_detail.html', listing=listing)
+
+    # Review functionality for the listing owner
+    owner_user = listing.owner  # Get the User object for the owner
+    review_form = ReviewForm()
+    reviews = sorted(Review.objects(reviewed_user=owner_user.id), key=lambda x: x.date_posted, reverse=True)
+    
+    # Calculate average rating for the owner
+    avg_rating = Review.get_average_rating(owner_user.id)
+    
+    # Check if the current user has already reviewed this owner
+    has_reviewed = False
+    if current_user.is_authenticated:
+        has_reviewed = Review.has_reviewed(current_user.id, owner_user.id)
+
+    return render_template(
+        'listings/listing_detail.html', 
+        listing=listing,
+        reviews=reviews,
+        review_form=review_form,
+        avg_rating=avg_rating,
+        has_reviewed=has_reviewed
+    )
 
 @listings_bp.route('/create', methods=['GET', 'POST'])
 @login_required
@@ -62,20 +83,30 @@ def create_listing():
     """
     form = ListingForm()
     if form.validate_on_submit():
-        filename = None
-        if form.image.data:
-            filename = secure_filename(form.image.data.filename)
-            form.image.data.save(os.path.join(current_app.root_path, 'static/uploads', filename))
+        image_urls = []
+        if form.photos.data:
+            upload_folder = os.path.join(current_app.root_path, 'static/uploads')
+            os.makedirs(upload_folder, exist_ok=True)
+            for photo in form.photos.data:
+                if photo.filename:
+                    filename = secure_filename(photo.filename)
+                    photo.save(os.path.join(upload_folder, filename))
+                    image_urls.append(filename)
+        
+        # If no photos were uploaded, use the default placeholder
+        if not image_urls:
+            image_urls.append('https://placehold.co/400x300/CCCCCC/333333?text=No+Image')
 
         listing = Listing(
-            item_name=form.item_name.data,
+            owner=current_user.id,
+            title=form.title.data,
             description=form.description.data,
-            price=form.price.data,
+            category=form.category.data,
             size=form.size.data,
             condition=form.condition.data,
             school_name=form.school_name.data,
-            image_url=filename,
-            user_id=current_user.id
+            images=image_urls,
+            desired_swap_items=form.desired_swap_items.data
         )
         listing.save()
         flash('Your listing has been created!', 'success')
@@ -88,29 +119,46 @@ def edit_listing(listing_id):
     """
     Handles editing an existing listing.
     """
-    listing = Listing.get_by_id(listing_id)
+    listing = Listing.objects.get(id=listing_id)
     if not listing:
         abort(404)
     if listing.user_id != current_user.id:
         flash('You do not have permission to edit this listing.', 'danger')
         return redirect(url_for('listings.marketplace'))
     
-    form = ListingForm(obj=listing)
+    form = EditListingForm(obj=listing)
     if form.validate_on_submit():
-        if form.image.data:
-            filename = secure_filename(form.image.data.filename)
-            form.image.data.save(os.path.join(current_app.root_path, 'static/uploads', filename))
-            listing.image_url = filename
+        image_urls = []
+        if form.photos.data:
+            upload_folder = os.path.join(current_app.root_path, 'static/uploads')
+            os.makedirs(upload_folder, exist_ok=True)
+            for photo in form.photos.data:
+                if photo.filename:
+                    filename = secure_filename(photo.filename)
+                    photo.save(os.path.join(upload_folder, filename))
+                    image_urls.append(filename)
+        
+        if image_urls: # Only update images if new ones were uploaded
+            listing.images = image_urls
 
-        listing.item_name = form.item_name.data
+        listing.title = form.title.data
         listing.description = form.description.data
-        listing.price = form.price.data
+        listing.category = form.category.data
         listing.size = form.size.data
         listing.condition = form.condition.data
         listing.school_name = form.school_name.data
+        listing.desired_swap_items = form.desired_swap_items.data
         listing.save()
         flash('Your listing has been updated!', 'success')
         return redirect(url_for('listings.listing_detail', listing_id=listing.id))
+    elif request.method == 'GET':
+        form.title.data = listing.title
+        form.description.data = listing.description
+        form.category.data = listing.category
+        form.size.data = listing.size
+        form.condition.data = listing.condition
+        form.school_name.data = listing.school_name
+        form.desired_swap_items.data = listing.desired_swap_items
     
     return render_template('listings/edit_listing.html', form=form, listing=listing)
 
@@ -120,13 +168,12 @@ def delete_listing(listing_id):
     """
     Handles the deletion of a listing.
     """
-    listing = Listing.get_by_id(listing_id)
+    listing = Listing.objects.get(id=listing_id)
     if not listing:
         abort(404)
-    if listing.user_id != current_user.id:
+    if listing.owner.id != current_user.id:
         flash('You do not have permission to delete this listing.', 'danger')
         return redirect(url_for('listings.marketplace'))
-    
     listing.delete()
     flash('Your listing has been deleted.', 'success')
     return redirect(url_for('listings.marketplace'))
@@ -136,14 +183,14 @@ def user_profile(user_id):
     """
     Displays a user's profile, their listings, and their reviews.
     """
-    user = User.find_by_id(user_id)
+    user = User.objects(id=user_id).first()
     if not user:
         abort(404)
-    listings = Listing.get_by_user_id(user.id)
+    listings = Listing.objects(owner=user.id)
     
     # Review functionality
     review_form = ReviewForm()
-    reviews = sorted(Review.get_by_reviewed_user(user.id), key=lambda x: x.date_posted, reverse=True)
+    reviews = sorted(Review.objects(reviewed_user=user.id), key=lambda x: x.date_posted, reverse=True)
     
     # Calculate average rating
     avg_rating = Review.get_average_rating(user.id)

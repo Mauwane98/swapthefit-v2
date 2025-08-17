@@ -1,10 +1,17 @@
-Hi {{ user.name }},
+Hi {{ user.username }},
 
 Welcome to SwapTheFit!
 
-We're excited to have you join our community of parents and schools making school uniforms more affordable and sustainable.
+We're excited to have you join our community focused on making clothing swaps
+easy, affordable, and sustainable.
 
-You can start browsing the marketplace right away.
+You can now explore the marketplace, create your own listings, and connect
+with other users.
+
+Get started by checking out the marketplace:
+{{ url_for('listings.marketplace', _external=True) }}
+
+If you have any questions, feel free to reach out to our support team.
 
 Thanks,
 The SwapTheFit Team

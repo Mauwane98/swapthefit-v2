@@ -6,139 +6,293 @@
 
 {% block content %}
 <style>
-    /*
-     * Custom styles for the Inbox page, consistent with other pages.
-     */
-    :root {
-        --primary-color: #4f46e5;
-        --secondary-color: #7c3aed;
-        --text-dark: #1f2937;
-        --text-gray: #4b5563;
-        --bg-light: #f9fafb;
-        --font-sans: 'Inter', sans-serif;
-    }
-
-    body {
-        font-family: var(--font-sans);
-    }
-
+    /* Custom styles for the Inbox page, consistent with other pages. */
     .conversation-card {
         transition: transform 0.3s ease, box-shadow 0.3s ease;
-        border-radius: 1rem;
-        background-color: white;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        border-radius: 0.75rem; /* More rounded corners */
+        background-color: var(--color-primary-light); /* White background */
+        box-shadow: var(--shadow-md); /* Soft shadow */
     }
 
     .message-bubble {
-        border-radius: 0.75rem;
+        border-radius: 0.75rem; /* Rounded message bubbles */
         padding: 0.75rem 1rem;
+        max-width: 75%; /* Limit bubble width */
+        word-wrap: break-word; /* Ensure long words break */
     }
 
     .message-bubble.sent {
-        background-color: #eef2ff;
-        color: var(--text-dark);
+        background-color: #DCF8C6; /* Light green for sent messages (WhatsApp-like) */
+        color: var(--color-text-dark);
+        margin-left: auto; /* Align to right */
     }
 
     .message-bubble.received {
-        background-color: #f3f4f6;
-        color: var(--text-dark);
+        background-color: #E0E0E0; /* Light gray for received messages */
+        color: var(--color-text-dark);
+        margin-right: auto; /* Align to left */
     }
 
-    .form-input {
-        transition: border-color 0.3s ease, box-shadow 0.3s ease;
-        border-radius: 0.5rem;
-        padding: 0.75rem 1rem;
-        border-width: 1px;
-        border-color: #d1d5db;
-        width: 100%;
-        font-size: 0.875rem;
+    /* Scrollbar styling for message area */
+    .message-area::-webkit-scrollbar {
+        width: 8px;
     }
 
-    .form-input:focus {
-        outline: none;
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+    .message-area::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
     }
 
-    .form-button {
-        transition: background-color 0.3s ease, transform 0.3s ease;
-        border-radius: 0.5rem;
-        padding: 0.75rem 1rem;
-        font-weight: 600;
-        color: white;
-        background-color: var(--primary-color);
-        width: 100%;
-        cursor: pointer;
+    .message-area::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 10px;
     }
 
-    .form-button:hover {
-        background-color: #4338ca;
-        transform: scale(1.01);
+    .message-area::-webkit-scrollbar-thumb:hover {
+        background: #555;
     }
 </style>
 
-<div class="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-    <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6">
-        <div>
-            <h1 class="text-4xl font-extrabold text-gray-900">Your Inbox</h1>
-            <p class="text-lg text-gray-600">Manage all your messages in one place.</p>
-        </div>
+<div class="container mx-auto px-4 py-8 md:py-12 flex flex-col lg:flex-row gap-8 h-[calc(100vh-150px)]">
+    <!-- Conversations List (Left Panel) -->
+    <div class="lg:w-1/3 bg-white p-6 rounded-lg shadow-xl border border-gray-200 overflow-y-auto flex-shrink-0">
+        <h1 class="text-2xl font-extrabold text-gray-900 mb-6">Conversations</h1>
+        {% if conversations %}
+            <ul class="space-y-3">
+                {% for conv in conversations %}
+                    {% set other_user = conv.other_user %}
+                    {% set latest_message = conv.latest_message %}
+                    {% set unread_count = conv.unread_count %}
+                    <li class="border border-gray-200 rounded-lg overflow-hidden {% if loop.first %}bg-gray-50{% else %}bg-white{% endif %} hover:bg-gray-100 transition-colors duration-150 cursor-pointer"
+                        data-listing-id="{{ conv.listing.id }}"
+                        data-other-user-id="{{ other_user.id }}"
+                        data-other-username="{{ other_user.username }}"
+                        data-listing-title="{{ conv.listing.title }}">
+                        <a href="#" class="flex items-center p-4">
+                            <img src="{{ other_user.profile_pic }}" alt="{{ other_user.username }}" class="w-12 h-12 rounded-full object-cover mr-4">
+                            <div class="flex-grow">
+                                <div class="flex justify-between items-center">
+                                    <h3 class="font-semibold text-gray-900">{{ other_user.username }}</h3>
+                                    <span class="text-xs text-gray-500">{{ latest_message.sent_at.strftime('%b %d') }}</span>
+                                </div>
+                                <p class="text-sm text-gray-600 truncate">{{ latest_message.content }}</p>
+                                <p class="text-xs text-gray-500">About: <span class="font-medium">{{ conv.listing.title|truncate(30) }}</span></p>
+                            </div>
+                            {% if unread_count > 0 %}
+                                <span class="ml-3 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-500 rounded-full">{{ unread_count }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-center text-gray-500 py-6">No conversations yet.</p>
+        {% endif %}
     </div>
 
-    <hr class="mb-8">
-    
-    {% if messages_by_listing %}
-        <div class="space-y-8">
-            {% for listing_id, conversation in messages_by_listing.items() %}
-                <div class="conversation-card border border-gray-200">
-                    <div class="p-6">
-                        <h2 class="text-xl font-semibold mb-2">
-                            Conversation about: 
-                            <a href="{{ url_for('listings.listing_detail', listing_id=listing_id) }}" class="text-indigo-600 hover:text-indigo-800 transition-colors">
-                                {{ conversation[0].listing_info.title }}
-                            </a>
-                        </h2>
-                        
-                        <div class="space-y-4 max-h-80 overflow-y-auto pr-2">
-                            {% for message in conversation %}
-                                {% if message.sender_info._id|string == user._id|string %}
-                                    <!-- Sent Message -->
-                                    <div class="flex justify-end">
-                                        <div class="max-w-xs md:max-w-md w-fit message-bubble sent">
-                                            <p class="font-semibold text-sm mb-1">You</p>
-                                            <p class="text-sm mb-1">{{ message.content }}</p>
-                                            <p class="text-xs text-gray-500 text-right">{{ message.created_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
-                                        </div>
-                                    </div>
-                                {% else %}
-                                    <!-- Received Message -->
-                                    <div class="flex justify-start">
-                                        <div class="max-w-xs md:max-w-md w-fit message-bubble received">
-                                            <p class="font-semibold text-sm mb-1">{{ message.sender_info.name }}</p>
-                                            <p class="text-sm mb-1">{{ message.content }}</p>
-                                            <p class="text-xs text-gray-500 text-right">{{ message.created_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
-                                        </div>
-                                    </div>
-                                {% endif %}
-                            {% endfor %}
-                        </div>
-
-                        <!-- Reply Form -->
-                        <div class="mt-4">
-                            <form action="{{ url_for('messaging.send_message', listing_id=listing_id) }}" method="POST" class="space-y-3">
-                                <div class="relative">
-                                    <textarea name="content" id="replyContent-{{ listing_id }}" class="form-input" rows="2" placeholder="Write a reply..." required></textarea>
-                                </div>
-                                <input type="hidden" name="receiver_id" value="{{ conversation[0].sender_info._id }}">
-                                <button type="submit" class="form-button">Send Reply</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            {% endfor %}
+    <!-- Message Display Area (Right Panel) -->
+    <div class="lg:w-2/3 bg-white p-6 rounded-lg shadow-xl border border-gray-200 flex flex-col">
+        <div id="no-conversation-selected" class="flex flex-col items-center justify-center h-full text-gray-500 text-center">
+            <i class="fas fa-comments text-6xl mb-4"></i>
+            <p class="text-lg font-semibold">Select a conversation to view messages</p>
+            <p class="text-sm mt-2">Your messages will appear here.</p>
         </div>
-    {% else %}
-        <p class="text-center text-gray-500 text-lg py-10">Your inbox is empty. Start a conversation by messaging a seller from a listing!</p>
-    {% endif %}
+
+        <div id="chat-window" class="hidden flex-grow flex flex-col">
+            <div class="border-b border-gray-200 pb-4 mb-4 flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900" id="chat-header-username"></h2>
+                    <p class="text-sm text-gray-600" id="chat-header-listing-title"></p>
+                </div>
+                <a id="view-listing-link" href="#" class="text-[var(--color-accent)] hover:underline text-sm font-medium flex items-center">
+                    <i class="fas fa-external-link-alt mr-1 text-xs"></i> View Listing
+                </a>
+            </div>
+
+            <!-- Message Area -->
+            <div id="message-area" class="flex-grow overflow-y-auto space-y-4 p-2 message-area">
+                <!-- Messages will be loaded here dynamically -->
+            </div>
+
+            <!-- Message Input -->
+            <div class="mt-4 border-t border-gray-200 pt-4">
+                <form id="message-form" class="flex items-center space-x-3">
+                    <input type="hidden" id="current-other-user-id">
+                    <input type="hidden" id="current-listing-id">
+                    <textarea id="message-input" rows="1" placeholder="Type your message..." 
+                              class="flex-grow px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-accent focus:border-accent resize-none"></textarea>
+                    <button type="submit" class="bg-[var(--color-accent)] text-white p-3 rounded-full hover:bg-[#2F9C6E] transition-colors duration-200 shadow-md">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
+
+<script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Socket.IO setup
+        const socket = io();
+
+        // DOM elements
+        const conversationCards = document.querySelectorAll('.conversation-card li');
+        const noConversationSelected = document.getElementById('no-conversation-selected');
+        const chatWindow = document.getElementById('chat-window');
+        const chatHeaderUsername = document.getElementById('chat-header-username');
+        const chatHeaderListingTitle = document.getElementById('chat-header-listing-title');
+        const viewListingLink = document.getElementById('view-listing-link');
+        const messageArea = document.getElementById('message-area');
+        const messageInput = document.getElementById('message-input');
+        const messageForm = document.getElementById('message-form');
+        const currentOtherUserIdInput = document.getElementById('current-other-user-id');
+        const currentListingIdInput = document.getElementById('current-listing-id');
+
+        let activeListingId = null;
+        let activeOtherUserId = null;
+
+        // Function to scroll message area to bottom
+        function scrollToBottom() {
+            messageArea.scrollTop = messageArea.scrollHeight;
+        }
+
+        // Function to render a single message bubble
+        function renderMessage(message, isSentByCurrentUser) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex ${isSentByCurrentUser ? 'justify-end' : 'justify-start'}`;
+            messageDiv.innerHTML = `
+                <div class="message-bubble ${isSentByCurrentUser ? 'sent' : 'received'}">
+                    <p class="font-semibold text-sm mb-1">${isSentByCurrentUser ? 'You' : message.sender_username}</p>
+                    <p class="text-sm mb-1">${message.content}</p>
+                    <p class="text-xs text-gray-500 text-right">${new Date(message.timestamp).toLocaleString()}</p>
+                </div>
+            `;
+            messageArea.appendChild(messageDiv);
+        }
+
+        // Function to load and display messages for a selected conversation
+        async function loadConversation(listingId, otherUserId, otherUsername, listingTitle) {
+            activeListingId = listingId;
+            activeOtherUserId = otherUserId;
+
+            // Update hidden inputs for form submission
+            currentOtherUserIdInput.value = otherUserId;
+            currentListingIdInput.value = listingId;
+
+            // Update chat header
+            chatHeaderUsername.textContent = otherUsername;
+            chatHeaderListingTitle.textContent = `About: ${listingTitle}`;
+            viewListingLink.href = `/listings/listing/${listingId}`; // Update link
+
+            // Show chat window, hide "no conversation selected"
+            noConversationSelected.classList.add('hidden');
+            chatWindow.classList.remove('hidden');
+            messageArea.innerHTML = ''; // Clear previous messages
+
+            try {
+                // Fetch messages for this conversation from the backend
+                const response = await fetch(`/messaging/conversation/${listingId}/${otherUserId}`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch messages');
+                }
+                const data = await response.json();
+                
+                if (data.messages && data.messages.length > 0) {
+                    data.messages.forEach(msg => {
+                        // Determine if message was sent by current user
+                        const isSentByCurrentUser = String(msg.sender_id) === String("{{ current_user.id }}");
+                        renderMessage(msg, isSentByCurrentUser);
+                    });
+                } else {
+                    messageArea.innerHTML = '<p class="text-center text-gray-500 mt-8">No messages in this conversation yet. Start by typing below!</p>';
+                }
+                scrollToBottom(); // Scroll to the latest message
+            } catch (error) {
+                console.error('Error loading conversation:', error);
+                messageArea.innerHTML = '<p class="text-center text-red-500 mt-8">Error loading messages. Please try again.</p>';
+            }
+        }
+
+        // Event listeners for conversation cards
+        conversationCards.forEach(card => {
+            card.addEventListener('click', function() {
+                // Remove active class from all cards
+                conversationCards.forEach(c => c.classList.remove('bg-gray-50'));
+                // Add active class to clicked card
+                this.classList.add('bg-gray-50');
+
+                const listingId = this.dataset.listingId;
+                const otherUserId = this.dataset.otherUserId;
+                const otherUsername = this.dataset.otherUsername;
+                const listingTitle = this.dataset.listingTitle;
+                loadConversation(listingId, otherUserId, otherUsername, listingTitle);
+            });
+        });
+
+        // Message form submission handler
+        messageForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const messageContent = messageInput.value.trim();
+            const senderId = "{{ current_user.id }}";
+            const recipientId = currentOtherUserIdInput.value;
+            const listingId = currentListingIdInput.value;
+
+            if (messageContent && senderId && recipientId && listingId) {
+                // Emit message via Socket.IO
+                socket.emit('send_message', {
+                    sender_id: senderId,
+                    recipient_id: recipientId,
+                    listing_id: listingId,
+                    content: messageContent
+                });
+
+                // Clear input and scroll
+                messageInput.value = '';
+                scrollToBottom();
+            }
+        });
+
+        // Socket.IO event listener for new_message
+        socket.on('new_message', function(data) {
+            // Check if the message belongs to the currently active conversation
+            // data.listing_id and data.recipient_id/sender_id will be strings
+            if ((String(data.listing_id) === String(activeListingId) && 
+                 (String(data.sender_id) === String(activeOtherUserId) || String(data.recipient_id) === String(activeOtherUserId))) ||
+                (String(data.listing_id) === String(activeListingId) && String(data.sender_id) === String("{{ current_user.id }}") && String(data.recipient_id) === String(activeOtherUserId))) {
+                
+                // Determine if the message was sent by the current user (from_self is set by server)
+                const isSentByCurrentUser = data.from_self || (String(data.sender_id) === String("{{ current_user.id }}"));
+                
+                // If it's a message from the other user, update sender_username for display
+                if (!isSentByCurrentUser && !data.sender_username) {
+                    data.sender_username = chatHeaderUsername.textContent; // Use the displayed username
+                }
+
+                renderMessage(data, isSentByCurrentUser);
+                scrollToBottom();
+            }
+            // Optionally, update the conversation list preview for the relevant conversation
+            // This would involve finding the correct li element and updating its content and timestamp.
+        });
+
+        // Initial load: if there's a conversation in the URL, load it
+        const urlParams = new URLSearchParams(window.location.search);
+        const initialListingId = urlParams.get('listing_id');
+        const initialOtherUserId = urlParams.get('other_user_id');
+
+        if (initialListingId && initialOtherUserId) {
+            // Find the corresponding conversation card and trigger its click event
+            const targetCard = document.querySelector(`.conversation-card li[data-listing-id="${initialListingId}"][data-other-user-id="${initialOtherUserId}"]`);
+            if (targetCard) {
+                targetCard.click();
+            } else {
+                // If direct link to a conversation not in the list (e.g., new message),
+                // you might need to fetch minimal user/listing info and populate the chat window.
+                // For simplicity, we'll just show the "no conversation selected" message if not found.
+                console.warn("Direct linked conversation not found in the list.");
+            }
+        }
+    });
+</script>
 {% endblock %}

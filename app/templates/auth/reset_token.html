@@ -1,181 +1,54 @@
 {% extends "_layouts/base.html" %}
 
-{% block title %}
-    Reset Password
-{% endblock %}
+{% block title %}Set New Password{% endblock %}
 
 {% block content %}
-<style>
-    /*
-     * Custom styles inspired by Uber's UI/UX principles.
-     * Reuses the same consistent styles as the other authentication pages.
-     */
-    :root {
-        --primary-color: #4f46e5;
-        --secondary-color: #7c3aed;
-        --text-dark: #1f2937;
-        --text-gray: #4b5563;
-        --bg-light: #f9fafb;
-        --font-sans: 'Inter', sans-serif;
-    }
-
-    body {
-        font-family: var(--font-sans);
-    }
-
-    .form-container {
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        border-radius: 1rem;
-        background-color: white;
-        padding: 2.5rem;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    }
-
-    .form-input {
-        transition: border-color 0.3s ease, box-shadow 0.3s ease;
-        border-radius: 0.5rem;
-        padding: 0.75rem 1rem;
-        border-width: 1px;
-        border-color: #d1d5db;
-        width: 100%;
-        font-size: 0.875rem;
-    }
-
-    .form-input:focus {
-        outline: none;
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
-    }
-
-    .form-button {
-        transition: background-color 0.3s ease, transform 0.3s ease;
-        border-radius: 0.5rem;
-        padding: 0.75rem 1rem;
-        font-weight: 600;
-        color: white;
-        background-color: var(--primary-color);
-        width: 100%;
-        cursor: pointer;
-    }
-
-    .form-button:hover {
-        background-color: #4338ca;
-        transform: scale(1.01);
-    }
-
-    .link-animated {
-        transition: color 0.3s ease;
-        color: var(--primary-color);
-    }
-
-    .link-animated:hover {
-        color: #6366f1;
-    }
-</style>
-
-<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8">
+<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-xl border border-gray-200">
         <div class="text-center">
-            <h2 class="mt-6 text-3xl font-extrabold text-gray-900">
-                Create a New Password
+            <h2 class="mt-2 text-3xl font-extrabold text-gray-900">
+                Set Your New Password
             </h2>
-            <p class="mt-2 text-sm text-gray-600">
-                Enter your new password below to complete the reset process.
+            <p class="mt-2 text-base text-gray-600">
+                Enter and confirm your new password below.
             </p>
         </div>
-
-        <div class="form-container">
-            <form id="reset-token-form" class="space-y-6" method="POST" action="{{ url_for('auth.reset_token', token=token) }}">
-                {{ form.hidden_tag() }} <!-- CSRF Token -->
-
-                <div>
-                    {{ form.password.label(class="block text-sm font-medium text-gray-700") }}
-                    <div class="mt-1">
-                        {{ form.password(id="password-input", class="form-input block w-full", placeholder="New password") }}
-                        <p id="password-error" class="text-red-500 text-xs mt-1 hidden"></p>
-                    </div>
+        
+        <form class="space-y-6" method="POST" action="{{ url_for('auth.reset_token', token=token) }}">
+            {{ form.hidden_tag() }}
+            
+            <div>
+                {{ form.password.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
+                <div class="mt-1">
+                    {{ form.password(class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-accent focus:border-accent sm:text-sm", placeholder="Enter new password") }}
+                    {% for error in form.password.errors %}
+                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                    {% endfor %}
                 </div>
+            </div>
 
-                <div>
-                    {{ form.confirm_password.label(class="block text-sm font-medium text-gray-700") }}
-                    <div class="mt-1">
-                        {{ form.confirm_password(id="confirm-password-input", class="form-input block w-full", placeholder="Confirm new password") }}
-                        <p id="confirm-password-error" class="text-red-500 text-xs mt-1 hidden"></p>
-                    </div>
+            <div>
+                {{ form.confirm_password.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
+                <div class="mt-1">
+                    {{ form.confirm_password(class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-accent focus:border-accent sm:text-sm", placeholder="Confirm new password") }}
+                    {% for error in form.confirm_password.errors %}
+                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                    {% endfor %}
                 </div>
+            </div>
 
-                <div>
-                    <button type="submit" class="form-button">
-                        Reset Password
-                    </button>
-                </div>
-            </form>
-        </div>
+            <div>
+                <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-[var(--color-accent)] hover:bg-[#2F9C6E] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-accent)] transition-all duration-300 shadow-md">
+                    Reset Password
+                </button>
+            </div>
+        </form>
+
+        <p class="mt-4 text-center text-sm text-gray-600">
+            <a href="{{ url_for('auth.login') }}" class="font-medium text-accent hover:text-green-700 transition-colors duration-200">
+                Back to Login
+            </a>
+        </p>
     </div>
 </div>
-
-<script>
-    document.addEventListener("DOMContentLoaded", () => {
-        const form = document.getElementById('reset-token-form');
-        const passwordInput = document.getElementById('password-input');
-        const confirmPasswordInput = document.getElementById('confirm-password-input');
-        const passwordError = document.getElementById('password-error');
-        const confirmPasswordError = document.getElementById('confirm-password-error');
-
-        const debounce = (func, delay) => {
-            let timeoutId;
-            return (...args) => {
-                clearTimeout(timeoutId);
-                timeoutId = setTimeout(() => func.apply(this, args), delay);
-            };
-        };
-
-        const validatePassword = () => {
-            const password = passwordInput.value;
-            if (password.length < 6) {
-                passwordError.textContent = 'Password must be at least 6 characters long.';
-                passwordError.classList.remove('hidden');
-                return false;
-            } else {
-                passwordError.classList.add('hidden');
-                return true;
-            }
-        };
-
-        const validateConfirmPassword = () => {
-            const password = passwordInput.value;
-            const confirmPassword = confirmPasswordInput.value;
-            if (password !== confirmPassword) {
-                confirmPasswordError.textContent = 'Passwords do not match.';
-                confirmPasswordError.classList.remove('hidden');
-                return false;
-            } else {
-                confirmPasswordError.classList.add('hidden');
-                return true;
-            }
-        };
-
-        if (passwordInput) {
-            passwordInput.addEventListener('input', debounce(validatePassword, 300));
-            passwordInput.addEventListener('input', debounce(validateConfirmPassword, 300));
-        }
-
-        if (confirmPasswordInput) {
-            confirmPasswordInput.addEventListener('input', debounce(validateConfirmPassword, 300));
-        }
-
-        if (form) {
-            form.addEventListener('submit', (event) => {
-                const isPasswordValid = validatePassword();
-                const isConfirmPasswordValid = validateConfirmPassword();
-
-                if (!isPasswordValid || !isConfirmPasswordValid) {
-                    event.preventDefault();
-                    if (!isPasswordValid) passwordInput.focus();
-                    else if (!isConfirmPasswordValid) confirmPasswordInput.focus();
-                }
-            });
-        }
-    });
-</script>
 {% endblock %}

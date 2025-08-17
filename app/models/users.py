@@ -1,117 +1,96 @@
-from app.extensions import mongo
+from app.extensions import db, bcrypt, login_manager # Import db (MongoEngine) and bcrypt
 from flask_login import UserMixin
-from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import URLSafeTimedSerializer as Serializer, SignatureExpired, BadTimeSignature
 from flask import current_app
-from bson.objectid import ObjectId
+from datetime import datetime
 
-class User(UserMixin):
-    """
-    Represents a user in the system, interacting with MongoDB.
-    """
-    def __init__(self, username, email, password_hash, _id=None, is_admin=False, role='parent'):
-        self._id = _id
-        self.username = username
-        self.email = email
-        self.password_hash = password_hash
-        self.is_admin = is_admin
-        self.role = role
+# Define available roles for the application.
+# These roles will be used for role-based access control (RBAC).
+ROLES = ('parent', 'school', 'ngo', 'admin')
 
-    @property
-    def id(self):
-        return str(self._id) # MongoDB _id is an ObjectId, convert to string for Flask-Login
+class User(db.Document, UserMixin):
+    """
+    Represents a user in the system, interacting with MongoDB via MongoEngine.
+    Inherits from db.Document for MongoEngine integration and UserMixin for Flask-Login compatibility.
+    """
+    # Unique username for the user, required.
+    username = db.StringField(required=True, unique=True, max_length=80)
+    # Unique email address for the user, required.
+    email = db.StringField(required=True, unique=True, max_length=120)
+    # Hashed password for security, required.
+    password_hash = db.StringField(required=True)
+    # Profile picture URL, optional, with a default placeholder.
+    profile_pic = db.StringField(default='https://placehold.co/150x150/E0BBE4/FFFFFF?text=Profile')
+    # List of roles assigned to the user, defaulting to 'parent'.
+    # This allows for flexible role assignment (e.g., a user can be both 'parent' and 'admin').
+    roles = db.ListField(db.StringField(choices=ROLES), default=['parent'])
+    # Timestamp for when the user account was created.
+    date_joined = db.DateTimeField(default=datetime.utcnow)
+    # Boolean to indicate if the user account is active.
+    active = db.BooleanField(default=True)
+    # Last login timestamp, optional.
+    last_login = db.DateTimeField()
+
+    # Define a Meta class for MongoEngine specific configurations.
+    meta = {
+        'collection': 'users',  # Explicitly set the collection name in MongoDB
+        'indexes': [
+            {'fields': ('email',), 'unique': True},
+            {'fields': ('username',), 'unique': True},
+            {'fields': ('roles',)}, # Indexing roles for faster queries on user types
+        ],
+        'strict': False # Allows for dynamic fields not explicitly defined in the schema
+    }
 
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+        """
+        Hashes the provided password and stores it in password_hash.
+        """
+        self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
 
     def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+        """
+        Checks if the provided password matches the stored hash.
+        """
+        return bcrypt.check_password_hash(self.password_hash, password)
 
     def get_reset_token(self, expires_sec=1800):
+        """
+        Generates a URL-safe signed token for password reset.
+        The token expires after 'expires_sec' seconds.
+        """
         s = Serializer(current_app.config['SECRET_KEY'])
-        return s.dumps({'user_id': self.id})
+        # Store user ID in the token payload.
+        return s.dumps({'user_id': str(self.id)}) # Ensure self.id is a string
 
     @staticmethod
     def verify_reset_token(token):
+        """
+        Verifies and decodes a password reset token.
+        Returns the User object if the token is valid and not expired, otherwise None.
+        """
         s = Serializer(current_app.config['SECRET_KEY'])
         try:
-            user_id = s.loads(token)['user_id']
+            # Load the token, checking for expiration and signature validity.
+            user_id = s.loads(token, max_age=1800)['user_id']
         except (SignatureExpired, BadTimeSignature):
+            return None # Token is invalid or expired
+        except Exception as e:
+            current_app.logger.error(f"Error verifying reset token: {e}")
             return None
-        return User.find_by_id(user_id)
+        # Find the user by the extracted user_id.
+        return User.objects(id=user_id).first()
 
-    @staticmethod
-    def find_by_email(email):
-        print(f"Attempting to find user by email: {email}")
-        user_data = mongo.db.users.find_one({'email': email})
-        if user_data:
-            print(f"Found user data: {user_data}")
-            return User(
-                _id=user_data['_id'],
-                username=user_data['username'],
-                email=user_data['email'],
-                password_hash=user_data['password_hash'],
-                is_admin=user_data.get('is_admin', False),
-                role=user_data['role']
-            )
-        print("User data not found.")
-        return None
+    def has_role(self, role):
+        """
+        Checks if the user has a specific role.
+        """
+        return role in self.roles
 
-    @staticmethod
-    def find_by_username(username):
-        print(f"Attempting to find user by username: {username}")
-        user_data = mongo.db.users.find_one({'username': username})
-        if user_data:
-            print(f"Found user data: {user_data}")
-            return User(
-                _id=user_data['_id'],
-                username=user_data['username'],
-                email=user_data['email'],
-                password_hash=user_data['password_hash'],
-                is_admin=user_data.get('is_admin', False),
-                role=user_data['role']
-            )
-        print("User data not found.")
-        return None
+    def __repr__(self):
+        """
+        String representation of the User object, useful for debugging.
+        """
+        return f"User('{self.username}', '{self.email}', Roles: {self.roles})"
 
-    def save(self):
-        print(f"Attempting to save user: {self.email}")
-        user_data = {
-            'username': self.username,
-            'email': self.email,
-            'password_hash': self.password_hash,
-            'is_admin': self.is_admin,
-            'role': self.role
-        }
-        if self._id:
-            print(f"Updating existing user with _id: {self.id}")
-            mongo.db.users.update_one({'_id': ObjectId(self.id)}, {'$set': user_data})
-        else:
-            print("Inserting new user.")
-            result = mongo.db.users.insert_one(user_data)
-            self._id = result.inserted_id
-            print(f"New user inserted with _id: {self._id}")
-
-    @staticmethod
-    def find_by_id(user_id):
-        print(f"Attempting to find user by ID: {user_id}")
-        try:
-            # Ensure user_id is a valid ObjectId
-            oid = ObjectId(user_id)
-        except Exception:
-            print("Invalid ObjectId format.")
-            return None # Invalid ObjectId format
-
-        user_data = mongo.db.users.find_one({'_id': oid})
-        if user_data:
-            print(f"Found user data: {user_data}")
-            return User(
-                _id=user_data['_id'],
-                username=user_data['username'],
-                email=user_data['email'],
-                password_hash=user_data['password_hash'],
-                is_admin=user_data.get('is_admin', False),
-                role=user_data['role']
-            )
-        print("User data not found.")
-        return None
+# The user_loader callback is defined in app/extensions.py and uses this User model.

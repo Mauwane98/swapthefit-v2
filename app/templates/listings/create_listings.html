@@ -1,278 +1,95 @@
 {% extends "_layouts/base.html" %}
 
-{% block title %}
-    Create New Listing
-{% endblock %}
+{% block title %}Create New Listing{% endblock %}
 
 {% block content %}
-<style>
-    /*
-     * Custom styles for the Create Listing page inspired by Uber's UI/UX principles.
-     * Reuses the same consistent form and button styles.
-     */
-    :root {
-        --primary-color: #4f46e5;
-        --secondary-color: #7c3aed;
-        --text-dark: #1f2937;
-        --text-gray: #4b5563;
-        --bg-light: #f9fafb;
-        --font-sans: 'Inter', sans-serif;
-    }
-
-    body {
-        font-family: var(--font-sans);
-    }
-
-    .form-container {
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        border-radius: 1rem;
-        background-color: white;
-        padding: 2.5rem;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    }
-
-    .form-input, .form-select, .form-textarea {
-        transition: border-color 0.3s ease, box-shadow 0.3s ease;
-        border-radius: 0.5rem;
-        padding: 0.75rem 1rem;
-        border-width: 1px;
-        border-color: #d1d5db;
-        width: 100%;
-        font-size: 0.875rem;
-    }
-
-    .form-input:focus, .form-select:focus, .form-textarea:focus {
-        outline: none;
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
-    }
-
-    .form-button {
-        transition: background-color 0.3s ease, transform 0.3s ease;
-        border-radius: 0.5rem;
-        padding: 0.75rem 1rem;
-        font-weight: 600;
-        color: white;
-        background-color: var(--primary-color);
-        width: 100%;
-        cursor: pointer;
-    }
-
-    .form-button:hover {
-        background-color: #4338ca;
-        transform: scale(1.01);
-    }
-
-    .file-input-wrapper {
-        position: relative;
-        overflow: hidden;
-        display: inline-block;
-        width: 100%;
-    }
-
-    .file-input-button {
-        border: 2px dashed #d1d5db;
-        border-radius: 0.5rem;
-        background-color: #f9fafb;
-        color: #4b5563;
-        padding: 1.5rem 1rem;
-        text-align: center;
-        cursor: pointer;
-        transition: background-color 0.3s ease, border-color 0.3s ease;
-    }
-
-    .file-input-button:hover {
-        background-color: #e5e7eb;
-        border-color: #9ca3af;
-    }
-
-    .file-input-wrapper input[type=file] {
-        font-size: 100px;
-        position: absolute;
-        left: 0;
-        top: 0;
-        opacity: 0;
-        cursor: pointer;
-    }
-</style>
-
-<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-3xl w-full space-y-8">
-        <div class="text-center">
-            <h2 class="mt-6 text-3xl font-extrabold text-gray-900">
-                List an Item
-            </h2>
-            <p class="mt-2 text-sm text-gray-600">
-                Create a new listing for your gently used school gear.
-            </p>
+<div class="container mx-auto px-4 py-8 md:py-12">
+    <div class="max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-xl border border-gray-200">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-extrabold text-gray-900">Create Your New Listing</h1>
+            <p class="mt-2 text-base text-gray-600">Fill out the details below to list your item for swap, sale, or donation.</p>
         </div>
 
-        <div class="form-container">
-            <form id="create-listing-form" method="POST" action="" enctype="multipart/form-data" class="space-y-6">
-                {{ form.hidden_tag() }} <!-- CSRF Token -->
+        <form method="POST" action="{{ url_for('listings.create_listing') }}" enctype="multipart/form-data" class="space-y-6">
+            {{ form.hidden_tag() }}
 
+            <!-- Listing Title -->
+            <div>
+                {{ form.title.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
+                {{ form.title(class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-accent focus:border-accent sm:text-sm") }}
+                {% for error in form.title.errors %}
+                    <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <!-- Description -->
+            <div>
+                {{ form.description.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
+                {{ form.description(class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-accent focus:border-accent sm:text-sm h-32 resize-y") }}
+                {% for error in form.description.errors %}
+                    <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <!-- Category, Size, Condition in a grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    {{ form.title.label(class="block text-sm font-medium text-gray-700") }}
-                    <div class="mt-1">
-                        {{ form.title(id="title-input", class="form-input") }}
-                        <p id="title-error" class="text-red-500 text-xs mt-1 hidden"></p>
-                    </div>
+                    {{ form.category.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
+                    {{ form.category(class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-accent focus:border-accent sm:text-sm rounded-md") }}
+                    {% for error in form.category.errors %}
+                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                    {% endfor %}
                 </div>
-
                 <div>
-                    {{ form.description.label(class="block text-sm font-medium text-gray-700") }}
-                    <div class="mt-1">
-                        {{ form.description(id="description-input", class="form-textarea", rows=4) }}
-                        <p id="description-error" class="text-red-500 text-xs mt-1 hidden"></p>
-                    </div>
+                    {{ form.size.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
+                    {{ form.size(class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-accent focus:border-accent sm:text-sm") }}
+                    {% for error in form.size.errors %}
+                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                    {% endfor %}
                 </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        {{ form.category.label(class="block text-sm font-medium text-gray-700") }}
-                        <div class="mt-1">
-                            {{ form.category(id="category-input", class="form-select bg-white") }}
-                            <p id="category-error" class="text-red-500 text-xs mt-1 hidden"></p>
-                        </div>
-                    </div>
-                    <div>
-                        {{ form.condition.label(class="block text-sm font-medium text-gray-700") }}
-                        <div class="mt-1">
-                            {{ form.condition(id="condition-input", class="form-select bg-white") }}
-                            <p id="condition-error" class="text-red-500 text-xs mt-1 hidden"></p>
-                        </div>
-                    </div>
-                </div>
-
-                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        {{ form.school.label(class="block text-sm font-medium text-gray-700") }}
-                        <div class="mt-1">
-                            {{ form.school(id="school-input", class="form-input") }}
-                            <p id="school-error" class="text-red-500 text-xs mt-1 hidden"></p>
-                        </div>
-                    </div>
-                    <div>
-                        {{ form.size.label(class="block text-sm font-medium text-gray-700") }}
-                        <div class="mt-1">
-                            {{ form.size(id="size-input", class="form-input") }}
-                            <p id="size-error" class="text-red-500 text-xs mt-1 hidden"></p>
-                        </div>
-                    </div>
-                </div>
-                
                 <div>
-                    {{ form.photos.label(class="block text-sm font-medium text-gray-700") }}
-                    <div class="mt-1 file-input-wrapper">
-                        <div class="file-input-button">
-                            <span id="file-label">Drag & drop your photos or click to browse</span>
-                        </div>
-                        {{ form.photos(id="photos-input", class="block w-full text-sm text-gray-500") }}
-                    </div>
-                    <p id="photos-error" class="text-red-500 text-xs mt-1 hidden"></p>
+                    {{ form.condition.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
+                    {{ form.condition(class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-accent focus:border-accent sm:text-sm rounded-md") }}
+                    {% for error in form.condition.errors %}
+                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                    {% endfor %}
                 </div>
-
                 <div>
-                    <button type="submit" class="form-button">
-                        Create Listing
-                    </button>
+                    {{ form.school_name.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
+                    {{ form.school_name(class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-accent focus:border-accent sm:text-sm") }}
+                    {% for error in form.school_name.errors %}
+                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                    {% endfor %}
                 </div>
-            </form>
-        </div>
+            </div>
+
+            <!-- Desired Swap Items -->
+            <div>
+                {{ form.desired_swap_items.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
+                {{ form.desired_swap_items(class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-accent focus:border-accent sm:text-sm h-24 resize-y") }}
+                {% for error in form.desired_swap_items.errors %}
+                    <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <!-- Photos Upload -->
+            <div>
+                {{ form.photos.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
+                <input type="file" name="{{ form.photos.name }}" id="{{ form.photos.id }}" multiple 
+                       class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-accent file:text-white hover:file:bg-[#2F9C6E]">
+                <p class="mt-1 text-xs text-gray-500">Upload up to 5 photos. Max file size: 2MB per image. Formats: JPG, PNG, JPEG.</p>
+                {% for error in form.photos.errors %}
+                    <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <!-- Submit Button -->
+            <div>
+                <button type="submit" class="group relative w-full flex justify-center py-2.5 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-[var(--color-accent)] hover:bg-[#2F9C6E] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-accent)] transition-all duration-300 shadow-md">
+                    <i class="fas fa-plus-circle mr-2"></i> Create Listing
+                </button>
+            </div>
+        </form>
     </div>
 </div>
-
-<script>
-    document.addEventListener("DOMContentLoaded", () => {
-        const form = document.getElementById('create-listing-form');
-        const titleInput = document.getElementById('title-input');
-        const descriptionInput = document.getElementById('description-input');
-        const categoryInput = document.getElementById('category-input');
-        const conditionInput = document.getElementById('condition-input');
-        const schoolInput = document.getElementById('school-input');
-        const sizeInput = document.getElementById('size-input');
-        const photosInput = document.getElementById('photos-input');
-        const fileLabel = document.getElementById('file-label');
-
-        const titleError = document.getElementById('title-error');
-        const descriptionError = document.getElementById('description-error');
-        const categoryError = document.getElementById('category-error');
-        const conditionError = document.getElementById('condition-error');
-        const schoolError = document.getElementById('school-error');
-        const sizeError = document.getElementById('size-error');
-        const photosError = document.getElementById('photos-error');
-
-        const debounce = (func, delay) => {
-            let timeoutId;
-            return (...args) => {
-                clearTimeout(timeoutId);
-                timeoutId = setTimeout(() => func.apply(this, args), delay);
-            };
-        };
-
-        const validateField = (input, errorElement, errorMessage) => {
-            if (!input.value.trim()) {
-                errorElement.textContent = errorMessage;
-                errorElement.classList.remove('hidden');
-                return false;
-            } else {
-                errorElement.classList.add('hidden');
-                return true;
-            }
-        };
-
-        // Real-time validation for each field
-        if (titleInput) titleInput.addEventListener('input', debounce(() => validateField(titleInput, titleError, 'Title is required.'), 300));
-        if (descriptionInput) descriptionInput.addEventListener('input', debounce(() => validateField(descriptionInput, descriptionError, 'Description is required.'), 300));
-        if (categoryInput) categoryInput.addEventListener('change', () => validateField(categoryInput, categoryError, 'Category is required.'));
-        if (conditionInput) conditionInput.addEventListener('change', () => validateField(conditionInput, conditionError, 'Condition is required.'));
-        if (schoolInput) schoolInput.addEventListener('input', debounce(() => validateField(schoolInput, schoolError, 'School is required.'), 300));
-        if (sizeInput) sizeInput.addEventListener('input', debounce(() => validateField(sizeInput, sizeError, 'Size is required.'), 300));
-        
-        // File input change handler
-        if (photosInput) {
-            photosInput.addEventListener('change', () => {
-                const files = photosInput.files;
-                if (files.length > 0) {
-                    fileLabel.textContent = `${files.length} file(s) selected`;
-                    photosError.classList.add('hidden');
-                } else {
-                    fileLabel.textContent = 'Drag & drop your photos or click to browse';
-                }
-            });
-        }
-
-        // Form submission validation
-        if (form) {
-            form.addEventListener('submit', (event) => {
-                const isTitleValid = validateField(titleInput, titleError, 'Title is required.');
-                const isDescriptionValid = validateField(descriptionInput, descriptionError, 'Description is required.');
-                const isCategoryValid = validateField(categoryInput, categoryError, 'Category is required.');
-                const isConditionValid = validateField(conditionInput, conditionError, 'Condition is required.');
-                const isSchoolValid = validateField(schoolInput, schoolError, 'School is required.');
-                const isSizeValid = validateField(sizeInput, sizeError, 'Size is required.');
-                const isPhotosValid = photosInput.files.length > 0;
-                
-                if (!isPhotosValid) {
-                    photosError.textContent = 'Please upload at least one photo.';
-                    photosError.classList.remove('hidden');
-                } else {
-                    photosError.classList.add('hidden');
-                }
-
-                if (!isTitleValid || !isDescriptionValid || !isCategoryValid || !isConditionValid || !isSchoolValid || !isSizeValid || !isPhotosValid) {
-                    event.preventDefault();
-                    // Optional: Scroll to the first invalid field
-                    const firstInvalid = [titleInput, descriptionInput, categoryInput, conditionInput, schoolInput, sizeInput, photosInput].find(input => {
-                        const errorElement = document.getElementById(`${input.id.replace('-input', '')}-error`);
-                        return errorElement && !errorElement.classList.contains('hidden');
-                    });
-                    if (firstInvalid) {
-                        firstInvalid.focus();
-                    }
-                }
-            });
-        }
-    });
-</script>
 {% endblock %}

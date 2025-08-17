@@ -1,48 +1,47 @@
-from app.extensions import mongo
-import datetime
-from bson.objectid import ObjectId
+from app.extensions import db
+from datetime import datetime
 
-class Message:
-    """Message Model"""
+class Message(db.Document):
+    """
+    Represents a message sent between users in the SwapTheFit application.
+    This model uses MongoEngine to interact with MongoDB.
+    """
+    # Reference to the User who sent the message.
+    sender = db.ReferenceField('User', required=True, help_text="The user who sent this message.")
 
-    @staticmethod
-    def create(sender_id, receiver_id, listing_id, content):
-        """Creates and saves a new message."""
-        message_data = {
-            "sender_id": ObjectId(sender_id),
-            "receiver_id": ObjectId(receiver_id),
-            "listing_id": ObjectId(listing_id),
-            "content": content,
-            "is_read": False,
-            "created_at": datetime.datetime.utcnow()
-        }
-        return mongo.db.messages.insert_one(message_data)
+    # Reference to the User who received the message.
+    recipient = db.ReferenceField('User', required=True, help_text="The user who received this message.")
 
-    @staticmethod
-    def find_by_receiver(receiver_id):
-        """Finds all messages sent to a specific user."""
-        # This is a complex query that requires joining data from other collections
-        # We use an aggregation pipeline to achieve this.
-        pipeline = [
-            {'$match': {'receiver_id': ObjectId(receiver_id)}},
-            {'$sort': {'created_at': -1}},
-            {
-                '$lookup': {
-                    'from': 'users',
-                    'localField': 'sender_id',
-                    'foreignField': '_id',
-                    'as': 'sender_info'
-                }
-            },
-            {
-                '$lookup': {
-                    'from': 'listings',
-                    'localField': 'listing_id',
-                    'foreignField': '_id',
-                    'as': 'listing_info'
-                }
-            },
-            {'$unwind': '$sender_info'},
-            {'$unwind': '$listing_info'}
-        ]
-        return mongo.db.messages.aggregate(pipeline)
+    # Reference to the Listing that the message pertains to.
+    # This allows conversations to be tied to specific items.
+    listing = db.ReferenceField('Listing', required=True, help_text="The listing this message is about.")
+
+    # The actual content of the message.
+    content = db.StringField(required=True, help_text="The text content of the message.")
+
+    # Boolean to track if the message has been read by the recipient.
+    is_read = db.BooleanField(default=False, help_text="True if the message has been read by the recipient, False otherwise.")
+
+    # Timestamp for when the message was sent.
+    sent_at = db.DateTimeField(default=datetime.utcnow, help_text="Timestamp when the message was sent.")
+
+    # Define a Meta class for MongoEngine specific configurations.
+    meta = {
+        'collection': 'messages',  # Explicitly set the collection name in MongoDB
+        'indexes': [
+            {'fields': ('sender',)},     # Index by sender for faster lookup of sent messages
+            {'fields': ('recipient',)},  # Index by recipient for faster inbox retrieval
+            {'fields': ('listing',)},    # Index by listing for conversation context
+            {'fields': ('-sent_at',)}  # Descending index on sent_at for chronological order
+        ],
+        'strict': False # Allows for dynamic fields not explicitly defined in the schema
+    }
+
+    def __repr__(self):
+        """
+        String representation of the Message object, useful for debugging.
+        """
+        sender_name = self.sender.username if self.sender else "Unknown Sender"
+        recipient_name = self.recipient.username if self.recipient else "Unknown Recipient"
+        listing_title = self.listing.title if self.listing else "Unknown Listing"
+        return f"Message from '{sender_name}' to '{recipient_name}' about '{listing_title}': '{self.content[:30]}...'"
