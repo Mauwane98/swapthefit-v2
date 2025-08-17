@@ -1,0 +1,43 @@
+{% extends "_layouts/base.html" %}
+
+{% block title %}Propose a Swap{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">Propose a Swap</h1>
+
+    <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+        <h2 class="text-xl font-semibold mb-2">Item You Want:</h2>
+        <div class="flex items-center">
+            <img src="{{ url_for('static', filename='uploads/' + requested_listing.image_url) if requested_listing.image_url else 'https://placehold.co/100x100' }}" alt="{{ requested_listing.item_name }}" class="w-24 h-24 object-cover rounded-md mr-4">
+            <div>
+                <h3 class="text-lg font-bold">{{ requested_listing.item_name }}</h3>
+                <p class="text-gray-600">Listed by: {{ requested_listing.user.username }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <h2 class="text-xl font-semibold mb-4">Select an Item to Offer:</h2>
+        <form action="{{ url_for('swaps.propose_swap', listing_id=requested_listing.id) }}" method="POST">
+            {% if user_listings %}
+                <div class="space-y-4">
+                    {% for listing in user_listings %}
+                    <label class="flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
+                        <input type="radio" name="offered_listing_id" value="{{ listing.id }}" class="mr-4">
+                        <img src="{{ url_for('static', filename='uploads/' + listing.image_url) if listing.image_url else 'https://placehold.co/100x100' }}" alt="{{ listing.item_name }}" class="w-16 h-16 object-cover rounded-md mr-4">
+                        <div>
+                            <h4 class="font-semibold">{{ listing.item_name }}</h4>
+                            <p class="text-sm text-gray-500">{{ listing.condition }}</p>
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+                <button type="submit" class="mt-6 w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded hover:bg-indigo-700 transition-colors">Send Swap Proposal</button>
+            {% else %}
+                <p class="text-gray-600">You have no items to offer. <a href="{{ url_for('listings.create_listing') }}" class="text-indigo-600 hover:underline">Create a listing</a> first.</p>
+            {% endif %}
+        </form>
+    </div>
+</div>
+{% endblock %}

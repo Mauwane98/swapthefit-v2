@@ -1,73 +1,53 @@
 from app.extensions import mongo
-import datetime
+from datetime import datetime
 from bson.objectid import ObjectId
 
 class Listing:
-    """Listing Model"""
+    """
+    Represents a school item listing in the marketplace.
+    """
+
+    def __init__(self, item_name, description, price, size, condition, school_name, user_id, image_url=None, date_posted=None, _id=None):
+        self.item_name = item_name
+        self.description = description
+        self.price = price
+        self.size = size
+        self.condition = condition
+        self.school_name = school_name
+        self.image_url = image_url
+        self.date_posted = date_posted or datetime.utcnow()
+        self.user_id = user_id
+        if _id:
+            self.id = str(_id)
+        else:
+            self.id = None
 
     @staticmethod
-    def create(owner_id, title, description, category, school, size, condition, images):
-        """Creates and saves a new listing."""
-        listing_data = {
-            "owner_id": ObjectId(owner_id),
-            "title": title,
-            "description": description,
-            "category": category,
-            "school": school,
-            "size": size,
-            "condition": condition,
-            "status": "available",
-            "images": images,
-            "created_at": datetime.datetime.utcnow(),
-            "updated_at": datetime.datetime.utcnow()
-        }
-        return mongo.db.listings.insert_one(listing_data)
+    def get_all():
+        listings_data = mongo.db.listings.find()
+        return [Listing(**data) for data in listings_data]
 
     @staticmethod
-    def find_by_owner(owner_id):
-        """Finds all listings by a specific owner."""
-        return mongo.db.listings.find({"owner_id": ObjectId(owner_id)})
+    def get_by_id(listing_id):
+        listing_data = mongo.db.listings.find_one({'_id': ObjectId(listing_id)})
+        if listing_data:
+            return Listing(**listing_data)
+        return None
 
     @staticmethod
-    def find_all_available():
-        """Finds all listings that are currently available."""
-        return mongo.db.listings.find({"status": "available"}).sort("created_at", -1)
+    def get_by_user_id(user_id):
+        listings_data = mongo.db.listings.find({'user_id': user_id}).sort('date_posted', -1)
+        return [Listing(**data) for data in listings_data]
 
-    @staticmethod
-    def find_by_id(listing_id):
-        """Finds a single listing by its ID."""
-        return mongo.db.listings.find_one({"_id": ObjectId(listing_id)})
+    def save(self):
+        if self.id:
+            mongo.db.listings.update_one({'_id': ObjectId(self.id)}, {'$set': self.__dict__})
+        else:
+            result = mongo.db.listings.insert_one(self.__dict__)
+            self.id = str(result.inserted_id)
 
-    @staticmethod
-    def update(listing_id, data):
-        """Updates a listing with new data."""
-        data['updated_at'] = datetime.datetime.utcnow()
-        return mongo.db.listings.update_one(
-            {'_id': ObjectId(listing_id)},
-            {'$set': data}
-        )
+    def delete(self):
+        mongo.db.listings.delete_one({'_id': ObjectId(self.id)})
 
-    @staticmethod
-    def delete_by_id(listing_id):
-        """Deletes a listing by its ID."""
-        return mongo.db.listings.delete_one({'_id': ObjectId(listing_id)})
-        
-    @staticmethod
-    def find_all_with_owner_info():
-        """
-        Finds all listings and joins them with owner information.
-        Uses a MongoDB aggregation pipeline for efficiency.
-        """
-        pipeline = [
-            {'$sort': {'created_at': -1}},
-            {
-                '$lookup': {
-                    'from': 'users',
-                    'localField': 'owner_id',
-                    'foreignField': '_id',
-                    'as': 'owner_info'
-                }
-            },
-            {'$unwind': '$owner_info'}
-        ]
-        return mongo.db.listings.aggregate(pipeline)
+    def __repr__(self):
+        return f"Listing('{self.item_name}', '{self.date_posted}')"

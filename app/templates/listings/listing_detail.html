@@ -1,42 +1,66 @@
 {% extends "_layouts/base.html" %}
 
-{% block title %}
-    {{ listing.title }}
-{% endblock %}
+{% block title %}{{ listing.item_name }}{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-8">
-        <!-- Main Image -->
-        <img src="{{ url_for('static', filename='uploads/' + listing.images[0]) }}" class="img-fluid rounded mb-4" alt="{{ listing.title }}">
-        
-        <h1 class="display-5">{{ listing.title }}</h1>
-        <p class="lead">{{ listing.description }}</p>
-    </div>
-    <div class="col-md-4">
-        <div class="card bg-secondary">
-            <div class="card-body">
-                <h4 class="card-title">Item Details</h4>
-                <ul class="list-group list-group-flush">
-                    <li class="list-group-item bg-secondary"><strong>Category:</strong> {{ listing.category|title }}</li>
-                    <li class="list-group-item bg-secondary"><strong>Condition:</strong> {{ listing.condition.replace('-', ' ')|title }}</li>
-                    <li class="list-group-item bg-secondary"><strong>Size:</strong> {{ listing.size }}</li>
-                    {% if listing.school %}
-                    <li class="list-group-item bg-secondary"><strong>School:</strong> {{ listing.school }}</li>
-                    {% endif %}
-                </ul>
-                <div class="d-grid mt-4">
-                    <a href="#" class="btn btn-primary btn-lg">Contact Seller</a>
-                </div>
+<div class="container mx-auto px-4 py-8">
+    <div class="bg-white rounded-lg shadow-xl overflow-hidden">
+        <div class="md:flex">
+            <div class="md:flex-shrink-0">
+                <img class="h-96 w-full object-cover md:w-96" 
+                     src="{{ url_for('static', filename='uploads/' + listing.image_url) if listing.image_url else 'https://placehold.co/600x400/d1d5db/374151?text=No+Image' }}" 
+                     alt="{{ listing.item_name }}"
+                     onerror="this.onerror=null;this.src='https://placehold.co/600x400/d1d5db/374151?text=No+Image';">
             </div>
-        </div>
-        <div class="card bg-secondary mt-3">
-             <div class="card-body">
-                <h5 class="card-title">Seller Information</h5>
-                <p class="card-text">
-                    <strong>Name:</strong> {{ owner.name }}<br>
-                    <small class="text-muted">Contact seller to arrange swap/purchase.</small>
-                </p>
+            <div class="p-8">
+                <div class="uppercase tracking-wide text-sm text-indigo-600 font-semibold">{{ listing.school_name }}</div>
+                <h1 class="block mt-1 text-3xl leading-tight font-extrabold text-black">{{ listing.item_name }}</h1>
+                <p class="mt-2 text-gray-600">{{ listing.description }}</p>
+
+                <div class="mt-4">
+                    <span class="text-gray-800 font-bold text-2xl">R{{ "%.2f"|format(listing.price) }}</span>
+                </div>
+
+                <div class="mt-4 space-y-2">
+                    <p><span class="font-semibold">Size:</span> {{ listing.size }}</p>
+                    <p><span class="font-semibold">Condition:</span> {{ listing.condition }}</p>
+                    <p><span class="font-semibold">Seller:</span> <a href="{{ url_for('listings.user_profile', user_id=listing.user.id) }}" class="text-indigo-600 hover:underline">{{ listing.user.username }}</a></p>
+                    <p class="text-sm text-gray-500">Posted on {{ listing.date_posted.strftime('%B %d, %Y') }}</p>
+                </div>
+
+                <div class="mt-6 flex items-center space-x-4">
+                    {% if current_user.is_authenticated %}
+                        {% if current_user.id == listing.user_id %}
+                            <a href="{{ url_for('listings.edit_listing', listing_id=listing.id) }}" class="bg-blue-500 text-white font-bold py-2 px-4 rounded hover:bg-blue-600">Edit Listing</a>
+                            <form action="{{ url_for('listings.delete_listing', listing_id=listing.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this listing?');">
+                                <button type="submit" class="bg-red-500 text-white font-bold py-2 px-4 rounded hover:bg-red-600">Delete Listing</button>
+                            </form>
+                        {% else %}
+                             <a href="{{ url_for('messaging.send_message', recipient_id=listing.user.id, listing_id=listing.id) }}" class="bg-green-500 text-white font-bold py-2 px-4 rounded hover:bg-green-600">Message Seller</a>
+                             <a href="{{ url_for('swaps.propose_swap', listing_id=listing.id) }}" class="bg-purple-500 text-white font-bold py-2 px-4 rounded hover:bg-purple-600">Propose Swap</a>
+                            <form action="{{ url_for('wishlist.add_to_wishlist', listing_id=listing.id) }}" method="POST">
+                                <button type="submit" class="flex items-center justify-center bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded hover:bg-red-200 hover:text-red-600 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                    </svg>
+                                </button>
+                            </form>
+                        {% endif %}
+                    {% else %}
+                        <a href="{{ url_for('auth.login') }}" class="bg-indigo-600 text-white font-bold py-2 px-4 rounded hover:bg-indigo-700">Log in to contact seller</a>
+                    {% endif %}
+                </div>
+                 {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div class="mt-4">
+                        {% for category, message in messages %}
+                            <div class="bg-{{ 'green' if category == 'success' else 'blue' }}-100 border-l-4 border-{{ 'green' if category == 'success' else 'blue' }}-500 text-{{ 'green' if category == 'success' else 'blue' }}-700 p-4" role="alert">
+                                <p>{{ message }}</p>
+                            </div>
+                        {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
             </div>
         </div>
     </div>

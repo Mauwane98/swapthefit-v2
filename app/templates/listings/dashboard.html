@@ -1,44 +1,54 @@
 {% extends "_layouts/base.html" %}
 
-{% block title %}
-    Your Dashboard
-{% endblock %}
+{% block title %}Dashboard{% endblock %}
 
 {% block content %}
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="display-4">Welcome, {{ user.name }}!</h1>
-        <a href="{{ url_for('listings_bp.create_listing') }}" class="btn btn-primary btn-lg">Create New Listing</a>
-    </div>
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-gray-800 mb-4">Welcome, {{ current_user.username }}!</h1>
+    <p class="text-gray-600 mb-8">This is your dashboard. From here you can manage your listings, view your messages, and update your profile.</p>
 
-    <hr>
-
-    <h2 class="mt-5">Your Listings</h2>
-    {% if listings.count() > 0 %}
-        <div class="row">
-            {% for listing in listings %}
-                <div class="col-md-4 mb-4">
-                    <div class="card bg-secondary h-100">
-                        <!-- Display the uploaded image -->
-                        {% if listing.images %}
-                            <img src="{{ url_for('static', filename='uploads/' + listing.images[0]) }}" class="card-img-top" alt="{{ listing.title }}" style="height: 200px; object-fit: cover;">
-                        {% else %}
-                            <div class="card-img-top bg-dark" style="height: 200px; display: flex; align-items: center; justify-content: center;">
-                               <span class="text-muted">No Image</span>
-                            </div>
-                        {% endif %}
-                        <div class="card-body">
-                            <h5 class="card-title">{{ listing.title }}</h5>
-                            <p class="card-text">
-                                <strong>Status:</strong> <span class="badge bg-success">{{ listing.status }}</span><br>
-                                <strong>Condition:</strong> {{ listing.condition.replace('-', ' ')|title }}
-                            </p>
-                            <a href="#" class="btn btn-sm btn-outline-light">Edit</a>
-                        </div>
-                    </div>
-                </div>
-            {% endfor %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Manage Listings -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4">Manage Your Listings</h2>
+            <p class="text-gray-600 mb-4">View, edit, or delete your current listings.</p>
+            <a href="{{ url_for('listings.user_profile', user_id=current_user.id) }}" class="text-indigo-600 hover:text-indigo-800 font-semibold">View My Listings &rarr;</a>
         </div>
-    {% else %}
-        <p class="lead">You haven't created any listings yet.</p>
-    {% endif %}
+
+        <!-- Create New Listing -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4">Create a New Listing</h2>
+            <p class="text-gray-600 mb-4">Have something to sell or swap? Create a new listing for it.</p>
+            <a href="{{ url_for('listings.create_listing') }}" class="text-indigo-600 hover:text-indigo-800 font-semibold">Create Listing &rarr;</a>
+        </div>
+        
+        <!-- Manage Swaps -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4">Manage Swaps</h2>
+            <p class="text-gray-600 mb-4">View and respond to swap requests.</p>
+            <a href="{{ url_for('swaps.manage_swaps') }}" class="text-indigo-600 hover:text-indigo-800 font-semibold">Manage Swaps &rarr;</a>
+        </div>
+        
+        <!-- View Wishlist -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4">My Wishlist</h2>
+            <p class="text-gray-600 mb-4">View items you have saved to your wishlist.</p>
+            <a href="{{ url_for('wishlist.view_wishlist') }}" class="text-indigo-600 hover:text-indigo-800 font-semibold">View My Wishlist &rarr;</a>
+        </div>
+
+        <!-- Inbox -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4">Your Inbox</h2>
+            <p class="text-gray-600 mb-4">Check your messages from other users.</p>
+            <a href="{{ url_for('messaging.inbox') }}" class="text-indigo-600 hover:text-indigo-800 font-semibold">Go to Inbox &rarr;</a>
+        </div>
+
+        <!-- Profile Settings -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4">Profile Settings</h2>
+            <p class="text-gray-600 mb-4">Update your personal information and password.</p>
+            <a href="#" class="text-indigo-600 hover:text-indigo-800 font-semibold">Edit Profile &rarr;</a>
+        </div>
+    </div>
+</div>
 {% endblock %}

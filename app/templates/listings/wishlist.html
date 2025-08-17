@@ -1,0 +1,54 @@
+{% extends "_layouts/base.html" %}
+
+{% block title %}My Wishlist{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">My Wishlist</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="bg-{{ 'green' if category == 'success' else 'red' }}-100 border border-{{ 'green' if category == 'success' else 'red' }}-400 text-{{ 'green' if category == 'success' else 'red' }}-700 px-4 py-3 rounded relative mb-4" role="alert">
+                    <span class="block sm:inline">{{ message }}</span>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% if wishlist_items %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {% for item in wishlist_items %}
+                <div class="bg-white rounded-lg shadow-md overflow-hidden transform hover:-translate-y-1 transition-all duration-300">
+                    <a href="{{ url_for('listings.listing_detail', listing_id=item.listing.id) }}">
+                        <img src="{{ url_for('static', filename='uploads/' + item.listing.image_url) if item.listing.image_url else 'https://placehold.co/600x400/d1d5db/374151?text=No+Image' }}" 
+                             alt="{{ item.listing.item_name }}" 
+                             class="w-full h-48 object-cover"
+                             onerror="this.onerror=null;this.src='https://placehold.co/600x400/d1d5db/374151?text=No+Image';">
+                    </a>
+                    <div class="p-4">
+                        <h3 class="text-lg font-semibold text-gray-800">{{ item.listing.item_name }}</h3>
+                        <p class="text-gray-600 text-sm">{{ item.listing.school_name }}</p>
+                        <p class="text-gray-800 font-bold mt-2">R{{ "%.2f"|format(item.listing.price) }}</p>
+                        <div class="mt-4 flex justify-between items-center">
+                            <a href="{{ url_for('listings.listing_detail', listing_id=item.listing.id) }}" class="text-indigo-600 hover:text-indigo-800 font-semibold text-sm">View Details</a>
+                            <form action="{{ url_for('wishlist.remove_from_wishlist', wishlist_item_id=item.id) }}" method="POST">
+                                <button type="submit" class="text-red-500 hover:text-red-700">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                                    </svg>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-12">
+            <p class="text-gray-600 text-lg">Your wishlist is empty.</p>
+            <a href="{{ url_for('listings.marketplace') }}" class="mt-4 inline-block bg-indigo-600 text-white font-bold py-2 px-4 rounded hover:bg-indigo-700 transition-colors">Browse Items</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
