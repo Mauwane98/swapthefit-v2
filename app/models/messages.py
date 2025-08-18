@@ -7,14 +7,14 @@ class Message(db.Document):
     This model uses MongoEngine to interact with MongoDB.
     """
     # Reference to the User who sent the message.
-    sender = db.ReferenceField('User', required=True, help_text="The user who sent this message.")
+    sender = db.ReferenceField(document_type='User', required=True, help_text="The user who sent this message.")
 
     # Reference to the User who received the message.
-    recipient = db.ReferenceField('User', required=True, help_text="The user who received this message.")
+    recipient = db.ReferenceField(document_type='User', required=True, help_text="The user who received this message.")
 
     # Reference to the Listing that the message pertains to.
     # This allows conversations to be tied to specific items.
-    listing = db.ReferenceField('Listing', required=True, help_text="The listing this message is about.")
+    listing = db.ReferenceField(document_type='Listing', required=True, help_text="The listing this message is about.")
 
     # The actual content of the message.
     content = db.StringField(required=True, help_text="The text content of the message.")

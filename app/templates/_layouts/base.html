@@ -73,7 +73,7 @@
                 <div class="hidden md:flex items-center space-x-6">
                     <a class="text-gray-700 hover:text-gray-900 font-medium transition-colors duration-200" href="{{ url_for('listings.marketplace') }}">Marketplace</a>
                     {% if current_user.is_authenticated %}
-                        <a class="text-gray-700 hover:text-gray-900 font-medium transition-colors duration-200" href="{{ url_for('listings.dashboard') }}">Dashboard</a>
+                        <a class="text-gray-700 hover:text-gray-900 font-medium transition-colors duration-200" href="{{ url_for('listings.dashboard_redirect') }}">Dashboard</a>
                         <a class="text-gray-700 hover:text-gray-900 font-medium relative transition-colors duration-200" href="{{ url_for('notifications.index') }}">
                             <i class="fas fa-bell"></i> Notifications
                             <span id="notification-badge" class="absolute -top-1 -right-1 inline-flex items-center justify-center h-4 w-4 text-xs font-bold text-white bg-red-500 rounded-full animate-pulse-once {% if unread_notifications == 0 %}hidden{% endif %}">{{ unread_notifications }}</span>
@@ -111,7 +111,7 @@
             <div class="flex flex-col py-2">
                 <a class="block py-3 px-6 text-gray-700 hover:bg-gray-50 transition-colors duration-200" href="{{ url_for('listings.marketplace') }}">Marketplace</a>
                 {% if current_user.is_authenticated %}
-                    <a class="block py-3 px-6 text-gray-700 hover:bg-gray-50 transition-colors duration-200" href="{{ url_for('listings.dashboard') }}">Dashboard</a>
+                    <a class="block py-3 px-6 text-gray-700 hover:bg-gray-50 transition-colors duration-200" href="{{ url_for('listings.dashboard_redirect') }}">Dashboard</a>
                     <a class="block py-3 px-6 text-gray-700 hover:bg-gray-50 transition-colors duration-200" href="{{ url_for('profile.user_profile', user_id=current_user.id) }}">Profile</a>
                     <a class="block py-3 px-6 text-gray-700 hover:bg-gray-50 transition-colors duration-200" href="{{ url_for('auth.logout') }}">Logout</a>
                 {% else %}

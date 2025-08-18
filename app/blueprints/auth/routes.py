@@ -3,8 +3,10 @@ from flask_login import login_user, logout_user, login_required, current_user
 from app.blueprints.auth.forms import RegistrationForm, LoginForm, RequestResetForm, ResetPasswordForm
 from app.models.users import User
 from app.utils.emails import send_password_reset_email, send_welcome_email
-from app.extensions import bcrypt, mail # Import bcrypt and mail from extensions
+from app.extensions import bcrypt # Import bcrypt from extensions
 import datetime
+# Import the roles_required decorator from app.utils.security
+from app.utils.security import roles_required 
 
 auth_bp = Blueprint('auth', __name__, template_folder='templates')
 
@@ -41,7 +43,7 @@ def register():
 
             # Handle optional contact person for school/NGO roles
             if form.role.data in ['school', 'ngo']:
-                user.contact_person = form.contact_person.data # Add contact_person to user model
+                user.contact_person = form.contact_person.data if form.contact_person.data else None
             else:
                 user.contact_person = None # Ensure it's not set for 'parent'
 
@@ -75,7 +77,16 @@ def login():
     # If a user is already logged in, redirect them away from the login page.
     if current_user.is_authenticated:
         flash('You are already logged in.', 'info')
-        return redirect(url_for('landing_bp.index')) # Redirect to landing or dashboard
+        # Redirect based on role if a dashboard system is in place
+        if current_user.has_role('admin'):
+            return redirect(url_for('admin.dashboard'))
+        elif current_user.has_role('school'):
+            return redirect(url_for('listings.school_dashboard')) # Placeholder for school dashboard
+        elif current_user.has_role('ngo'):
+            return redirect(url_for('listings.ngo_dashboard')) # Placeholder for NGO dashboard
+        else: # Default for parent
+            return redirect(url_for('listings.dashboard_redirect'))
+
 
     form = LoginForm()
     if form.validate_on_submit():
@@ -89,10 +100,20 @@ def login():
             user.save()
             
             # Redirect to the 'next' page if it exists in the URL parameters,
-            # otherwise redirect to the landing page.
+            # otherwise redirect to the appropriate dashboard based on role.
             next_page = request.args.get('next')
             flash('Login successful!', 'success')
-            return redirect(next_page or url_for('landing_bp.index'))
+            
+            if next_page:
+                return redirect(next_page)
+            elif user.has_role('admin'):
+                return redirect(url_for('admin.dashboard'))
+            elif user.has_role('school'):
+                return redirect(url_for('listings.school_dashboard')) # Placeholder
+            elif user.has_role('ngo'):
+                return redirect(url_for('listings.ngo_dashboard')) # Placeholder
+            else: # Default for parent
+                return redirect(url_for('listings.dashboard_redirect'))
         else:
             flash('Login Unsuccessful. Please check email and password', 'danger')
     return render_template('auth/login.html', title='Login', form=form)
@@ -156,29 +177,3 @@ def reset_token(token):
         return redirect(url_for('auth.login'))
     return render_template('auth/reset_token.html', title='Reset Password', form=form)
 
-# Helper for Role-Based Access Control (RBAC) - Decorator
-# This decorator will be useful for protecting routes based on user roles.
-# It assumes 'User' model has a 'has_role' method and 'current_user' is available.
-from functools import wraps
-from flask import abort
-
-def roles_required(*roles):
-    """
-    Custom decorator to restrict access to a route based on user roles.
-    Example: @roles_required('admin', 'school')
-    """
-    def wrapper(fn):
-        @wraps(fn)
-        def decorated_view(*args, **kwargs):
-            if not current_user.is_authenticated:
-                # Redirect to login if not authenticated
-                flash('Please log in to access this page.', 'info')
-                return redirect(url_for('auth.login', next=request.url))
-            
-            # Check if the user has any of the required roles
-            if not any(current_user.has_role(role) for role in roles):
-                flash('You do not have permission to access this page.', 'danger')
-                abort(403) # Forbidden
-            return fn(*args, **kwargs)
-        return decorated_view
-    return wrapper

@@ -7,10 +7,10 @@ class Wishlist(db.Document):
     that a user is interested in. This model uses MongoEngine.
     """
     # Reference to the User who owns this wishlist.
-    user = db.ReferenceField('User', required=True, help_text="The user who owns this wishlist.")
+    user = db.ReferenceField(document_type='User', required=True, help_text="The user who owns this wishlist.")
 
     # Reference to the Listing that is added to the wishlist.
-    listing = db.ReferenceField('Listing', required=True, help_text="The listing added to the wishlist.")
+    listing = db.ReferenceField(document_type='Listing', required=True, help_text="The listing added to the wishlist.")
 
     # Timestamp for when the listing was added to the wishlist.
     added_at = db.DateTimeField(default=datetime.utcnow, help_text="Timestamp when the listing was added to the wishlist.")

@@ -7,10 +7,10 @@ class Review(db.Document):
     This model uses MongoEngine to interact with MongoDB.
     """
     # Reference to the User who provided the review.
-    reviewer = db.ReferenceField('User', required=True, help_text="The user who wrote this review.")
+    reviewer = db.ReferenceField(document_type='User', required=True, help_text="The user who wrote this review.")
 
     # Reference to the User who is being reviewed.
-    reviewed_user = db.ReferenceField('User', required=True, help_text="The user who is being reviewed.")
+    reviewed_user = db.ReferenceField(document_type='User', required=True, help_text="The user who is being reviewed.")
 
     # Numerical rating given by the reviewer (e.g., 1 to 5 stars).
     # Choices enforce valid rating values.

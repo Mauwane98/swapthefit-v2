@@ -62,11 +62,27 @@
                 {% endif %}
                 <div class="flex items-center">
                     <i class="fas fa-calendar-alt text-accent mr-2"></i>
-                    <span class="font-semibold">Listed On:</span> {{ listing.created_at.strftime('%b %d, %Y') }}
+                    <span class="font-semibold">Listed On:</span> {{ moment(listing.created_at).format('MMMM Do YYYY') }}
                 </div>
+                 <div class="flex items-center">
+                    <i class="fas fa-exchange-alt text-accent mr-2"></i>
+                    <span class="font-semibold">Listing Type:</span> {{ listing.listing_type|capitalize }}
+                </div>
+                 {% if listing.listing_type == 'sale' and listing.price is not none %}
+                <div class="flex items-center">
+                    <i class="fas fa-money-bill-wave text-accent mr-2"></i>
+                    <span class="font-semibold">Price:</span> R {{ "%.2f" | format(listing.price) }}
+                </div>
+                {% endif %}
+                {% if listing.is_premium %}
+                <div class="flex items-center">
+                    <i class="fas fa-gem text-yellow-500 mr-2"></i>
+                    <span class="font-semibold text-yellow-500">Premium Listing</span>
+                </div>
+                {% endif %}
             </div>
 
-            {% if listing.desired_swap_items %}
+            {% if listing.desired_swap_items and listing.listing_type == 'swap' %}
             <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
                 <p class="text-sm font-semibold text-gray-800 mb-2"><i class="fas fa-exchange-alt text-accent mr-2"></i> Desired Swap Items:</p>
                 <p class="text-gray-700 text-base">{{ listing.desired_swap_items }}</p>
@@ -90,24 +106,37 @@
                     </form>
                 {% elif current_user.is_authenticated %}
                     <!-- Other User's Actions -->
-                    <a href="{{ url_for('swaps.propose_swap', listing_id=listing.id) }}" 
-                       class="flex-1 min-w-[150px] inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[var(--color-accent)] hover:bg-[#2F9C6E] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-accent)] transition-colors duration-200 shadow-md">
-                        <i class="fas fa-exchange-alt mr-2"></i> Propose Swap
-                    </a>
+                    {% if listing.listing_type == 'swap' %}
+                        <a href="{{ url_for('swaps.propose_swap', listing_id=listing.id) }}" 
+                           class="flex-1 min-w-[150px] inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200 shadow-md">
+                            <i class="fas fa-exchange-alt mr-2"></i> Propose Swap
+                        </a>
+                    {% elif listing.listing_type == 'sale' %}
+                         <a href="{{ url_for('payments.buy_item', listing_id=listing.id) }}" 
+                            class="flex-1 min-w-[150px] inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200 shadow-md">
+                            <i class="fas fa-money-bill-wave mr-2"></i> Buy Now (R {{ "%.2f" | format(listing.price) }})
+                        </a>
+                    {% elif listing.listing_type == 'donation' %}
+                        <a href="{{ url_for('donations.propose_donation', listing_id=listing.id) }}" 
+                           class="flex-1 min-w-[150px] inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-200 shadow-md">
+                            <i class="fas fa-hand-holding-heart mr-2"></i> Donate This Item
+                        </a>
+                    {% endif %}
+
                     <a href="{{ url_for('messaging.send_message', recipient_id=listing.owner.id, listing_id=listing.id) }}" 
-                       class="flex-1 min-w-[150px] inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200 shadow-md">
+                       class="flex-1 min-w-[150px] inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200 shadow-md">
                         <i class="fas fa-comment-dots mr-2"></i> Message Owner
                     </a>
                     {% if current_user.has_role('parent') %}
                         {% if not is_wishlisted %}
-                        <form action="{{ url_for('listings.add_to_wishlist', listing_id=listing.id) }}" method="POST" class="flex-1 min-w-[150px]">
+                        <form action="{{ url_for('wishlist.add_to_wishlist', listing_id=listing.id) }}" method="POST" class="flex-1 min-w-[150px]">
                             {{ csrf_token() }}
                             <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200">
                                 <i class="far fa-heart mr-2"></i> Add to Wishlist
                             </button>
                         </form>
                         {% else %}
-                        <form action="{{ url_for('listings.remove_from_wishlist', listing_id=listing.id) }}" method="POST" class="flex-1 min-w-[150px]">
+                        <form action="{{ url_for('wishlist.remove_from_wishlist', listing_id=listing.id) }}" method="POST" class="flex-1 min-w-[150px]">
                             {{ csrf_token() }}
                             <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 border border-red-400 rounded-md shadow-sm text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200">
                                 <i class="fas fa-heart mr-2"></i> Remove from Wishlist
@@ -118,7 +147,7 @@
                 {% else %}
                     <!-- Guest User Actions -->
                     <a href="{{ url_for('auth.login') }}" 
-                       class="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[var(--color-accent)] hover:bg-[#2F9C6E] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-accent)] transition-colors duration-200 shadow-md">
+                       class="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200 shadow-md">
                         <i class="fas fa-sign-in-alt mr-2"></i> Login to Interact
                     </a>
                 {% endif %}
@@ -206,7 +235,7 @@
                                             {% for _ in range(5 - review.rating) %}
                                                 <i class="far fa-star text-gray-300 text-sm"></i>
                                             {% endfor %}
-                                            <span class="text-xs text-gray-500 ml-2">{{ review.date_posted.strftime('%b %d, %Y') }}</span>
+                                            <span class="text-xs text-gray-500 ml-2">{{ moment(review.date_posted).format('MMMM Do YYYY') }}</span>
                                         </div>
                                     </div>
                                 </div>

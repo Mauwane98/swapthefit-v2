@@ -53,14 +53,15 @@ def create_app(config_class=Config):
         from app.models.reviews import Review
         from app.models.notifications import Notification
         from app.models.swaps import SwapRequest
+        from app.models.donations import Donation
+        from app.models.payments import Order
 
-        # Context processor to inject moment into all templates
-        # moment is now initialized by init_extensions(app)
-        from app.extensions import moment # Import moment after init_extensions(app)
+
+        # Context processor to inject datetime into all templates
         from datetime import datetime # Import datetime
         @app.context_processor
-        def inject_moment():
-            return dict(moment=moment, datetime=datetime)
+        def inject_datetime():
+            return dict(datetime=datetime)
 
         # Register Blueprints
         from app.blueprints.landing.routes import landing_bp
@@ -73,7 +74,11 @@ def create_app(config_class=Config):
         from app.blueprints.notifications.routes import notifications_bp
         from app.blueprints.swaps.routes import swaps_bp
         from app.blueprints.profile.routes import profile_bp
-        
+        from app.blueprints.donations.routes import donations_bp
+        from app.blueprints.payments.routes import payments_bp
+        from app.blueprints.logistics.routes import logistics_bp # New logistics blueprint
+
+
         app.register_blueprint(landing_bp)
         app.register_blueprint(auth_bp, url_prefix='/auth')
         app.register_blueprint(admin_bp, url_prefix='/admin')
@@ -84,6 +89,10 @@ def create_app(config_class=Config):
         app.register_blueprint(notifications_bp, url_prefix='/notifications')
         app.register_blueprint(swaps_bp, url_prefix='/swaps')
         app.register_blueprint(profile_bp, url_prefix='/profile')
+        app.register_blueprint(donations_bp, url_prefix='/donations')
+        app.register_blueprint(payments_bp, url_prefix='/payments')
+        app.register_blueprint(logistics_bp, url_prefix='/logistics') # Register logistics blueprint
+
 
         # Context processor to inject unread notification count into all templates
         @app.context_processor
@@ -193,7 +202,15 @@ def create_app(config_class=Config):
                 login_user(existing_user)
                 flash('Successfully logged in with Google!', 'success')
 
-            return redirect(url_for("landing_bp.index")) # Redirect to dashboard or landing page
+            # Redirect to appropriate dashboard after Google login
+            if current_user.has_role('admin'):
+                return redirect(url_for('admin.dashboard'))
+            elif current_user.has_role('school'):
+                return redirect(url_for('listings.school_dashboard'))
+            elif current_user.has_role('ngo'):
+                return redirect(url_for('listings.ngo_dashboard'))
+            else: # Default for parent
+                return redirect(url_for('listings.parent_dashboard'))
 
         # SocketIO event handlers
         @socketio.on('connect')
@@ -213,7 +230,7 @@ def create_app(config_class=Config):
                 socketio.leave_room(str(current_user.id))
                 current_app.logger.info(f"Client disconnected: {current_user.username} (ID: {current_user.id})")
             else:
-                current_app.logger.info("Anonymous client connected.")
+                current_app.logger.info("Anonymous client disconnected.")
 
         @socketio.on('send_message')
         def handle_send_message(data):

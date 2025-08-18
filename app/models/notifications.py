@@ -7,11 +7,11 @@ class Notification(db.Document):
     This model uses MongoEngine to interact with MongoDB.
     """
     # Reference to the User who is the recipient of this notification.
-    recipient = db.ReferenceField('User', required=True, help_text="The user who receives this notification.")
+    recipient = db.ReferenceField(document_type='User', required=True, help_text="The user who receives this notification.")
 
     # Reference to the User who initiated the event that caused this notification (optional).
     # E.g., the sender of a message, or the proposer of a swap.
-    sender = db.ReferenceField('User', help_text="The user who triggered this notification (optional).")
+    sender = db.ReferenceField(document_type='User', help_text="The user who triggered this notification (optional).")
 
     # The type of notification (e.g., 'message', 'swap_request', 'listing_update', 'admin_alert').
     # This helps in rendering different notification types in the UI.

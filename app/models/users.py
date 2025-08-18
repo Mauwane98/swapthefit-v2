@@ -23,7 +23,9 @@ class User(db.Document, UserMixin):
     profile_pic = db.StringField(default='https://placehold.co/150x150/E0BBE4/FFFFFF?text=Profile')
     # List of roles assigned to the user, defaulting to 'parent'.
     # This allows for flexible role assignment (e.g., a user can be both 'parent' and 'admin').
-    roles = db.ListField(db.StringField(choices=ROLES), default=['parent'])
+    roles = db.ListField(field=db.StringField(), default=['parent'])
+    # Optional field for contact person, mainly for 'school' and 'ngo' roles.
+    contact_person = db.StringField(max_length=100, help_text="Contact person for school or NGO roles.", null=True)
     # Timestamp for when the user account was created.
     date_joined = db.DateTimeField(default=datetime.utcnow)
     # Boolean to indicate if the user account is active.

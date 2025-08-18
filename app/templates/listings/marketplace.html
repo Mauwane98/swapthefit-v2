@@ -93,7 +93,7 @@
                             </a>
                             {% if current_user.is_authenticated and current_user.id != listing.owner.id %}
                                 {% if current_user.has_role('parent') %}
-                                <form action="{{ url_for('listings.add_to_wishlist', listing_id=listing.id) }}" method="POST" class="inline-block">
+                                <form action="{{ url_for('wishlist.add_to_wishlist', listing_id=listing.id) }}" method="POST" class="inline-block">
                                     {{ csrf_token() }}
                                     <button type="submit" title="Add to Wishlist"
                                             class="p-1.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200">

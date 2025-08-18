@@ -1,0 +1,169 @@
+{% extends '_layouts/base.html' %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-gray-800 mb-6 rounded-lg p-3 bg-blue-100 shadow-md text-center">
+        School Dashboard
+    </h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- My School Listings Section -->
+        <div class="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m7 0V5a2 2 0 012-2h2a2 2 0 012 2v6m-6 0H9" />
+                </svg>
+                My School Listings
+            </h2>
+            <p class="text-gray-600 mb-4">View and manage uniform and gear listings posted by your school.</p>
+            <a href="{{ url_for('listings.marketplace', school=current_user.username) }}" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                View All School Listings
+            </a>
+            <p class="text-sm text-gray-500 mt-2">({{ school_listings|length if school_listings else 0 }} active listings)</p>
+            {% if school_listings %}
+                <ul class="mt-4 space-y-2">
+                    {% for listing in school_listings|slice(':3') %}
+                        <li class="flex items-center bg-gray-50 p-3 rounded-md shadow-sm">
+                            <img src="{{ listing.images[0] }}" alt="{{ listing.title }}" class="h-10 w-10 object-cover rounded-md mr-3">
+                            <div>
+                                <a href="{{ url_for('listings.listing_detail', listing_id=listing.id) }}" class="text-blue-600 hover:underline font-medium">{{ listing.title }}</a>
+                                <p class="text-sm text-gray-500">{{ listing.listing_type|capitalize }} - {{ listing.status|capitalize }}</p>
+                            </div>
+                        </li>
+                    {% endfor %}
+                    {% if school_listings|length > 3 %}
+                        <li class="text-center mt-3">
+                            <a href="{{ url_for('listings.marketplace', school=current_user.username) }}" class="text-blue-500 hover:underline text-sm">View All School Listings &rarr;</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            {% else %}
+                <p class="text-gray-500 text-sm">No items listed by your school yet.</p>
+                <a href="{{ url_for('listings.create_listing') }}" class="mt-4 inline-block bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                    Create New School Listing
+                </a>
+            {% endif %}
+        </div>
+
+        <!-- Donations & Distributions Section -->
+        <div class="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+                Donations & Distributions
+            </h2>
+            <p class="text-gray-600 mb-4">Monitor donations received by your school and manage distributions to learners in need.</p>
+            <a href="{{ url_for('donations.manage_donations') }}" class="inline-block bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                View All Donations
+            </a>
+            <ul class="mt-4 space-y-2 text-gray-600">
+                <li class="flex items-center">
+                    <span class="font-medium mr-2">Total Donations Received:</span> <span class="text-green-600 font-bold">{{ total_received_items }}</span>
+                </li>
+                <li class="flex items-center">
+                    <span class="font-medium mr-2">Items Distributed:</span> <span class="text-yellow-600 font-bold">{{ total_distributed_items }}</span>
+                </li>
+                <li class="flex items-center">
+                    <span class="font-medium mr-2">Pending Donations:</span> <span class="text-red-600 font-bold">{{ received_donations.filter(status='pending_pickup').count() }}</span>
+                </li>
+            </ul>
+            {% if received_donations %}
+                <ul class="mt-4 space-y-2">
+                    {% for donation in received_donations|slice(':3') %}
+                        <li class="flex items-center bg-gray-50 p-3 rounded-md shadow-sm">
+                            <img src="{{ donation.donated_listing.images[0] }}" alt="{{ donation.donated_listing.title }}" class="h-10 w-10 object-cover rounded-md mr-3">
+                            <div>
+                                <a href="{{ url_for('donations.view_donation_request', donation_id=donation.id) }}" class="text-blue-600 hover:underline font-medium">{{ donation.donated_listing.title }}</a>
+                                <p class="text-sm text-gray-500">From: {{ donation.donor.username }} - Status: {{ donation.status|replace('_', ' ')|capitalize }}</p>
+                            </div>
+                        </li>
+                    {% endfor %}
+                    {% if received_donations|length > 3 %}
+                        <li class="text-center mt-3">
+                            <a href="{{ url_for('donations.manage_donations') }}" class="text-blue-500 hover:underline text-sm">View All Donations &rarr;</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            {% else %}
+                <p class="text-gray-500 text-sm">No donations have been received by your school yet.</p>
+            {% endif %}
+            <h3 class="text-xl font-semibold text-gray-700 mt-6 mb-3">Logistics Status Overview (Donations)</h3>
+            <ul class="space-y-2 text-gray-600">
+                {% for donation in received_donations %}
+                    {% if donation.logistics_status != 'delivered' and donation.logistics_status != 'failed' %}
+                        <li class="flex items-center justify-between bg-gray-100 p-2 rounded-md">
+                            <span class="text-sm">Donation of "{{ donation.donated_listing.title }}"</span>
+                            <a href="{{ url_for('logistics.view_logistics', transaction_type='donation', transaction_id=donation.id) }}" class="text-blue-500 hover:underline text-sm">
+                                Status: {{ donation.logistics_status|replace('_', ' ')|capitalize }} &rarr;
+                            </a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                {% if not received_donations %}
+                    <li class="text-gray-500 text-sm">No active logistics for donations.</li>
+                {% endif %}
+            </ul>
+        </div>
+
+        <!-- Received Swap Requests Section -->
+        <div class="bg-white p-6 rounded-lg shadow-lg border border-gray-200 col-span-full">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4 flex items-center">
+                <i class="fas fa-exchange-alt text-blue-500 mr-2"></i>
+                Received Swap Requests
+            </h2>
+            <p class="text-gray-600 mb-4">Track swap requests made by parents for your school's listings.</p>
+            <a href="{{ url_for('swaps.manage_swaps') }}" class="inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                Manage Swap Requests
+            </a>
+            <ul class="mt-4 space-y-2 text-gray-600">
+                <li class="flex items-center">
+                    <span class="font-medium mr-2">Pending Swap Requests:</span> <span class="text-yellow-600 font-bold">{{ school_received_swap_requests.filter(status='pending').count() }}</span>
+                </li>
+                <li class="flex items-center">
+                    <span class="font-medium mr-2">Accepted Swap Requests:</span> <span class="text-blue-600 font-bold">{{ school_received_swap_requests.filter(status='accepted').count() }}</span>
+                </li>
+                <li class="flex items-center">
+                    <span class="font-medium mr-2">Completed Swaps:</span> <span class="text-green-600 font-bold">{{ school_received_swap_requests.filter(status='completed').count() }}</span>
+                </li>
+            </ul>
+            {% if school_received_swap_requests %}
+                <ul class="mt-4 space-y-2">
+                    {% for swap_req in school_received_swap_requests|slice(':3') %}
+                        <li class="flex items-center bg-gray-50 p-3 rounded-md shadow-sm">
+                            <img src="{{ swap_req.requester_listing.images[0] }}" alt="{{ swap_req.requester_listing.title }}" class="h-10 w-10 object-cover rounded-md mr-3">
+                            <div>
+                                <a href="{{ url_for('swaps.view_swap_request', swap_request_id=swap_req.id) }}" class="text-indigo-600 hover:underline font-medium">Swap for: {{ swap_req.responder_listing.title }}</a>
+                                <p class="text-sm text-gray-500">From: {{ swap_req.requester.username }} - Status: {{ swap_req.status|capitalize }}</p>
+                            </div>
+                        </li>
+                    {% endfor %}
+                    {% if school_received_swap_requests|length > 3 %}
+                        <li class="text-center mt-3">
+                            <a href="{{ url_for('swaps.manage_swaps') }}" class="text-indigo-500 hover:underline text-sm">View All Swap Requests &rarr;</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            {% else %}
+                <p class="text-gray-500 text-sm">No swap requests received by your school yet.</p>
+            {% endif %}
+            <h3 class="text-xl font-semibold text-gray-700 mt-6 mb-3">Logistics Status Overview (Swaps)</h3>
+            <ul class="space-y-2 text-gray-600">
+                {% for swap in school_received_swap_requests %}
+                    {% if swap.logistics_status != 'delivered' and swap.logistics_status != 'failed' %}
+                        <li class="flex items-center justify-between bg-gray-100 p-2 rounded-md">
+                            <span class="text-sm">Swap for "{{ swap.responder_listing.title }}"</span>
+                            <a href="{{ url_for('logistics.view_logistics', transaction_type='swap', transaction_id=swap.id) }}" class="text-blue-500 hover:underline text-sm">
+                                Status: {{ swap.logistics_status|replace('_', ' ')|capitalize }} &rarr;
+                            </a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                {% if not school_received_swap_requests %}
+                    <li class="text-gray-500 text-sm">No active logistics for swaps.</li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

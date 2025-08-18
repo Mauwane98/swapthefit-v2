@@ -10,14 +10,14 @@ class ReviewForm(FlaskForm):
     rating = SelectField(
         'Rating (1-5 Stars)',
         choices=[
-            ('', 'Select Rating'), # Placeholder
+            (0, 'Select Rating'), # Placeholder
             (1, '1 - Poor'),
             (2, '2 - Fair'),
             (3, '3 - Good'),
             (4, '4 - Very Good'),
             (5, '5 - Excellent')
         ],
-        validators=[DataRequired(message="Please select a rating.")],
+        validators=[DataRequired(message="Please select a rating."), NumberRange(min=1, message="Please select a valid rating.")],
         coerce=int # Ensure the value is cast to an integer
     )
     comment = TextAreaField(
