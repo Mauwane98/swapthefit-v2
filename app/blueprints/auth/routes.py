@@ -1,12 +1,15 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from app.blueprints.auth.forms import RegistrationForm, LoginForm, RequestResetForm, ResetPasswordForm
+from wtforms.validators import ValidationError
 from app.models.users import User
 from app.utils.emails import send_password_reset_email, send_welcome_email
 from app.extensions import bcrypt # Import bcrypt from extensions
 import datetime
 # Import the roles_required decorator from app.utils.security
 from app.utils.security import roles_required 
+# Import the activity logger
+from app.utils.activity_logger import log_activity
 
 auth_bp = Blueprint('auth', __name__, template_folder='templates')
 
@@ -35,8 +38,9 @@ def register():
             user = User(
                 username=form.username.data,
                 email=form.email.data,
-                roles=[form.role.data], # Assign role based on form selection
-                active=True, # User is active upon registration
+                role=form.role.data, # Assign role based on form selection
+                image_file='default.jpg', # Explicitly set default image file
+                active=True # Explicitly set user as active
             )
             # Set the password using the bcrypt-hashing method
             user.set_password(form.password.data)
@@ -50,16 +54,25 @@ def register():
             # Save the new user to the MongoDB database
             user.save()
 
+            # Log user registration activity
+            log_activity(
+                user_id=user.id,
+                action_type='user_registered',
+                description=f"New user registered: {user.username} with role {user.role}",
+                payload={'email': user.email, 'role': user.role},
+                request_obj=request # Pass the request object to capture IP
+            )
+
             # Send a welcome email asynchronously
-            # Note: For production, consider using a task queue like Celery for emails
-            # to prevent blocking the web server.
             send_welcome_email(user.email, user.username)
 
             flash(f'Account created for {form.username.data}! Please log in.', 'success')
             return redirect(url_for('auth.login'))
+        except ValidationError as e:
+            flash(str(e), 'danger')
         except Exception as e:
             current_app.logger.error(f"Error during user registration: {e}")
-            flash('An error occurred during registration. Please try again.', 'danger')
+            flash('An unexpected error occurred during registration. Please try again.', 'danger')
     return render_template('auth/register.html', title='Register', form=form)
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
@@ -81,11 +94,11 @@ def login():
         if current_user.has_role('admin'):
             return redirect(url_for('admin.dashboard'))
         elif current_user.has_role('school'):
-            return redirect(url_for('listings.school_dashboard')) # Placeholder for school dashboard
+            return redirect(url_for('listings.dashboard')) # Placeholder for school dashboard
         elif current_user.has_role('ngo'):
             return redirect(url_for('listings.ngo_dashboard')) # Placeholder for NGO dashboard
         else: # Default for parent
-            return redirect(url_for('listings.dashboard_redirect'))
+            return redirect(url_for('listings.dashboard'))
 
 
     form = LoginForm()
@@ -93,11 +106,19 @@ def login():
         # Find user by email (as email is unique and used for login)
         user = User.objects(email=form.email.data).first()
         if user and user.check_password(form.password.data):
-            # Log the user in
             login_user(user, remember=form.remember.data)
             # Update last login time
             user.last_login = datetime.datetime.utcnow()
-            user.save()
+            user.save() 
+            
+            # Log user login activity
+            log_activity(
+                user_id=user.id,
+                action_type='user_login',
+                description=f"User logged in: {user.username}",
+                payload={'email': user.email},
+                request_obj=request # Pass the request object to capture IP
+            )
             
             # Redirect to the 'next' page if it exists in the URL parameters,
             # otherwise redirect to the appropriate dashboard based on role.
@@ -109,13 +130,21 @@ def login():
             elif user.has_role('admin'):
                 return redirect(url_for('admin.dashboard'))
             elif user.has_role('school'):
-                return redirect(url_for('listings.school_dashboard')) # Placeholder
+                return redirect(url_for('listings.dashboard')) # Placeholder
             elif user.has_role('ngo'):
-                return redirect(url_for('listings.ngo_dashboard')) # Placeholder
+                return redirect(url_for('listings.dashboard')) # Placeholder
             else: # Default for parent
-                return redirect(url_for('listings.dashboard_redirect'))
+                return redirect(url_for('listings.dashboard'))
         else:
             flash('Login Unsuccessful. Please check email and password', 'danger')
+            # Log failed login attempt
+            log_activity(
+                user_id=None, # No user ID for failed attempt
+                action_type='failed_login_attempt',
+                description=f"Failed login attempt for email: {form.email.data}",
+                payload={'email': form.email.data},
+                request_obj=request
+            )
     return render_template('auth/login.html', title='Login', form=form)
 
 @auth_bp.route('/logout')
@@ -124,6 +153,13 @@ def logout():
     """
     Logs out the current user and redirects to the landing page.
     """
+    # Log user logout activity before logging out the user from Flask-Login
+    log_activity(
+        user_id=current_user.id,
+        action_type='user_logout',
+        description=f"User logged out: {current_user.username}",
+        request_obj=request
+    )
     logout_user()
     flash('You have been logged out.', 'info')
     return redirect(url_for('landing_bp.index'))
@@ -143,10 +179,26 @@ def reset_request():
     if form.validate_on_submit():
         user = User.objects(email=form.email.data).first()
         if user:
+            # Log password reset request
+            log_activity(
+                user_id=user.id,
+                action_type='password_reset_requested',
+                description=f"Password reset requested for user: {user.username}",
+                payload={'email': user.email},
+                request_obj=request
+            )
             # Send reset email asynchronously
             send_password_reset_email(user.email, user.get_reset_token())
             flash('An email has been sent with instructions to reset your password.', 'info')
         else:
+            # Log password reset request for non-existent email (for auditing)
+            log_activity(
+                user_id=None,
+                action_type='password_reset_request_non_existent_email',
+                description=f"Password reset requested for non-existent email: {form.email.data}",
+                payload={'email': form.email.data},
+                request_obj=request
+            )
             # Flash message even if email not found to prevent email enumeration attacks
             flash('If an account with that email exists, an email has been sent with instructions to reset your password.', 'info')
         return redirect(url_for('auth.login'))
@@ -167,13 +219,27 @@ def reset_token(token):
     user = User.verify_reset_token(token)
     if user is None:
         flash('That is an invalid or expired token.', 'warning')
+        # Log invalid/expired token usage
+        log_activity(
+            user_id=None, # Token is invalid, so user might not be identifiable
+            action_type='invalid_or_expired_reset_token',
+            description=f"Attempted password reset with invalid/expired token: {token}",
+            request_obj=request
+        )
         return redirect(url_for('auth.reset_request'))
     
     form = ResetPasswordForm()
     if form.validate_on_submit():
         user.set_password(form.password.data)
         user.save() # Save the user with the new hashed password
+        # Log successful password reset
+        log_activity(
+            user_id=user.id,
+            action_type='password_reset_successful',
+            description=f"Password successfully reset for user: {user.username}",
+            payload={'email': user.email},
+            request_obj=request
+        )
         flash('Your password has been updated! You are now able to log in.', 'success')
         return redirect(url_for('auth.login'))
     return render_template('auth/reset_token.html', title='Reset Password', form=form)
-

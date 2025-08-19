@@ -1,0 +1,49 @@
+{# app/templates/profile/blocked_users.html #}
+{% extends "_layouts/base.html" %}
+
+{% block title %}Blocked Users{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-3xl">
+    <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-8">Your Blocked Users 🚫</h1>
+
+    <div class="bg-white p-6 rounded-xl shadow-2xl mb-8">
+        <p class="text-gray-700 mb-6 text-center">
+            Here's a list of users you have blocked. Blocking a user prevents them from messaging you and hides their listings from your view.
+        </p>
+
+        {% if blocked_users %}
+            <div class="space-y-4">
+                {% for blocked_user in blocked_users %}
+                    <div class="p-4 rounded-lg shadow-md bg-gray-50 flex items-center justify-between">
+                        <div class="flex items-center">
+                            <img src="{{ url_for('static', filename='profile_pics/' + blocked_user.image_file) }}"
+                                 alt="{{ blocked_user.username }}'s profile picture"
+                                 class="w-12 h-12 rounded-full mr-4 object-cover border-2 border-gray-300">
+                            <div>
+                                <p class="font-semibold text-lg text-gray-900">
+                                    <a href="{{ url_for('listings.user_profile', user_id=blocked_user.id) }}" class="hover:underline">
+                                        {{ blocked_user.username }}
+                                    </a>
+                                </p>
+                                <p class="text-sm text-gray-600">User ID: {{ blocked_user.id }}</p>
+                            </div>
+                        </div>
+                        <form action="{{ url_for('profile.unblock_user', user_id=blocked_user.id) }}" method="POST">
+                            <button type="submit"
+                                    class="px-5 py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-colors duration-200 shadow-md">
+                                Unblock
+                            </button>
+                        </form>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-12 bg-gray-50 rounded-xl shadow-inner">
+                <p class="text-xl text-gray-500 mb-4">You haven't blocked any users yet.</p>
+                <p class="text-lg text-gray-600">You can block users from their profile pages.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

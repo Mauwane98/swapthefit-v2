@@ -1,376 +1,531 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, abort
+# app/blueprints/listings/routes.py
+from flask import Blueprint, render_template, url_for, flash, redirect, request, current_app
 from flask_login import login_required, current_user
 from app.models.listings import Listing
 from app.models.users import User
-from app.blueprints.listings.forms import ListingForm, EditListingForm # Import EditListingForm
+from app.models.wishlist import WishlistItem
+from app.models.saved_search import SavedSearch
+from app.extensions import db
+from app.blueprints.listings.forms import ListingForm
 from werkzeug.utils import secure_filename
 import os
-from app.utils.security import roles_required # Import roles_required decorator
+import secrets
+import json
+from urllib.parse import parse_qs
+from app.models.swaps import SwapRequest # Import SwapRequest model
+from mongoengine.errors import NotUniqueError
 from mongoengine.queryset.visitor import Q # Import Q for complex queries
 
-# Import review-related components
-from app.blueprints.reviews.forms import ReviewForm
-from app.models.reviews import Review
-from app.models.swaps import SwapRequest # Import SwapRequest model
-from app.models.donations import Donation # Import Donation model
-from app.models.payments import Order # Import Order model
-
+# Import the add_notification helper function
+from app.blueprints.notifications.routes import add_notification
+# Import the activity logger
+from app.utils.activity_logger import log_activity
 
 listings_bp = Blueprint('listings', __name__)
 
-@listings_bp.route('/marketplace')
-def marketplace():
+def save_picture(form_picture):
     """
-    Displays all listings in the marketplace with search and filtering.
+    Saves the uploaded picture to the static/uploads directory.
+    Generates a random filename to prevent collisions.
     """
-    search_query = request.args.get('search', '').lower()
-    size_filter = request.args.get('size', '').lower()
-    condition_filter = request.args.get('condition', '').lower()
-    listing_type_filter = request.args.get('listing_type', '').lower()
-    category_filter = request.args.get('category', '').lower()
-    school_filter = request.args.get('school', '').lower()
+    random_hex = secrets.token_hex(8)
+    _, f_ext = os.path.splitext(form_picture.filename)
+    picture_fn = random_hex + f_ext
+    picture_path = os.path.join(current_app.root_path, 'static/uploads', picture_fn)
 
+    try:
+        form_picture.save(picture_path)
+        return picture_fn
+    except Exception as e:
+        current_app.logger.error(f"Error saving picture {form_picture.filename}: {e}")
+        flash('Failed to save image. Please try again.', 'danger')
+        return None
 
-    # Filter for active and available listings
-    all_listings = Listing.objects(is_active=True, status='available')
-    filtered_listings = []
-
-    for listing in all_listings:
-        match = True
-        if search_query:
-            if search_query not in listing.title.lower() and \
-               search_query not in listing.description.lower() and \
-               (listing.school_name and search_query not in listing.school_name.lower()):
-                match = False
-        if size_filter and listing.size.lower() != size_filter:
-            match = False
-        if condition_filter and listing.condition.lower() != condition_filter:
-            match = False
-        if listing_type_filter and listing.listing_type.lower() != listing_type_filter:
-            match = False
-        if category_filter and listing.category.lower() != category_filter:
-            match = False
-        if school_filter and listing.school_name and listing.school_name.lower() != school_filter:
-            match = False
-        
-        if match:
-            filtered_listings.append(listing)
-
-    # Sort by premium status (premium first), then by creation date in descending order (latest first)
-    # This sorting is done in Python as orderBy() can require complex indexing in MongoDB.
-    listings = sorted(filtered_listings, key=lambda x: (x.is_premium, x.created_at), reverse=True)
-    
-    return render_template('listings/marketplace.html', listings=listings)
-
-
-@listings_bp.route('/listing/<string:listing_id>')
-def listing_detail(listing_id):
-    """
-    Displays the details of a single listing.
-    """
-    listing = Listing.objects.get(id=listing_id)
-    if not listing:
-        abort(404)
-
-    # Review functionality for the listing owner
-    owner_user = listing.owner  # Get the User object for the owner
-    review_form = ReviewForm()
-    reviews = sorted(Review.objects(reviewed_user=owner_user.id), key=lambda x: x.date_posted, reverse=True)
-    
-    # Calculate average rating for the owner
-    avg_rating = Review.get_average_rating(owner_user.id)
-    
-    # Check if the current user has already reviewed this owner
-    has_reviewed = False
-    if current_user.is_authenticated:
-        has_reviewed = Review.has_reviewed(current_user.id, owner_user.id)
-
-    return render_template(
-        'listings/listing_detail.html', 
-        listing=listing,
-        reviews=reviews,
-        review_form=review_form,
-        avg_rating=avg_rating,
-        has_reviewed=has_reviewed
-    )
-
-@listings_bp.route('/create', methods=['GET', 'POST'])
+@listings_bp.route("/listing/new", methods=['GET', 'POST'])
 @login_required
-@roles_required('parent', 'school') # Only parents and schools can create listings
 def create_listing():
     """
-    Handles the creation of a new listing.
+    Handles the creation of new listings.
+    Renders a form for users to input listing details.
+    Also triggers notifications for matching saved searches.
+    Logs listing creation activity.
     """
     form = ListingForm()
     if form.validate_on_submit():
-        image_urls = []
-        if form.photos.data:
-            upload_folder = os.path.join(current_app.root_path, 'static', 'uploads')
-            os.makedirs(upload_folder, exist_ok=True)
-            for photo in form.photos.data:
-                if photo.filename:
-                    filename = secure_filename(photo.filename)
-                    file_path = os.path.join(upload_folder, filename)
-                    photo.save(file_path)
-                    # Store only the relative path or filename that can be accessed via static URL
-                    image_urls.append(url_for('static', filename=f'uploads/{filename}'))
-        
-        # If no photos were uploaded, use the default placeholder
-        if not image_urls:
-            image_urls.append('https://placehold.co/400x300/CCCCCC/333333?text=No+Image')
+        picture_file = 'default.jpg'
+        if form.image.data:
+            picture_file = save_picture(form.image.data)
+            if picture_file is None:
+                return render_template('listings/create_listings.html', title='Create Listing', form=form)
 
-        listing = Listing(
-            owner=current_user.id,
-            title=form.title.data,
-            description=form.description.data,
-            category=form.category.data,
-            size=form.size.data,
-            condition=form.condition.data,
-            school_name=form.school_name.data if form.school_name.data else None,
-            images=image_urls,
-            desired_swap_items=form.desired_swap_items.data if form.desired_swap_items.data else None,
-            listing_type=form.listing_type.data,
-            price=form.price.data if form.listing_type.data == 'sale' else None,
-            is_premium=form.is_premium.data
+        try:
+            listing = Listing(
+                title=form.title.data,
+                description=form.description.data,
+                price=form.price.data,
+                uniform_type=form.uniform_type.data,
+                condition=form.condition.data,
+                size=form.size.data,
+                gender=form.gender.data,
+                school_name=form.school_name.data,
+                location=form.location.data,
+                listing_type=form.listing_type.data,
+                brand=form.brand.data,
+                color=form.color.data,
+                image_file=picture_file,
+                user=current_user
+            )
+            listing.save()
+
+            flash('Your listing has been created!', 'success')
+
+            # Log listing creation activity
+            log_activity(
+                user_id=current_user.id,
+                action_type='listing_created',
+                description=f"Created new listing: '{listing.title}' (ID: {listing.id})",
+                payload={'listing_id': str(listing.id), 'listing_type': listing.listing_type},
+                request_obj=request
+            )
+
+            # --- Trigger Saved Search Notifications ---
+            all_saved_searches = SavedSearch.objects()
+            for saved_search in all_saved_searches:
+                saved_params = parse_qs(saved_search.search_query_params)
+                
+                match = True
+                if 'search_term' in saved_params and saved_params['search_term'][0].lower() not in listing.title.lower() and \
+                   saved_params['search_term'][0].lower() not in listing.description.lower() and \
+                   saved_params['search_term'][0].lower() not in (listing.school_name or '').lower() and \
+                   saved_params['search_term'][0].lower() not in (listing.brand or '').lower():
+                    match = False
+                
+                if 'location' in saved_params and saved_params['location'][0].lower() not in listing.location.lower():
+                    match = False
+                
+                if 'uniform_type' in saved_params and saved_params['uniform_type'][0] != 'All' and \
+                   saved_params['uniform_type'][0] != listing.uniform_type:
+                    match = False
+
+                if 'brand' in saved_params and saved_params['brand'][0] != 'All' and \
+                   saved_params['brand'][0].lower() not in (listing.brand or '').lower():
+                    match = False
+
+                if 'color' in saved_params and saved_params['color'][0] != 'All' and \
+                   saved_params['color'][0].lower() not in (listing.color or '').lower():
+                    match = False
+
+                if 'condition' in saved_params and saved_params['condition'][0] != 'All' and \
+                   saved_params['condition'][0] != listing.condition:
+                    match = False
+                
+                if 'listing_type' in saved_params and saved_params['listing_type'][0] != 'All' and \
+                   saved_params['listing_type'][0] != listing.listing_type:
+                    match = False
+                
+                if 'gender' in saved_params and saved_params['gender'][0] != 'All' and \
+                   saved_params['gender'][0] != listing.gender:
+                    match = False
+
+                if 'size' in saved_params and saved_params['size'][0] != 'All' and \
+                   saved_params['size'][0] != listing.size:
+                    match = False
+                
+                if 'min_price' in saved_params and listing.price is not None and \
+                   float(saved_params['min_price'][0]) > listing.price:
+                    match = False
+                
+                if 'max_price' in saved_params and listing.price is not None and \
+                   float(saved_params['max_price'][0]) < listing.price:
+                    match = False
+                
+                if match and saved_search.user.id != current_user.id:
+                    add_notification(
+                        user_id=saved_search.user.id,
+                        message=f"New listing matching your saved search '{saved_search.name or 'Unnamed Search'}': {listing.title}",
+                        notification_type='saved_search_match',
+                        payload={'listing_id': str(listing.id)}
+                    )
+
+            return redirect(url_for('listings.dashboard'))
+        except NotUniqueError as e:
+            flash(f'A listing with this title already exists. Please choose a different title.', 'danger')
+            current_app.logger.error(f"Listing creation failed due to duplicate title: {e}")
+        except Exception as e:
+            flash(f'An unexpected error occurred while creating your listing: {str(e)}', 'danger')
+            current_app.logger.error(f"Listing creation general error: {e}")
+            log_activity(
+                user_id=current_user.id,
+                action_type='listing_creation_failed',
+                description=f"Failed to create listing: {form.title.data} due to unexpected error.",
+                payload={'error': str(e)},
+                request_obj=request
+            )
+    return render_template('listings/create_listings.html', title='Create Listing', form=form)
+
+@listings_bp.route("/marketplace")
+def marketplace():
+    """
+    Displays all available listings with advanced search and filtering capabilities.
+    Users can search by keywords and filter by various criteria.
+    """
+    query = Listing.objects(is_available=True)
+
+    # --- Search and Filtering Logic ---
+    search_term = request.args.get('search_term')
+    if search_term:
+        query = query.filter(
+            Q(title__icontains=search_term) |
+            Q(description__icontains=search_term) |
+            Q(school_name__icontains=search_term) |
+            Q(brand__icontains=search_term)
         )
-        listing.save()
-        flash('Your listing has been created!', 'success')
-        # Redirect to the parent dashboard after creating a listing
-        if current_user.has_role('parent'):
-            return redirect(url_for('listings.parent_dashboard'))
-        elif current_user.has_role('school'):
-            return redirect(url_for('listings.school_dashboard')) # Or a more specific school listings management page
-        return redirect(url_for('listings.marketplace'))
-    return render_template('listings/create_listings.html', form=form)
 
-@listings_bp.route('/edit/<string:listing_id>', methods=['GET', 'POST'])
+    location_filter = request.args.get('location')
+    if location_filter:
+        query = query.filter(location__icontains=location_filter)
+
+    uniform_type_filter = request.args.get('uniform_type')
+    if uniform_type_filter and uniform_type_filter != 'All':
+        query = query.filter(uniform_type=uniform_type_filter)
+
+    brand_filter = request.args.get('brand')
+    if brand_filter and brand_filter != 'All':
+        query = query.filter(brand__icontains=brand_filter)
+
+    color_filter = request.args.get('color')
+    if color_filter and color_filter != 'All':
+        query = query.filter(color__icontains=color_filter)
+
+    condition_filter = request.args.get('condition')
+    if condition_filter and condition_filter != 'All':
+        query = query.filter(condition=condition_filter)
+
+    listing_type_filter = request.args.get('listing_type')
+    if listing_type_filter and listing_type_filter != 'All':
+        query = query.filter(listing_type=listing_type_filter)
+    
+    gender_filter = request.args.get('gender')
+    if gender_filter and gender_filter != 'All':
+        query = query.filter(gender=gender_filter)
+
+    size_filter = request.args.get('size')
+    if size_filter and size_filter != 'All':
+        query = query.filter(size=size_filter)
+
+    min_price = request.args.get('min_price', type=float)
+    max_price = request.args.get('max_price', type=float)
+    if min_price is not None:
+        query = query.filter(price__gte=min_price)
+    if max_price is not None:
+        query = query.filter(price__lte=max_price)
+    
+    premium_listings = list(query.filter(is_premium=True).order_by('-date_posted'))
+    
+    non_premium_listings = list(query.filter(is_premium=False).order_by('-date_posted'))
+
+    listings = premium_listings + non_premium_listings
+
+    page = request.args.get('page', 1, type=int)
+    per_page = 12
+    paginated_listings = listings[(page - 1) * per_page : page * per_page]
+    total_pages = (len(listings) + per_page - 1) // per_page
+
+    uniform_types = ['All', 'School Uniform', 'Sports Kit', 'Casual Wear', 'Formal Wear']
+    conditions = ['All', 'New', 'Used - Like New', 'Used - Good', 'Used - Fair', 'Used - Poor']
+    listing_types = ['All', 'sale', 'swap', 'donation']
+    genders = ['All', 'Male', 'Female', 'Unisex']
+    sizes = ['All', 'Small', 'Medium', 'Large', 'XS', 'XL', 'XXL', 'Age 2-3', 'Age 4-5', 'Age 6-7', 'Age 8-9', 'Age 10-11', 'Age 12-13', 'Age 14-15', 'Age 16+']
+    brands = ['All', 'Nike', 'Adidas', 'Puma', 'Under Armour', 'Reebok', 'School Brand', 'Other']
+    colors = ['All', 'Red', 'Blue', 'Green', 'Yellow', 'Black', 'White', 'Grey', 'Brown', 'Pink', 'Purple', 'Orange', 'Multi-color']
+
+    return render_template(
+        'listings/marketplace.html',
+        listings=paginated_listings,
+        page=page,
+        total_pages=total_pages,
+        search_term=search_term if search_term else '',
+        location_filter=location_filter if location_filter else '',
+        uniform_type_filter=uniform_type_filter if uniform_type_filter else 'All',
+        brand_filter=brand_filter if brand_filter else 'All',
+        color_filter=color_filter if color_filter else 'All',
+        condition_filter=condition_filter if condition_filter else 'All',
+        listing_type_filter=listing_type_filter if listing_type_filter else 'All',
+        gender_filter=gender_filter if gender_filter else 'All',
+        size_filter=size_filter if size_filter else 'All',
+        min_price=min_price,
+        max_price=max_price,
+        uniform_types=uniform_types,
+        conditions=conditions,
+        listing_types=listing_types,
+        genders=genders,
+        sizes=sizes,
+        brands=brands,
+        colors=colors
+    )
+
+@listings_bp.route("/listing/<string:listing_id>")
+def listing_detail(listing_id):
+    """
+    Displays the detailed information for a single listing.
+    Also checks if the listing is in the current user's wishlist.
+    """
+    listing = Listing.objects(id=listing_id).first_or_404()
+    in_wishlist = False
+    if current_user.is_authenticated:
+        in_wishlist = WishlistItem.objects(user=current_user.id, listing=listing.id).first() is not None
+    
+    return render_template('listings/listing_detail.html', title=listing.title, listing=listing, in_wishlist=in_wishlist)
+
+@listings_bp.route("/listing/<string:listing_id>/update", methods=['GET', 'POST'])
 @login_required
-@roles_required('parent', 'school', 'admin') # Admins can also edit any listing
 def edit_listing(listing_id):
     """
-    Handles editing an existing listing.
+    Allows the user to edit their existing listings.
+    Also triggers notifications for wishlist updates.
+    Logs listing update activity.
     """
-    listing = Listing.objects.get(id=listing_id)
-    if not listing:
-        abort(404)
-    
-    # Only the owner or an admin can edit the listing
-    if listing.owner.id != current_user.id and not current_user.has_role('admin'):
+    listing = Listing.objects(id=listing_id).first_or_404()
+    if listing.user != current_user:
         flash('You do not have permission to edit this listing.', 'danger')
-        return redirect(url_for('listings.marketplace'))
-    
-    form = EditListingForm(obj=listing) # Populate form with existing listing data
-    if form.validate_on_submit():
-        # Handle new image uploads
-        if form.photos.data:
-            new_image_urls = []
-            upload_folder = os.path.join(current_app.root_path, 'static', 'uploads')
-            os.makedirs(upload_folder, exist_ok=True)
-            for photo in form.photos.data:
-                if photo.filename:
-                    filename = secure_filename(photo.filename)
-                    file_path = os.path.join(upload_folder, filename)
-                    photo.save(file_path)
-                    new_image_urls.append(url_for('static', filename=f'uploads/{filename}'))
-            
-            # Replace existing images only if new ones were uploaded
-            if new_image_urls:
-                listing.images = new_image_urls
-            # If no new photos and previous images existed, keep them. If no previous and no new, keep placeholder.
-            elif not listing.images: # This covers cases where there were no images before and no new ones are uploaded
-                listing.images = ['https://placehold.co/400x300/CCCCCC/333333?text=No+Image']
-
-        listing.title = form.title.data
-        listing.description = form.description.data
-        listing.category = form.category.data
-        listing.size = form.size.data
-        listing.condition = form.condition.data
-        listing.school_name = form.school_name.data if form.school_name.data else None
-        listing.desired_swap_items = form.desired_swap_items.data if form.desired_swap_items.data else None
-        listing.listing_type = form.listing_type.data
-        listing.price = form.price.data if form.listing_type.data == 'sale' else None
-        listing.is_premium = form.is_premium.data
-        listing.save()
-        flash('Your listing has been updated!', 'success')
         return redirect(url_for('listings.listing_detail', listing_id=listing.id))
+
+    form = ListingForm(obj=listing)
+    
+    old_price = listing.price
+    old_condition = listing.condition
+    old_is_available = listing.is_available
+
+    if form.validate_on_submit():
+        picture_file = listing.image_file
+        if form.image.data:
+            picture_file = save_picture(form.image.data)
+            if picture_file is None:
+                return render_template('listings/edit_listing.html', title='Edit Listing', form=form, listing=listing)
+            listing.image_file = picture_file
+        
+        try:
+            # Store old values of all fields that can be updated for logging changes
+            old_listing_data = {
+                'title': listing.title,
+                'description': listing.description,
+                'price': listing.price,
+                'uniform_type': listing.uniform_type,
+                'condition': listing.condition,
+                'size': listing.size,
+                'gender': listing.gender,
+                'school_name': listing.school_name,
+                'location': listing.location,
+                'listing_type': listing.listing_type,
+                'is_premium': listing.is_premium,
+                'brand': listing.brand,
+                'color': listing.color,
+                'image_file': listing.image_file,
+                'is_available': listing.is_available
+            }
+
+            listing.title = form.title.data
+            listing.description = form.description.data
+            listing.price = form.price.data
+            listing.uniform_type = form.uniform_type.data
+            listing.condition = form.condition.data
+            listing.size = form.size.data
+            listing.gender = form.gender.data
+            listing.school_name = form.school_name.data
+            listing.location = form.location.data
+            listing.listing_type = form.listing_type.data
+            listing.is_premium = form.is_premium.data
+            listing.brand = form.brand.data
+            listing.color = form.color.data
+
+            listing.save()
+            flash('Your listing has been updated!', 'success')
+
+            # Log listing update activity
+            updated_fields = {}
+            for field, old_value in old_listing_data.items():
+                new_value = getattr(listing, field)
+                if old_value != new_value:
+                    updated_fields[field] = {'old': old_value, 'new': new_value}
+
+            log_activity(
+                user_id=current_user.id,
+                action_type='listing_updated',
+                description=f"Updated listing: '{listing.title}' (ID: {listing.id})",
+                payload={'listing_id': str(listing.id), 'changes': updated_fields},
+                request_obj=request
+            )
+
+            # --- Trigger Wishlist Notifications ---
+            wishlist_items = WishlistItem.objects(listing=listing.id)
+            
+            for item in wishlist_items:
+                user = item.user
+                if user.id == current_user.id:
+                    continue
+
+                notification_message = []
+                payload = {'listing_id': str(listing.id)}
+
+                if listing.price != old_price:
+                    notification_message.append(f"Price for '{listing.title}' changed from R{old_price if old_price is not None else 'N/A'} to R{listing.price if listing.price is not None else 'N/A'}.")
+                    payload['old_price'] = old_price
+                    payload['new_price'] = listing.price
+                
+                if listing.condition != old_condition:
+                    notification_message.append(f"Condition for '{listing.title}' updated from '{old_condition}' to '{listing.condition}'.")
+                    payload['old_condition'] = old_condition
+                    payload['new_condition'] = listing.condition
+                
+                if listing.is_available != old_is_available:
+                    if not listing.is_available:
+                        notification_message.append(f"'{listing.title}' is no longer available.")
+                    else:
+                        notification_message.append(f"'{listing.title}' is now available again!")
+                    payload['old_availability'] = old_is_available
+                    payload['new_availability'] = listing.is_available
+
+                if notification_message:
+                    add_notification(
+                        user_id=user.id,
+                        message=" ".join(notification_message),
+                        notification_type='wishlist_update',
+                        payload=payload
+                    )
+
+            return redirect(url_for('listings.listing_detail', listing_id=listing.id))
+        except Exception as e:
+            flash(f'An unexpected error occurred while updating your listing: {str(e)}', 'danger')
+            current_app.logger.error(f"Listing update general error: {e}")
+            log_activity(
+                user_id=current_user.id,
+                action_type='listing_update_failed',
+                description=f"Failed to update listing: {listing.title} (ID: {listing.id}) due to unexpected error.",
+                payload={'listing_id': str(listing.id), 'error': str(e)},
+                request_obj=request
+            )
     elif request.method == 'GET':
-        # Populate form fields for GET request
         form.title.data = listing.title
         form.description.data = listing.description
-        form.category.data = listing.category
-        form.size.data = listing.size
-        form.condition.data = listing.condition
-        form.school_name.data = listing.school_name
-        form.desired_swap_items.data = listing.desired_swap_items
-        form.listing_type.data = listing.listing_type
         form.price.data = listing.price
+        form.uniform_type.data = listing.uniform_type
+        form.condition.data = listing.condition
+        form.size.data = listing.size
+        form.gender.data = listing.gender
+        form.school_name.data = listing.school_name
+        form.location.data = listing.location
+        form.listing_type.data = listing.listing_type
         form.is_premium.data = listing.is_premium
-    
-    return render_template('listings/edit_listing.html', form=form, listing=listing)
+        form.brand.data = listing.brand
+        form.color.data = listing.color
 
-@listings_bp.route('/delete/<string:listing_id>', methods=['POST'])
+    return render_template('listings/edit_listing.html', title='Edit Listing', form=form, listing=listing)
+
+@listings_bp.route("/listing/<string:listing_id>/delete", methods=['POST'])
 @login_required
-@roles_required('parent', 'school', 'admin') # Only the owner, school admins, or site admins can delete
 def delete_listing(listing_id):
     """
-    Handles the deletion of a listing.
+    Allows the user to delete their listings.
+    Logs listing deletion activity.
     """
-    listing = Listing.objects.get(id=listing_id)
-    if not listing:
-        abort(404)
-    # Only the owner or an admin can delete the listing
-    if listing.owner.id != current_user.id and not current_user.has_role('admin'):
+    listing = Listing.objects(id=listing_id).first_or_404()
+    if listing.user != current_user:
         flash('You do not have permission to delete this listing.', 'danger')
-        return redirect(url_for('listings.marketplace'))
+        return redirect(url_for('listings.dashboard'))
     
-    # Optionally delete associated images from file system if they are not default
-    for image_url in listing.images:
-        # Check if it's a local static file and not the placeholder
-        if image_url.startswith('/static/uploads/') and 'No+Image' not in image_url:
-            filename = image_url.split('/')[-1]
-            file_path = os.path.join(current_app.root_path, 'static', 'uploads', filename)
-            if os.path.exists(file_path):
-                try:
-                    os.remove(file_path)
-                    current_app.logger.info(f"Deleted image file: {file_path}")
-                except OSError as e:
-                    current_app.logger.error(f"Error deleting image file {file_path}: {e}")
+    # Delete image file if it's not the default
+    if listing.image_file and listing.image_file != 'default.jpg':
+        try:
+            image_path = os.path.join(current_app.root_path, 'static/uploads', listing.image_file)
+            if os.path.exists(image_path):
+                os.remove(image_path)
+                current_app.logger.info(f"Deleted image file: {listing.image_file}")
+            else:
+                current_app.logger.warning(f"Image file not found for deletion: {listing.image_file}")
+        except Exception as e:
+            current_app.logger.error(f"Error deleting image file {listing.image_file}: {e}")
+            flash(f'Error deleting associated image file. Listing will still be removed.', 'warning')
 
-    listing.delete()
-    flash('Your listing has been deleted.', 'success')
-    return redirect(url_for('listings.marketplace'))
+    try:
+        listing.delete()
+        flash('Your listing has been deleted!', 'success')
+        # Log successful listing deletion
+        log_activity(
+            user_id=current_user.id,
+            action_type='listing_deleted',
+            description=f"Deleted listing: '{listing.title}' (ID: {listing.id})",
+            payload={'listing_id': str(listing.id), 'listing_title': listing.title},
+            request_obj=request
+        )
+    except Exception as e:
+        flash(f'An unexpected error occurred while deleting your listing: {str(e)}', 'danger')
+        current_app.logger.error(f"Listing deletion general error: {e}")
+        log_activity(
+            user_id=current_user.id,
+            action_type='listing_deletion_failed',
+            description=f"Failed to delete listing: {listing.title} (ID: {listing.id}) due to unexpected error.",
+            payload={'listing_id': str(listing.id), 'error': str(e)},
+            request_obj=request
+        )
+    return redirect(url_for('listings.dashboard'))
 
-@listings_bp.route('/user/<string:user_id>')
+@listings_bp.route("/dashboard")
+@login_required
+def dashboard():
+    """
+    Displays the current user's dashboard based on their role.
+    """
+    user_role = current_user.role
+    listings = Listing.objects(user=current_user.id).order_by('-date_posted')
+
+    if user_role == 'parent':
+        # Fetch pending and accepted swaps for the current user
+        pending_swaps = list(SwapRequest.objects(
+            (Q(requester=current_user.id) | Q(responder=current_user.id)),
+            status='pending'
+        ).order_by('-requested_date'))
+
+        accepted_swaps = list(SwapRequest.objects(
+            (Q(requester=current_user.id) | Q(responder=current_user.id)),
+            status='accepted'
+        ).order_by('-requested_date'))
+
+        return render_template('parent_dashboard.html', listings=listings, pending_swaps=pending_swaps, accepted_swaps=accepted_swaps)
+    elif user_role == 'school':
+        return render_template(
+            'school_dashboard.html', 
+            listings=listings,
+            total_donations_value=current_user.total_donations_value
+        )
+    elif user_role == 'ngo':
+        return render_template(
+            'ngo_dashboard.html', 
+            listings=listings,
+            total_donations_received_count=current_user.total_donations_received_count,
+            total_donations_value=current_user.total_donations_value,
+            total_families_supported_ytd=current_user.total_families_supported_ytd
+        )
+    elif user_role == 'admin':
+        return render_template('listings/dashboard.html', listings=listings)
+    else:
+        return render_template('listings/dashboard.html', listings=listings)
+
+
+@listings_bp.route("/user/<string:user_id>")
 def user_profile(user_id):
     """
-    Displays a user's profile, their listings, and their reviews.
+    Displays the public profile of a user, including their listings.
     """
-    user = User.objects(id=user_id).first()
-    if not user:
-        abort(404)
-    listings = Listing.objects(owner=user.id, is_active=True) # Only show active listings
-    
-    # Review functionality
-    review_form = ReviewForm()
-    reviews = sorted(Review.objects(reviewed_user=user.id), key=lambda x: x.date_posted, reverse=True)
-    
-    # Calculate average rating
-    avg_rating = Review.get_average_rating(user.id)
-    
-    # Check if the current user has already reviewed this user
-    has_reviewed = False
-    if current_user.is_authenticated:
-        has_reviewed = Review.has_reviewed(current_user.id, user.id)
+    user = User.objects(id=user_id).first_or_404()
+    listings = Listing.objects(user=user.id, is_available=True).order_by('-date_posted')
+    return render_template('listings/user_profile.html', user=user, listings=listings)
 
-    return render_template(
-        'listings/user_profile.html', 
-        user=user, 
-        listings=listings,
-        reviews=reviews,
-        review_form=review_form,
-        avg_rating=avg_rating,
-        has_reviewed=has_reviewed
-    )
-
-# --- Role-Based Dashboards ---
-# The general /listings/dashboard will now redirect based on role.
-
-@listings_bp.route('/dashboard')
+@listings_bp.route("/wishlist_placeholder")
 @login_required
-def dashboard_redirect():
+def wishlist_placeholder():
     """
-    Redirects authenticated users to their specific role-based dashboard.
+    Placeholder for the wishlist page. This route will be removed once the
+    wishlist blueprint is fully integrated and functioning.
     """
-    if current_user.has_role('admin'):
-        return redirect(url_for('admin.dashboard'))
-    elif current_user.has_role('school'):
-        return redirect(url_for('listings.school_dashboard'))
-    elif current_user.has_role('ngo'):
-        return redirect(url_for('listings.ngo_dashboard'))
-    else: # Default to parent dashboard
-        return redirect(url_for('listings.parent_dashboard'))
-    
-
-@listings_bp.route('/parent_dashboard')
-@login_required
-@roles_required('parent', 'admin') # Admin can also view parent dashboard
-def parent_dashboard():
-    """
-    Displays the parent user's dashboard with their listings, swaps, and payments.
-    """
-    user_listings = Listing.objects(owner=current_user.id).order_by('-created_at')
-    
-    # Fetch pending and completed swap requests related to the current user
-    # A user can be either the requester or the responder in a swap
-    pending_swaps = list(SwapRequest.objects(Q(requester=current_user.id) | Q(responder=current_user.id), status='pending').order_by('-requested_date'))
-    accepted_swaps = list(SwapRequest.objects(Q(requester=current_user.id) | Q(responder=current_user.id), status='accepted').order_by('-requested_date'))
-    completed_swaps = SwapRequest.objects(Q(requester=current_user.id) | Q(responder=current_user.id), status='completed').order_by('-requested_date')
-    
-    # Fetch orders where current user is the buyer or seller
-    bought_items = Order.objects(buyer=current_user.id).order_by('-order_date')
-    sold_items = Order.objects(seller=current_user.id).order_by('-order_date')
-
-    # Fetch donations made by the current user
-    sent_donations = Donation.objects(donor=current_user.id).order_by('-donation_date')
-
-    return render_template(
-        'parent_dashboard.html', # Using the dedicated parent dashboard template
-        user_listings=user_listings,
-        pending_swaps=pending_swaps,
-        accepted_swaps=accepted_swaps,
-        completed_swaps=completed_swaps,
-        bought_items=bought_items,
-        sold_items=sold_items,
-        sent_donations=sent_donations
-    )
-
-@listings_bp.route('/school_dashboard')
-@login_required
-@roles_required('school', 'admin')
-def school_dashboard():
-    """
-    Displays the school's dashboard to manage listings for learners and track donations.
-    """
-    # Fetch listings owned by the current school user
-    school_listings = Listing.objects(owner=current_user.id).order_by('-created_at')
-    
-    # Fetch donations received by this school
-    received_donations = Donation.objects(recipient=current_user.id).order_by('-donation_date')
-    
-    # Calculate total items received and distributed
-    total_received_items = Donation.objects(recipient=current_user.id, status__in=['received', 'distributed']).count()
-    total_distributed_items = Donation.objects(recipient=current_user.id, status='distributed').count()
-
-    # Fetch swap requests where the school is the responder
-    school_received_swap_requests = SwapRequest.objects(responder=current_user.id).order_by('-requested_date')
-
-    return render_template(
-        'school_dashboard.html', # Using the dedicated school dashboard template
-        school_listings=school_listings,
-        received_donations=received_donations,
-        total_received_items=total_received_items,
-        total_distributed_items=total_distributed_items,
-        school_received_swap_requests=school_received_swap_requests
-    )
-
-@listings_bp.route('/ngo_dashboard')
-@login_required
-@roles_required('ngo', 'admin')
-def ngo_dashboard():
-    """
-    Displays the NGO's dashboard to receive donations, manage distributions, and run impact reports.
-    """
-    # Fetch donations received by this NGO
-    received_donations = Donation.objects(recipient=current_user.id).order_by('-donation_date')
-
-    # Calculate total items received and distributed
-    total_received_items = Donation.objects(recipient=current_user.id, status__in=['received', 'distributed']).count()
-    total_distributed_items = Donation.objects(recipient=current_user.id, status='distributed').count()
-
-    return render_template(
-        'ngo_dashboard.html', # Using the dedicated NGO dashboard template
-        received_donations=received_donations,
-        total_received_items=total_received_items,
-        total_distributed_items=total_distributed_items
-    )
-
+    flash('Please use the new Wishlist page under My Account!', 'info')
+    return redirect(url_for('wishlist.wishlist'))

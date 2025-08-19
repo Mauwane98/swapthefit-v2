@@ -1,303 +1,166 @@
+{# app/templates/listings/listing_detail.html #}
 {% extends "_layouts/base.html" %}
 
 {% block title %}{{ listing.title }}{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8 md:py-12">
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Listing Details Section -->
-        <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-xl border border-gray-200">
-            <!-- Image Carousel (if multiple images) or Single Image -->
-            <div class="mb-6 relative">
-                {% if listing.images and listing.images|length > 1 %}
-                <div id="listingCarousel" class="relative overflow-hidden rounded-lg">
-                    <div class="flex transition-transform duration-500 ease-in-out" id="carousel-inner">
-                        {% for image_url in listing.images %}
-                            <img src="{{ image_url }}" alt="{{ listing.title }} - Image {{ loop.index }}" 
-                                 class="w-full h-96 object-cover flex-shrink-0 rounded-lg">
-                        {% endfor %}
-                    </div>
-                    <button type="button" class="absolute top-1/2 left-4 -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-colors duration-200" id="prevBtn">
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                    <button type="button" class="absolute top-1/2 right-4 -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-colors duration-200" id="nextBtn">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                    <div class="absolute bottom-4 left-0 right-0 flex justify-center space-x-2">
-                        {% for _ in listing.images %}
-                            <span class="carousel-dot w-2 h-2 bg-white bg-opacity-50 rounded-full cursor-pointer hover:bg-opacity-75 transition-colors duration-200"></span>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% elif listing.images %}
-                    <img src="{{ listing.images[0] }}" alt="{{ listing.title }}" 
-                         class="w-full h-96 object-cover rounded-lg">
-                {% else %}
-                    <img src="https://placehold.co/800x600/CCCCCC/333333?text=No+Image" alt="No Image Available" 
-                         class="w-full h-96 object-cover rounded-lg">
-                {% endif %}
-            </div>
-
-            <h1 class="text-3xl font-extrabold text-gray-900 mb-3">{{ listing.title }}</h1>
-            <p class="text-gray-700 text-lg mb-4 leading-relaxed">{{ listing.description }}</p>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-700 mb-6">
-                <div class="flex items-center">
-                    <i class="fas fa-tag text-accent mr-2"></i>
-                    <span class="font-semibold">Category:</span> {{ listing.category }}
-                </div>
-                <div class="flex items-center">
-                    <i class="fas fa-ruler-combined text-accent mr-2"></i>
-                    <span class="font-semibold">Size:</span> {{ listing.size }}
-                </div>
-                <div class="flex items-center">
-                    <i class="fas fa-hand-holding-medical text-accent mr-2"></i>
-                    <span class="font-semibold">Condition:</span> {{ listing.condition }}
-                </div>
-                {% if listing.school_name %}
-                <div class="flex items-center">
-                    <i class="fas fa-school text-accent mr-2"></i>
-                    <span class="font-semibold">School:</span> {{ listing.school_name }}
-                </div>
-                {% endif %}
-                <div class="flex items-center">
-                    <i class="fas fa-calendar-alt text-accent mr-2"></i>
-                    <span class="font-semibold">Listed On:</span> {{ moment(listing.created_at).format('MMMM Do YYYY') }}
-                </div>
-                 <div class="flex items-center">
-                    <i class="fas fa-exchange-alt text-accent mr-2"></i>
-                    <span class="font-semibold">Listing Type:</span> {{ listing.listing_type|capitalize }}
-                </div>
-                 {% if listing.listing_type == 'sale' and listing.price is not none %}
-                <div class="flex items-center">
-                    <i class="fas fa-money-bill-wave text-accent mr-2"></i>
-                    <span class="font-semibold">Price:</span> R {{ "%.2f" | format(listing.price) }}
-                </div>
-                {% endif %}
-                {% if listing.is_premium %}
-                <div class="flex items-center">
-                    <i class="fas fa-gem text-yellow-500 mr-2"></i>
-                    <span class="font-semibold text-yellow-500">Premium Listing</span>
-                </div>
-                {% endif %}
-            </div>
-
-            {% if listing.desired_swap_items and listing.listing_type == 'swap' %}
-            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
-                <p class="text-sm font-semibold text-gray-800 mb-2"><i class="fas fa-exchange-alt text-accent mr-2"></i> Desired Swap Items:</p>
-                <p class="text-gray-700 text-base">{{ listing.desired_swap_items }}</p>
-            </div>
-            {% endif %}
-
-            <!-- Action Buttons -->
-            <div class="flex flex-wrap gap-4 mt-6">
-                {% if current_user.is_authenticated and current_user.id == listing.owner.id %}
-                    <!-- Owner's Actions -->
-                    <a href="{{ url_for('listings.edit_listing', listing_id=listing.id) }}" 
-                       class="flex-1 min-w-[150px] inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 shadow-md">
-                        <i class="fas fa-edit mr-2"></i> Edit Listing
-                    </a>
-                    <form action="{{ url_for('listings.delete_listing', listing_id=listing.id) }}" method="POST" class="flex-1 min-w-[150px]">
-                        {{ csrf_token() }}
-                        <button type="submit" onclick="return confirm('Are you sure you want to delete this listing? This action cannot be undone.');"
-                                class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200 shadow-md">
-                            <i class="fas fa-trash-alt mr-2"></i> Delete Listing
-                        </button>
-                    </form>
-                {% elif current_user.is_authenticated %}
-                    <!-- Other User's Actions -->
-                    {% if listing.listing_type == 'swap' %}
-                        <a href="{{ url_for('swaps.propose_swap', listing_id=listing.id) }}" 
-                           class="flex-1 min-w-[150px] inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200 shadow-md">
-                            <i class="fas fa-exchange-alt mr-2"></i> Propose Swap
-                        </a>
-                    {% elif listing.listing_type == 'sale' %}
-                         <a href="{{ url_for('payments.buy_item', listing_id=listing.id) }}" 
-                            class="flex-1 min-w-[150px] inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200 shadow-md">
-                            <i class="fas fa-money-bill-wave mr-2"></i> Buy Now (R {{ "%.2f" | format(listing.price) }})
-                        </a>
-                    {% elif listing.listing_type == 'donation' %}
-                        <a href="{{ url_for('donations.propose_donation', listing_id=listing.id) }}" 
-                           class="flex-1 min-w-[150px] inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-200 shadow-md">
-                            <i class="fas fa-hand-holding-heart mr-2"></i> Donate This Item
-                        </a>
-                    {% endif %}
-
-                    <a href="{{ url_for('messaging.send_message', recipient_id=listing.owner.id, listing_id=listing.id) }}" 
-                       class="flex-1 min-w-[150px] inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200 shadow-md">
-                        <i class="fas fa-comment-dots mr-2"></i> Message Owner
-                    </a>
-                    {% if current_user.has_role('parent') %}
-                        {% if not is_wishlisted %}
-                        <form action="{{ url_for('wishlist.add_to_wishlist', listing_id=listing.id) }}" method="POST" class="flex-1 min-w-[150px]">
-                            {{ csrf_token() }}
-                            <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200">
-                                <i class="far fa-heart mr-2"></i> Add to Wishlist
-                            </button>
-                        </form>
-                        {% else %}
-                        <form action="{{ url_for('wishlist.remove_from_wishlist', listing_id=listing.id) }}" method="POST" class="flex-1 min-w-[150px]">
-                            {{ csrf_token() }}
-                            <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 border border-red-400 rounded-md shadow-sm text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200">
-                                <i class="fas fa-heart mr-2"></i> Remove from Wishlist
-                            </button>
-                        </form>
-                        {% endif %}
-                    {% endif %}
-                {% else %}
-                    <!-- Guest User Actions -->
-                    <a href="{{ url_for('auth.login') }}" 
-                       class="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200 shadow-md">
-                        <i class="fas fa-sign-in-alt mr-2"></i> Login to Interact
-                    </a>
-                {% endif %}
-            </div>
+<div class="container mx-auto px-4 py-8">
+    <div class="bg-white rounded-xl shadow-2xl overflow-hidden md:flex">
+        {# Image Section #}
+        <div class="md:w-1/2 p-6 flex items-center justify-center bg-gray-50">
+            <img src="{{ url_for('static', filename='uploads/' + listing.image_file) }}"
+                 alt="{{ listing.title }}"
+                 class="max-w-full h-auto rounded-lg shadow-md object-cover max-h-[500px]">
         </div>
 
-        <!-- Owner Profile & Reviews Section -->
-        <div class="lg:col-span-1 space-y-8">
-            <!-- Owner Profile Card -->
-            <div class="bg-white p-6 rounded-lg shadow-xl border border-gray-200 text-center">
-                <h2 class="text-xl font-bold text-gray-900 mb-4">Listing Owner</h2>
-                <a href="{{ url_for('listings.user_profile', user_id=listing.owner.id) }}" class="block">
-                    <img src="{{ listing.owner.profile_pic }}" alt="{{ listing.owner.username }}" 
-                         class="w-24 h-24 rounded-full mx-auto object-cover border-4 border-accent shadow-md mb-4">
-                    <h3 class="text-xl font-semibold text-gray-800 hover:text-accent transition-colors duration-200">{{ listing.owner.username }}</h3>
-                </a>
-                <p class="text-sm text-gray-600 mb-2">{{ listing.owner.email }}</p>
-                {% if listing.owner.roles %}
-                    <p class="text-sm text-gray-500">Role: <span class="capitalize">{{ listing.owner.roles[0] }}</span></p>
-                {% endif %}
-                <div class="flex items-center justify-center mt-3">
-                    {% if avg_rating > 0 %}
-                        <span class="text-yellow-500 text-lg mr-1"><i class="fas fa-star"></i></span>
-                        <span class="font-semibold text-gray-800">{{ "%.1f" | format(avg_rating) }}</span>
-                        <span class="text-gray-500 text-sm ml-1">({{ reviews|length }} reviews)</span>
-                    {% else %}
-                        <span class="text-gray-500 text-sm">No reviews yet.</span>
-                    {% endif %}
+        {# Details Section #}
+        <div class="md:w-1/2 p-8">
+            <h1 class="text-4xl font-extrabold text-gray-900 mb-4">{{ listing.title }}</h1>
+            <p class="text-gray-700 text-lg mb-6 leading-relaxed">{{ listing.description }}</p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                <div class="detail-item">
+                    <span class="font-semibold text-gray-800">Listing Type:</span>
+                    <span class="text-indigo-600 font-medium">{{ listing.listing_type|capitalize }}</span>
                 </div>
-                <a href="{{ url_for('listings.user_profile', user_id=listing.owner.id) }}" 
-                   class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-colors duration-200">
-                    View Profile
-                </a>
+                {% if listing.listing_type == 'sale' %}
+                <div class="detail-item">
+                    <span class="font-semibold text-gray-800">Price:</span>
+                    <span class="text-green-700 font-bold text-xl">R{{ "%.2f"|format(listing.price) }}</span>
+                </div>
+                {% endif %}
+                <div class="detail-item">
+                    <span class="font-semibold text-gray-800">Condition:</span>
+                    <span class="text-gray-600">{{ listing.condition }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="font-semibold text-gray-800">Size:</span>
+                    <span class="text-gray-600">{{ listing.size }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="font-semibold text-gray-800">Gender:</span>
+                    <span class="text-gray-600">{{ listing.gender }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="font-semibold text-gray-800">Uniform Type:</span>
+                    <span class="text-gray-600">{{ listing.uniform_type }}</span>
+                </div>
+                {% if listing.school_name %}
+                <div class="detail-item">
+                    <span class="font-semibold text-gray-800">School:</span>
+                    <span class="text-gray-600">{{ listing.school_name }}</span>
+                </div>
+                {% endif %}
+                <div class="detail-item">
+                    <span class="font-semibold text-gray-800">Location:</span>
+                    <span class="text-gray-600">{{ listing.location }}</span>
+                </div>
+                {% if listing.brand %}
+                <div class="detail-item">
+                    <span class="font-semibold text-gray-800">Brand:</span>
+                    <span class="text-gray-600">{{ listing.brand }}</span>
+                </div>
+                {% endif %}
+                {% if listing.color %}
+                <div class="detail-item">
+                    <span class="font-semibold text-gray-800">Color:</span>
+                    <span class="text-gray-600">{{ listing.color }}</span>
+                </div>
+                {% endif %}
+                <div class="detail-item col-span-full">
+                    <span class="font-semibold text-gray-800">Posted By:</span>
+                    <a href="{{ url_for('listings.user_profile', user_id=listing.user.id) }}" class="text-blue-600 hover:underline">
+                        {{ listing.user.username }}
+                    </a> on {{ listing.date_posted.strftime('%b %d, %Y') }}
+                </div>
             </div>
 
-            <!-- Reviews Section -->
-            <div class="bg-white p-6 rounded-lg shadow-xl border border-gray-200">
-                <h2 class="text-xl font-bold text-gray-900 mb-4">Reviews for {{ listing.owner.username }}</h2>
-                {% if current_user.is_authenticated and current_user.id != listing.owner.id and not has_reviewed %}
-                <div class="mb-6 border-b pb-4 border-gray-200">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Leave a Review</h3>
-                    <form method="POST" action="{{ url_for('listings.listing_detail', listing_id=listing.id) }}" class="space-y-4">
-                        {{ review_form.hidden_tag() }}
-                        <div>
-                            {{ review_form.rating.label(class="block text-sm font-medium text-gray-700 mb-1") }}
-                            {{ review_form.rating(class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-accent focus:border-accent sm:text-sm rounded-md") }}
-                            {% for error in review_form.rating.errors %}
-                                <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
-                            {% endfor %}
-                        </div>
-                        <div>
-                            {{ review_form.comment.label(class="block text-sm font-medium text-gray-700 mb-1") }}
-                            {{ review_form.comment(class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-accent focus:border-accent sm:text-sm h-24 resize-y") }}
-                            {% for error in review_form.comment.errors %}
-                                <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
-                            {% endfor %}
-                        </div>
-                        <div>
-                            <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-[var(--color-accent)] hover:bg-[#2F9C6E] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-accent)] transition-all duration-300 shadow-md">
-                                Submit Review
-                            </button>
-                        </div>
-                    </form>
-                </div>
-                {% elif has_reviewed %}
-                    <p class="text-center text-gray-600 mb-4">You have already reviewed this user.</p>
-                {% elif not current_user.is_authenticated %}
-                    <p class="text-center text-gray-600 mb-4">
-                        <a href="{{ url_for('auth.login') }}" class="text-accent hover:underline">Login</a> to leave a review.
-                    </p>
-                {% endif %}
+            {# Action Buttons #}
+            <div class="mt-8 flex flex-col sm:flex-row sm:space-x-4 space-y-4 sm:space-y-0">
+                {% if listing.user != current_user %}
+                    {# Message User Button #}
+                    <a href="{{ url_for('messaging.inbox', user_id=listing.user.id) }}"
+                       class="flex-1 text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md">
+                        Message {{ listing.user.username }}
+                    </a>
 
-                {% if reviews %}
-                    <div class="space-y-4">
-                        {% for review in reviews %}
-                            <div class="border border-gray-200 p-4 rounded-lg bg-gray-50">
-                                <div class="flex items-center mb-2">
-                                    <img src="{{ review.reviewer.profile_pic }}" alt="{{ review.reviewer.username }}" class="w-8 h-8 rounded-full object-cover mr-3">
-                                    <div>
-                                        <p class="font-semibold text-gray-800">{{ review.reviewer.username }}</p>
-                                        <div class="flex items-center">
-                                            {% for _ in range(review.rating) %}
-                                                <i class="fas fa-star text-yellow-400 text-sm"></i>
-                                            {% endfor %}
-                                            {% for _ in range(5 - review.rating) %}
-                                                <i class="far fa-star text-gray-300 text-sm"></i>
-                                            {% endfor %}
-                                            <span class="text-xs text-gray-500 ml-2">{{ moment(review.date_posted).format('MMMM Do YYYY') }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% if review.comment %}
-                                    <p class="text-gray-700 text-sm mt-2">{{ review.comment }}</p>
-                                {% else %}
-                                    <p class="text-gray-500 text-sm italic mt-2">No comment provided.</p>
-                                {% endif %}
-                            </div>
-                        {% endfor %}
-                    </div>
+                    {# Add/Remove from Wishlist Button #}
+                    {% if current_user.is_authenticated %}
+                        {% if in_wishlist %}
+                            <form action="{{ url_for('wishlist.remove_from_wishlist', listing_id=listing.id) }}" method="POST" class="flex-1">
+                                <button type="submit"
+                                        class="w-full text-center bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md">
+                                    Remove from Wishlist
+                                </button>
+                            </form>
+                        {% else %}
+                            <form action="{{ url_for('wishlist.add_to_wishlist', listing_id=listing.id) }}" method="POST" class="flex-1">
+                                <button type="submit"
+                                        class="w-full text-center bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md">
+                                    Add to Wishlist
+                                </button>
+                            </form>
+                        {% endif %}
+                    {% endif %}
+
+                    {# Propose Swap/Donation/Purchase - Placeholder for future full integration #}
+                    {% if listing.listing_type == 'swap' %}
+                        <a href="{{ url_for('swaps.propose_swap', listing_id=listing.id) }}"
+                           class="flex-1 text-center bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md">
+                            Propose Swap
+                        </a>
+                    {% elif listing.listing_type == 'donation' %}
+                        <a href="{{ url_for('donations.propose_donation', listing_id=listing.id) }}"
+                           class="flex-1 text-center bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md">
+                            Request Donation
+                        </a>
+                    {% elif listing.listing_type == 'sale' %}
+                         <a href="{{ url_for('payments.process_payment', listing_id=listing.id|string) }}"
+                           class="flex-1 text-center bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md">
+                            Buy Now
+                        </a>
+                    {% endif %}
+
+                    {# Raise Dispute Button #}
+                    {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('disputes.raise_dispute', respondent_id=listing.user.id, listing_id=listing.id) }}"
+                           class="flex-1 text-center bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md">
+                            Raise Dispute
+                        </a>
+                    {% endif %}
+
+                    {# Report Listing Button #}
+                    {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('reports.submit_report', entity_type='listing', entity_id=listing.id|string) }}"
+                           class="flex-1 text-center bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md">
+                            Report Listing
+                        </a>
+                    {% endif %}
+
                 {% else %}
-                    <p class="text-center text-gray-600">No reviews yet for this user.</p>
+                    {# Options for the owner of the listing #}
+                    <a href="{{ url_for('listings.edit_listing', listing_id=listing.id) }}"
+                       class="flex-1 text-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md">
+                        Edit Listing
+                    </a>
+                    <form action="{{ url_for('listings.delete_listing', listing_id=listing.id) }}" method="POST" class="flex-1">
+                        <button type="submit"
+                                class="w-full text-center bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md"
+                                onclick="return confirm('Are you sure you want to delete this listing? This action cannot be undone.');">
+                            Delete Listing
+                        </button>
+                    </form>
                 {% endif %}
             </div>
         </div>
     </div>
 </div>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const carousel = document.getElementById('listingCarousel');
-        if (carousel) {
-            const carouselInner = document.getElementById('carousel-inner');
-            const prevBtn = document.getElementById('prevBtn');
-            const nextBtn = document.getElementById('nextBtn');
-            const dots = document.querySelectorAll('.carousel-dot');
-            const images = carouselInner.querySelectorAll('img');
-            let currentIndex = 0;
-
-            function updateCarousel() {
-                const offset = -currentIndex * 100; // Assuming each image takes 100% width
-                carouselInner.style.transform = `translateX(${offset}%)`;
-                dots.forEach((dot, index) => {
-                    if (index === currentIndex) {
-                        dot.classList.add('bg-opacity-100');
-                    } else {
-                        dot.classList.remove('bg-opacity-100');
-                    }
-                });
-            }
-
-            prevBtn.addEventListener('click', () => {
-                currentIndex = (currentIndex > 0) ? currentIndex - 1 : images.length - 1;
-                updateCarousel();
-            });
-
-            nextBtn.addEventListener('click', () => {
-                currentIndex = (currentIndex < images.length - 1) ? currentIndex + 1 : 0;
-                updateCarousel();
-            });
-
-            dots.forEach((dot, index) => {
-                dot.addEventListener('click', () => {
-                    currentIndex = index;
-                    updateCarousel();
-                });
-            });
-
-            // Initialize carousel
-            updateCarousel();
-        }
-    });
-</script>
+<style>
+    .detail-item {
+        @apply flex flex-col sm:flex-row sm:items-center;
+    }
+    .detail-item span:first-child {
+        @apply sm:w-1/3; /* Adjust as needed for label width */
+    }
+</style>
 {% endblock %}

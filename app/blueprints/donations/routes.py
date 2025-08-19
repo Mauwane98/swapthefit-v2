@@ -18,6 +18,7 @@ donations_bp = Blueprint('donations', __name__)
 def propose_donation(listing_id):
     """
     Allows a user to propose donating a specific listing to a school or NGO.
+    Now captures quantity and estimated value.
     """
     listing_to_donate = Listing.objects(id=listing_id).first()
     if not listing_to_donate:
@@ -47,12 +48,14 @@ def propose_donation(listing_id):
             flash('Selected recipient not found.', 'danger')
             return redirect(url_for('donations.propose_donation', listing_id=listing_id))
 
-        # Create the Donation record
+        # Create the Donation record with new quantity and estimated_value
         donation = Donation(
             donor=current_user.id,
             donated_listing=listing_to_donate.id,
             recipient=recipient_user.id,
-            notes=form.message.data # Use the message field for initial notes
+            notes=form.message.data,
+            quantity=form.quantity.data, # New field
+            estimated_value=form.estimated_value.data # New field
         )
         donation.save()
 
@@ -61,7 +64,7 @@ def propose_donation(listing_id):
         listing_to_donate.save()
 
         # Create a notification for the recipient (school/NGO)
-        notification_message = f"{current_user.username} has proposed to donate '{listing_to_donate.title}' to you!"
+        notification_message = f"{current_user.username} has proposed to donate '{listing_to_donate.title}' (Quantity: {donation.quantity}, Value: R{donation.estimated_value:.2f}) to you!"
         notification = Notification(
             recipient=recipient_user.id,
             sender=current_user.id,
@@ -70,9 +73,6 @@ def propose_donation(listing_id):
             notification_type='new_donation'
         )
         notification.save()
-        current_app.logger.info(f"Notification sent to {recipient_user.username}")
-
-        # Emit SocketIO event
         current_app.extensions['socketio'].emit(
             'new_notification',
             {'message': notification.message, 'count': Notification.objects(recipient=recipient_user.id, read=False).count()},
@@ -122,6 +122,11 @@ def view_donation_request(donation_id):
     confirm_form = ConfirmDonationReceiptForm()
     distribute_form = MarkDonationDistributedForm() # New form for distribution
 
+    # Pre-populate confirm form with proposed values for convenience
+    if request.method == 'GET':
+        confirm_form.quantity_received.data = donation.quantity
+        confirm_form.estimated_value_received.data = donation.estimated_value
+
     return render_template(
         'donations/view_donation_request.html', 
         donation=donation,
@@ -135,6 +140,7 @@ def view_donation_request(donation_id):
 def confirm_receipt(donation_id):
     """
     Allows a school or NGO to confirm receipt of a donated item.
+    Updates donation record and recipient's impact metrics.
     """
     donation = Donation.objects(id=donation_id).first()
     if not donation:
@@ -148,8 +154,14 @@ def confirm_receipt(donation_id):
     
     form = ConfirmDonationReceiptForm()
     if form.validate_on_submit():
+        # Store the old values before updating for notification comparison
+        old_quantity = donation.quantity
+        old_value = donation.estimated_value
+
         donation.status = 'received'
         donation.notes = form.notes.data # Update notes with recipient's input
+        donation.quantity = form.quantity_received.data # Update with confirmed quantity
+        donation.estimated_value = form.estimated_value_received.data # Update with confirmed value
         donation.updated_date = datetime.utcnow()
         donation.save()
 
@@ -158,8 +170,14 @@ def confirm_receipt(donation_id):
         donation.donated_listing.is_active = False # Mark as inactive
         donation.donated_listing.save()
 
+        # --- Update Recipient (NGO/School) User's Impact Metrics ---
+        recipient_user = donation.recipient
+        recipient_user.total_donations_received_count += donation.quantity
+        recipient_user.total_donations_value += donation.estimated_value
+        recipient_user.save() # Save updated user metrics
+
         # Notify the donor
-        notification_message = f"Your donation of '{donation.donated_listing.title}' has been RECEIVED by {current_user.username}!"
+        notification_message = f"Your donation of '{donation.donated_listing.title}' (Quantity: {donation.quantity}, Value: R{donation.estimated_value:.2f}) has been RECEIVED by {current_user.username}!"
         notification = Notification(
             recipient=donation.donor.id,
             sender=current_user.id,
@@ -174,7 +192,7 @@ def confirm_receipt(donation_id):
             room=str(donation.donor.id)
         )
 
-        flash('Donation receipt confirmed!', 'success')
+        flash('Donation receipt confirmed and impact metrics updated!', 'success')
         return redirect(url_for('donations.view_donation_request', donation_id=donation.id))
     
     # If form validation fails, re-render the view_donation_request template
@@ -191,6 +209,7 @@ def confirm_receipt(donation_id):
 def mark_distributed(donation_id):
     """
     Allows a school or NGO to mark a received donated item as distributed.
+    Updates donation record and recipient's families supported metric.
     """
     donation = Donation.objects(id=donation_id).first()
     if not donation:
@@ -210,13 +229,20 @@ def mark_distributed(donation_id):
             donation.notes += f"\nDistribution Notes: {form.distribution_notes.data}"
         else:
             donation.notes = f"Distribution Notes: {form.distribution_notes.data}"
+        
+        donation.families_supported = form.families_supported.data # Update with families supported
         donation.updated_date = datetime.utcnow()
         donation.save()
 
         # No change needed to listing status, it's already 'donated' and inactive
 
+        # --- Update Recipient (NGO/School) User's Families Supported YTD Metric ---
+        recipient_user = donation.recipient
+        recipient_user.total_families_supported_ytd += donation.families_supported
+        recipient_user.save() # Save updated user metrics
+
         # Notify the donor that their item has been distributed
-        notification_message = f"Great news! Your donated item '{donation.donated_listing.title}' has been successfully DISTRIBUTED by {current_user.username}."
+        notification_message = f"Great news! Your donated item '{donation.donated_listing.title}' has been successfully DISTRIBUTED by {current_user.username}, supporting {donation.families_supported} families/individuals."
         notification = Notification(
             recipient=donation.donor.id,
             sender=current_user.id,
@@ -231,7 +257,7 @@ def mark_distributed(donation_id):
             room=str(donation.donor.id)
         )
 
-        flash('Donation marked as distributed!', 'success')
+        flash('Donation marked as distributed and impact metrics updated!', 'success')
         return redirect(url_for('donations.view_donation_request', donation_id=donation.id))
 
     # If form validation fails, re-render the view_donation_request template
@@ -289,4 +315,3 @@ def cancel_donation(donation_id):
 
     flash('Donation cancelled successfully.', 'info')
     return redirect(url_for('donations.manage_donations'))
-

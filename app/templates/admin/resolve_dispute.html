@@ -1,0 +1,67 @@
+{# app/templates/admin/resolve_dispute.html #}
+{% extends "_layouts/base.html" %}
+
+{% block title %}Resolve Dispute{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-8">Resolve Dispute #{{ dispute.id }} 🛠️</h1>
+
+    <div class="bg-white p-8 rounded-xl shadow-2xl">
+        <div class="mb-6 border-b pb-4">
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">Dispute Overview</h2>
+            <p class="text-gray-700"><span class="font-semibold">Initiator:</span> 
+                <a href="{{ url_for('listings.user_profile', user_id=dispute.initiator.id) }}" class="text-indigo-600 hover:underline">
+                    {{ dispute.initiator.username }}
+                </a>
+            </p>
+            <p class="text-gray-700"><span class="font-semibold">Respondent:</span> 
+                <a href="{{ url_for('listings.user_profile', user_id=dispute.respondent.id) }}" class="text-indigo-600 hover:underline">
+                    {{ dispute.respondent.username }}
+                </a>
+            </p>
+            {% if dispute.listing %}
+                <p class="text-gray-700"><span class="font-semibold">Related Listing:</span> 
+                    <a href="{{ url_for('listings.listing_detail', listing_id=dispute.listing.id) }}" class="text-blue-600 hover:underline">
+                        {{ dispute.listing.title }} (ID: {{ dispute.listing.id }})
+                    </a>
+                </p>
+            {% endif %}
+            <p class="text-gray-700"><span class="font-semibold">Date Raised:</span> {{ dispute.date_raised.strftime('%b %d, %Y %I:%M %p') }}</p>
+        </div>
+
+        <div class="mb-6 border-b pb-4">
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">Reason for Dispute</h2>
+            <p class="text-gray-700 leading-relaxed whitespace-pre-wrap">{{ dispute.reason }}</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('disputes.resolve_dispute', dispute_id=dispute.id) }}">
+            {{ form.hidden_tag() }}
+            
+            <div class="mb-5">
+                {{ form.status.label(class="block text-sm font-medium text-gray-700 mb-1") }}
+                {{ form.status(class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md") }}
+                {% for error in form.status.errors %}
+                    <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <div class="mb-6">
+                {{ form.resolution_notes.label(class="block text-sm font-medium text-gray-700 mb-1") }}
+                {{ form.resolution_notes(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-base") }}
+                {% for error in form.resolution_notes.errors %}
+                    <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <div class="flex justify-center space-x-4">
+                {{ form.submit(class="inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200") }}
+                <a href="{{ url_for('disputes.manage_disputes') }}"
+                   class="inline-flex items-center px-8 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

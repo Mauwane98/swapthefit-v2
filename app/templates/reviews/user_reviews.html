@@ -1,0 +1,83 @@
+{# app/templates/reviews/user_reviews.html #}
+{% extends "_layouts/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-8">Reviews for {{ user.username }} 🗣️</h1>
+
+    <div class="bg-white p-6 rounded-xl shadow-2xl mb-8">
+        <div class="flex justify-between items-center mb-6 border-b pb-4">
+            <h2 class="text-2xl font-bold text-gray-800">User Reviews</h2>
+            <div class="text-lg font-semibold text-gray-700">
+                Overall Trust Score: <span class="text-indigo-600">{{ "%.1f"|format(user.trust_score) }}%</span>
+            </div>
+        </div>
+
+        {% if reviews %}
+            <div class="space-y-6">
+                {% for review in reviews %}
+                    <div class="p-5 rounded-lg shadow-md {% if review.is_positive %}bg-green-50 border-l-4 border-green-500{% else %}bg-red-50 border-l-4 border-red-500{% endif %}">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center">
+                                <img src="{{ url_for('static', filename='profile_pics/' + review.reviewer.image_file) }}"
+                                     alt="{{ review.reviewer.username }}'s profile picture"
+                                     class="w-10 h-10 rounded-full mr-3 object-cover">
+                                <div>
+                                    <p class="font-semibold text-gray-900">
+                                        <a href="{{ url_for('listings.user_profile', user_id=review.reviewer.id) }}" class="hover:underline">
+                                            {{ review.reviewer.username }}
+                                        </a>
+                                    </p>
+                                    <p class="text-sm text-gray-500">{{ review.date_posted.strftime('%b %d, %Y') }}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-yellow-500 text-xl">
+                                    {% for _ in range(review.rating) %}⭐{% endfor %}{% for _ in range(5 - review.rating) %}☆{% endfor %}
+                                </span>
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full
+                                    {% if review.is_positive %}bg-green-200 text-green-800{% else %}bg-red-200 text-red-800{% endif %}">
+                                    {{ 'Positive' if review.is_positive else 'Negative' }}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <p class="text-gray-800 mb-4 leading-relaxed">{{ review.comment }}</p>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-700 border-t pt-3 mt-3">
+                            <div><span class="font-semibold">Communication:</span> 
+                                {% for _ in range(review.communication_rating) %}⭐{% endfor %}{% for _ in range(5 - review.communication_rating) %}☆{% endfor %}
+                            </div>
+                            <div><span class="font-semibold">Logistics:</span> 
+                                {% for _ in range(review.logistics_rating) %}⭐{% endfor %}{% for _ in range(5 - review.logistics_rating) %}☆{% endfor %}
+                            </div>
+                            <div><span class="font-semibold">Item as Described:</span> 
+                                <span class="font-medium {% if review.item_as_described %}text-green-600{% else %}text-red-600{% endif %}">
+                                    {{ 'Yes' if review.item_as_described else 'No' }}
+                                </span>
+                            </div>
+                            {% if review.listing %}
+                                <div><span class="font-semibold">Related Listing:</span> 
+                                    <a href="{{ url_for('listings.listing_detail', listing_id=review.listing.id) }}" class="text-blue-600 hover:underline">
+                                        {{ review.listing.title }}
+                                    </a>
+                                </div>
+                            {% endif %}
+                            <div><span class="font-semibold">Transaction ID:</span> {{ review.transaction_id }}</div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-12 bg-gray-50 rounded-xl shadow-inner">
+                <p class="text-xl text-gray-500 mb-4">No reviews found for {{ user.username }} yet.</p>
+                {% if current_user.is_authenticated and current_user.id != user.id %}
+                    <p class="text-lg text-gray-600">Be the first to leave a review after a completed transaction!</p>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

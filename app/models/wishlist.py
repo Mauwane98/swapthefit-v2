@@ -1,37 +1,32 @@
-from app.extensions import db
+# app/models/wishlist.py
 from datetime import datetime
+from app.extensions import db
+from mongoengine.fields import ReferenceField, IntField, DateTimeField
 
-class Wishlist(db.Document):
-    """
-    Represents a user's wishlist in the SwapTheFit application, storing listings
-    that a user is interested in. This model uses MongoEngine.
-    """
-    # Reference to the User who owns this wishlist.
-    user = db.ReferenceField(document_type='User', required=True, help_text="The user who owns this wishlist.")
-
-    # Reference to the Listing that is added to the wishlist.
-    listing = db.ReferenceField(document_type='Listing', required=True, help_text="The listing added to the wishlist.")
-
-    # Timestamp for when the listing was added to the wishlist.
-    added_at = db.DateTimeField(default=datetime.utcnow, help_text="Timestamp when the listing was added to the wishlist.")
-
-    # Define a Meta class for MongoEngine specific configurations.
-    meta = {
-        'collection': 'wishlist_items',  # Explicitly set the collection name in MongoDB
-        'indexes': [
-            # Compound index to ensure a user can only add a specific listing to their wishlist once.
-            {'fields': ('user', 'listing'), 'unique': True},
-            {'fields': ('user',)},        # Index by user for faster retrieval of a user's wishlist
-            {'fields': ('listing',)},     # Index by listing for checking if a listing is wishlisted by anyone
-            {'fields': ('-added_at',)}  # Descending index on added_at for showing recently added items
-        ],
-        'strict': False # Allows for dynamic fields not explicitly defined in the schema
-    }
+class WishlistItem(db.Document):
+    user = ReferenceField('User', required=True)
+    listing = ReferenceField('Listing', required=True)
+    date_added = DateTimeField(default=datetime.utcnow)
 
     def __repr__(self):
         """
-        String representation of the Wishlist item, useful for debugging.
+        String representation of the WishlistItem object.
         """
-        user_name = self.user.username if self.user else "Unknown User"
-        listing_title = self.listing.title if self.listing else "Unknown Listing"
-        return f"Wishlist item: User '{user_name}' added Listing '{listing_title}'"
+        return f"WishlistItem(User: {self.user.username}, Listing: {self.listing.title})"
+
+    def to_dict(self):
+        """
+        Converts the WishlistItem object to a dictionary.
+        """
+        return {
+            'id': str(self.id),
+            'user_id': str(self.user.id),
+            'listing_id': str(self.listing.id),
+            'date_added': self.date_added.isoformat() + 'Z',
+            'listing_title': self.listing.title,
+            'listing_price': self.listing.price,
+            'listing_condition': self.listing.condition,
+            'listing_image': self.listing.image_file,
+            'listing_is_available': self.listing.is_available,
+            'listing_url': f'/listings/{self.listing.id}' # Example URL
+        }

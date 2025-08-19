@@ -1,69 +1,54 @@
-from app.extensions import db
+# app/models/payments.py
 from datetime import datetime
+from app.extensions import db
+from mongoengine.fields import ReferenceField, IntField, FloatField, StringField, DateTimeField, BooleanField
 
 class Order(db.Document):
-    """
-    Represents an order/purchase transaction in the system.
-    This model tracks items bought, the buyer, the seller, price, and payment status.
-    """
-    # Reference to the user who made the purchase.
-    buyer = db.ReferenceField(document_type='User', required=True, help_text="The user who bought the item.")
-
-    # Reference to the listing that was purchased.
-    purchased_listing = db.ReferenceField(document_type='Listing', required=True, help_text="The listing that was purchased.")
-
-    # Reference to the seller of the item (owner of the listing).
-    seller = db.ReferenceField(document_type='User', required=True, help_text="The user who sold the item.")
-
-    # The price at which the item was sold. Copied from listing to ensure historical accuracy.
-    price_at_purchase = db.FloatField(required=True, min_value=0.01, help_text="The price of the item at the time of purchase.")
-
-    # Status of the order (e.g., 'pending_payment', 'paid', 'pending_pickup', 'completed', 'cancelled').
-    # 'pending_payment': Order initiated, awaiting payment confirmation.
-    # 'paid': Payment confirmed, awaiting logistics.
-    # 'pending_pickup': Payment received, item awaiting pickup/delivery.
-    # 'completed': Item successfully delivered/received by buyer.
-    # 'cancelled': Order cancelled before completion.
-    status = db.StringField(
-        required=True,
-        default='pending_payment',
-        choices=('pending_payment', 'paid', 'pending_pickup', 'completed', 'cancelled'),
-        help_text="Current status of the order."
-    )
-
-    # Transaction ID from the payment gateway (e.g., PayFast, PayPal).
-    transaction_id = db.StringField(max_length=255, help_text="Transaction ID from the payment gateway.", null=True)
-
-    # Timestamp for when the order was created.
-    order_date = db.DateTimeField(default=datetime.utcnow, help_text="Date when the order was initiated.")
-
-    # Timestamp for when the order status was last updated.
-    updated_date = db.DateTimeField(default=datetime.utcnow, help_text="Date when the order was last updated.")
-
-    # Define a Meta class for MongoEngine specific configurations.
-    meta = {
-        'collection': 'orders', # Explicitly set the collection name
-        'indexes': [
-            {'fields': ('buyer',)},
-            {'fields': ('seller',)},
-            {'fields': ('purchased_listing',)},
-            {'fields': ('status',)},
-            {'fields': ('transaction_id',)},
-            {'fields': ('-order_date',)}
-        ],
-        'strict': False # Allows for dynamic fields not explicitly defined in the schema
-    }
-
-    def clean(self):
-        """
-        Custom validation or data cleaning hook.
-        Ensures updated_date is current before saving.
-        """
-        self.updated_date = datetime.utcnow()
+    buyer = ReferenceField('User', required=True)
+    seller = ReferenceField('User', required=True)
+    listing = ReferenceField('Listing', required=True)
+    price_at_purchase = FloatField(required=True)
+    status = StringField(max_length=50, default='pending')
+    order_date = DateTimeField(default=datetime.utcnow)
+    transaction_id_gateway = StringField(max_length=100, unique=True)
+    payment_gateway = StringField(max_length=50)
+    amount_paid_total = FloatField(required=True)
+    platform_fee = FloatField(default=0.0)
+    seller_payout_amount = FloatField(default=0.0)
+    payout_status = StringField(max_length=50, default='pending')
+    payout_date = DateTimeField()
+    is_premium_listing_purchase = BooleanField(default=False)
+    premium_listing_ref = ReferenceField('Listing')
 
     def __repr__(self):
         """
         String representation of the Order object.
         """
-        return f"Order(Listing: {self.purchased_listing.title}, Buyer: {self.buyer.username}, Seller: {self.seller.username}, Status: {self.status}, Price: R{self.price_at_purchase})"
+        return f"Order(ID: {self.id}, Listing: {self.listing.title}, Buyer: {self.buyer.username}, Status: {self.status})"
 
+    def to_dict(self):
+        """
+        Converts the Order object to a dictionary.
+        """
+        return {
+            'id': str(self.id),
+            'buyer_id': str(self.buyer.id),
+            'buyer_username': self.buyer.username,
+            'seller_id': str(self.seller.id),
+            'seller_username': self.seller.username,
+            'listing_id': str(self.listing.id),
+            'listing_title': self.listing.title,
+            'price_at_purchase': self.price_at_purchase,
+            'status': self.status,
+            'order_date': self.order_date.isoformat() + 'Z',
+            'transaction_id_gateway': self.transaction_id_gateway,
+            'payment_gateway': self.payment_gateway,
+            'amount_paid_total': self.amount_paid_total,
+            'platform_fee': self.platform_fee,
+            'seller_payout_amount': self.seller_payout_amount,
+            'payout_status': self.payout_status,
+            'payout_date': self.payout_date.isoformat() + 'Z' if self.payout_date else None,
+            'is_premium_listing_purchase': self.is_premium_listing_purchase,
+            'premium_listing_id': str(self.premium_listing_ref.id) if self.premium_listing_ref else None,
+            'premium_listing_title': self.premium_listing_ref.title if self.premium_listing_ref else None
+        }

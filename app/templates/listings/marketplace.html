@@ -1,118 +1,241 @@
+{# app/templates/listings/marketplace.html #}
 {% extends "_layouts/base.html" %}
 
 {% block title %}Marketplace{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8 md:py-12">
-    <h1 class="text-4xl font-extrabold text-gray-900 text-center mb-8 md:mb-12">Explore the Marketplace</h1>
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-8">SwapTheFit Marketplace 👕👖👟</h1>
 
-    <!-- Search and Filter Section -->
-    <div class="bg-white p-6 rounded-lg shadow-md mb-8">
-        <form method="GET" action="{{ url_for('listings.marketplace') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-            <!-- Search Input -->
-            <div class="md:col-span-2">
-                <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search Listings</label>
-                <div class="relative">
-                    <input type="text" name="search" id="search" placeholder="Search by title or description..." 
-                           class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent sm:text-sm"
-                           value="{{ search_query if search_query }}">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i class="fas fa-search text-gray-400"></i>
-                    </div>
+    {# Search and Filter Section #}
+    <div class="bg-white p-6 rounded-xl shadow-2xl mb-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-3">Find Your Fit</h2>
+        <form id="marketplace-filter-form" action="{{ url_for('listings.marketplace') }}" method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {# Search Bar #}
+            <div class="col-span-full md:col-span-2 lg:col-span-4">
+                <label for="search_term" class="block text-sm font-medium text-gray-700 sr-only">Search Listings</label>
+                <div class="mt-1 flex rounded-md shadow-sm">
+                    <input type="text" name="search_term" id="search_term"
+                           class="flex-1 min-w-0 block w-full px-4 py-3 rounded-l-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 sm:text-lg"
+                           placeholder="Search by title, description, school, or brand..."
+                           value="{{ search_term }}">
+                    <button type="submit"
+                            class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-r-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                        </svg>
+                        Search
+                    </button>
                 </div>
             </div>
 
-            <!-- Category Filter -->
+            {# Location Filter #}
             <div>
-                <label for="category" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                <select id="category" name="category" 
-                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-accent focus:border-accent sm:text-sm rounded-md">
-                    <option value="All">All Categories</option>
-                    {% for category in all_categories %}
-                        <option value="{{ category }}" {% if category_filter == category %}selected{% endif %}>{{ category }}</option>
+                <label for="location" class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                <input type="text" name="location" id="location"
+                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                       placeholder="e.g., Johannesburg" value="{{ location_filter }}">
+            </div>
+
+            {# Uniform Type Filter #}
+            <div>
+                <label for="uniform_type" class="block text-sm font-medium text-gray-700 mb-1">Uniform Type</label>
+                <select id="uniform_type" name="uniform_type"
+                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                    {% for type in uniform_types %}
+                        <option value="{{ type }}" {% if uniform_type_filter == type %}selected{% endif %}>{{ type }}</option>
                     {% endfor %}
                 </select>
             </div>
 
-            <!-- Size Filter -->
+            {# Brand Filter #}
             <div>
-                <label for="size" class="block text-sm font-medium text-gray-700 mb-1">Size</label>
-                <select id="size" name="size" 
-                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-accent focus:border-accent sm:text-sm rounded-md">
-                    <option value="All">All Sizes</option>
-                    {% for size in all_sizes %}
-                        <option value="{{ size }}" {% if size_filter == size %}selected{% endif %}>{{ size }}</option>
+                <label for="brand" class="block text-sm font-medium text-gray-700 mb-1">Brand</label>
+                <select id="brand" name="brand"
+                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                    {% for b in brands %}
+                        <option value="{{ b }}" {% if brand_filter == b %}selected{% endif %}>{{ b }}</option>
                     {% endfor %}
                 </select>
             </div>
 
-            <!-- Condition Filter -->
+            {# Color Filter #}
+            <div>
+                <label for="color" class="block text-sm font-medium text-gray-700 mb-1">Color</label>
+                <select id="color" name="color"
+                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                    {% for c in colors %}
+                        <option value="{{ c }}" {% if color_filter == c %}selected{% endif %}>{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            {# Condition Filter #}
             <div>
                 <label for="condition" class="block text-sm font-medium text-gray-700 mb-1">Condition</label>
-                <select id="condition" name="condition" 
-                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-accent focus:border-accent sm:text-sm rounded-md">
-                    <option value="All">All Conditions</option>
-                    {% for condition in all_conditions %}
-                        <option value="{{ condition }}" {% if condition_filter == condition %}selected{% endif %}>{{ condition }}</option>
+                <select id="condition" name="condition"
+                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                    {% for cond in conditions %}
+                        <option value="{{ cond }}" {% if condition_filter == cond %}selected{% endif %}>{{ cond }}</option>
                     {% endfor %}
                 </select>
             </div>
 
-            <div class="md:col-span-4 flex justify-end space-x-3">
-                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-[var(--color-accent)] hover:bg-[#2F9C6E] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-accent)] transition-colors duration-200">
-                    <i class="fas fa-filter mr-2"></i> Apply Filters
+            {# Listing Type Filter #}
+            <div>
+                <label for="listing_type" class="block text-sm font-medium text-gray-700 mb-1">Listing Type</label>
+                <select id="listing_type" name="listing_type"
+                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                    {% for lt in listing_types %}
+                        <option value="{{ lt }}" {% if listing_type_filter == lt %}selected{% endif %}>{{ lt|capitalize }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            {# Gender Filter #}
+            <div>
+                <label for="gender" class="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                <select id="gender" name="gender"
+                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                    {% for g in genders %}
+                        <option value="{{ g }}" {% if gender_filter == g %}selected{% endif %}>{{ g }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            {# Size Filter #}
+            <div>
+                <label for="size" class="block text-sm font-medium text-gray-700 mb-1">Size</label>
+                <select id="size" name="size"
+                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                    {% for s in sizes %}
+                        <option value="{{ s }}" {% if size_filter == s %}selected{% endif %}>{{ s }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            {# Price Range Filters #}
+            <div class="col-span-full md:col-span-2 flex space-x-4">
+                <div class="flex-1">
+                    <label for="min_price" class="block text-sm font-medium text-gray-700 mb-1">Min Price (ZAR)</label>
+                    <input type="number" name="min_price" id="min_price" step="0.01"
+                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                           placeholder="e.g., 50" value="{{ min_price if min_price is not none else '' }}">
+                </div>
+                <div class="flex-1">
+                    <label for="max_price" class="block text-sm font-medium text-gray-700 mb-1">Max Price (ZAR)</label>
+                    <input type="number" name="max_price" id="max_price" step="0.01"
+                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                           placeholder="e.g., 500" value="{{ max_price if max_price is not none else '' }}">
+                </div>
+            </div>
+
+            <div class="col-span-full flex justify-end mt-4">
+                <button type="submit"
+                        class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                    Apply Filters
                 </button>
-                <a href="{{ url_for('listings.marketplace') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200">
-                    <i class="fas fa-redo-alt mr-2"></i> Clear Filters
+                <a href="{{ url_for('listings.marketplace') }}"
+                   class="ml-4 inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    Reset Filters
                 </a>
+                {% if current_user.is_authenticated %}
+                <button type="button" id="save-search-btn"
+                        class="ml-4 inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+                    Save Search
+                </button>
+                {% endif %}
             </div>
         </form>
     </div>
 
-    <!-- Listings Grid -->
-    {% if listings %}
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {% for listing in listings %}
-                <div class="bg-white rounded-lg shadow-md overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl">
-                    <a href="{{ url_for('listings.listing_detail', listing_id=listing.id) }}">
-                        <img src="{{ listing.images[0] if listing.images else 'https://placehold.co/400x300/CCCCCC/333333?text=No+Image' }}" 
-                             alt="{{ listing.title }}" 
-                             class="w-full h-48 object-cover">
-                    </a>
-                    <div class="p-4">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-1 truncate">{{ listing.title }}</h3>
-                        <p class="text-sm text-gray-600 mb-2">{{ listing.category }} | Size: {{ listing.size }}</p>
-                        <div class="flex items-center justify-between text-sm text-gray-700 mb-3">
-                            <span>Condition: <span class="font-medium">{{ listing.condition }}</span></span>
-                            <span class="text-xs text-gray-500">{{ listing.created_at.strftime('%b %d, %Y') }}</span>
-                        </div>
-                        <div class="flex justify-between items-center mt-3">
-                            <a href="{{ url_for('listings.listing_detail', listing_id=listing.id) }}" 
-                               class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-[var(--color-accent)] hover:bg-[#2F9C6E] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-accent)] transition-colors duration-200">
-                                View Details
-                            </a>
-                            {% if current_user.is_authenticated and current_user.id != listing.owner.id %}
-                                {% if current_user.has_role('parent') %}
-                                <form action="{{ url_for('wishlist.add_to_wishlist', listing_id=listing.id) }}" method="POST" class="inline-block">
-                                    {{ csrf_token() }}
-                                    <button type="submit" title="Add to Wishlist"
-                                            class="p-1.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200">
-                                        <i class="far fa-heart"></i>
-                                    </button>
-                                </form>
-                                {% endif %}
-                            {% endif %}
-                        </div>
+    {# Listings Display Section #}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        {% for listing in listings %}
+            <div class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden flex flex-col {% if listing.is_premium %} border-4 border-yellow-400 {% endif %}">
+                <a href="{{ url_for('listings.listing_detail', listing_id=listing.id) }}" class="block relative">
+                    {% if listing.is_premium %}
+                        <span class="absolute top-2 left-2 bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-full shadow">⭐ Premium</span>
+                    {% endif %}
+                    <img src="{{ url_for('static', filename='uploads/' + listing.image_file) }}"
+                         alt="{{ listing.title }}"
+                         class="w-full h-48 object-cover object-center">
+                </a>
+                <div class="p-5 flex-grow">
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">{{ listing.title }}</h3>
+                    <p class="text-sm text-gray-600 mb-3 line-clamp-2">{{ listing.description }}</p>
+                    <div class="text-md font-semibold text-gray-700 mb-1">
+                        Type: <span class="text-indigo-600">{{ listing.listing_type|capitalize }}</span>
                     </div>
+                    {% if listing.listing_type == 'sale' %}
+                        <div class="text-lg font-bold text-green-700 mb-1">Price: R{{ "%.2f"|format(listing.price) }}</div>
+                    {% endif %}
+                    <div class="text-sm text-gray-700 mb-1">Condition: {{ listing.condition }}</div>
+                    <div class="text-sm text-gray-700 mb-1">Size: {{ listing.size }}</div>
+                    {% if listing.school_name %}
+                        <div class="text-sm text-gray-700 mb-1">School: {{ listing.school_name }}</div>
+                    {% endif %}
+                    <div class="text-sm text-gray-700 mb-1">Location: {{ listing.location }}</div>
+                    {% if listing.brand %}
+                        <div class="text-sm text-gray-700 mb-1">Brand: {{ listing.brand }}</div>
+                    {% endif %}
+                    {% if listing.color %}
+                        <div class="text-sm text-gray-700 mb-1">Color: {{ listing.color }}</div>
+                    {% endif %}
                 </div>
-            {% endfor %}
-        </div>
-    {% else %}
-        <div class="text-center py-10 bg-white rounded-lg shadow-md">
-            <p class="text-lg text-gray-600">No listings found matching your criteria.</p>
-            <p class="text-md text-gray-500 mt-2">Try adjusting your search or filters.</p>
-            <a href="{{ url_for('listings.marketplace') }}" class="mt-4 inline-block text-accent hover:underline">Browse All Listings</a>
-        </div>
+                <div class="p-5 border-t border-gray-100">
+                    <a href="{{ url_for('listings.listing_detail', listing_id=listing.id) }}"
+                       class="block w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-200">
+                        View Details
+                    </a>
+                </div>
+            </div>
+        {% else %}
+            <div class="col-span-full text-center py-12">
+                <p class="text-xl text-gray-500">No listings found matching your criteria. Try adjusting your filters!</p>
+            </div>
+        {% endfor %}
+    </div>
+
+    {# Pagination #}
+    {% if total_pages > 1 %}
+    <div class="flex justify-center mt-12 space-x-2">
+        {% if page > 1 %}
+            <a href="{{ url_for('listings.marketplace', page=page-1, search_term=search_term, location=location_filter, uniform_type=uniform_type_filter, brand=brand_filter, color=color_filter, condition=condition_filter, listing_type=listing_type_filter, gender=gender_filter, size=size_filter, min_price=min_price, max_price=max_price) }}"
+               class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200">Previous</a>
+        {% endif %}
+        {% for p in range(1, total_pages + 1) %}
+            <a href="{{ url_for('listings.marketplace', page=p, search_term=search_term, location=location_filter, uniform_type=uniform_type_filter, brand=brand_filter, color=color_filter, condition=condition_filter, listing_type=listing_type_filter, gender=gender_filter, size=size_filter, min_price=min_price, max_price=max_price) }}"
+               class="px-4 py-2 {% if p == page %}bg-indigo-800{% else %}bg-indigo-600 hover:bg-indigo-700{% endif %} text-white rounded-lg transition-colors duration-200">{{ p }}</a>
+        {% endfor %}
+        {% if page < total_pages %}
+            <a href="{{ url_for('listings.marketplace', page=page+1, search_term=search_term, location=location_filter, uniform_type=uniform_type_filter, brand=brand_filter, color=color_filter, condition=condition_filter, listing_type=listing_type_filter, gender=gender_filter, size=size_filter, min_price=min_price, max_price=max_price) }}"
+               class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200">Next</a>
+        {% endif %}
+    </div>
     {% endif %}
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const saveSearchBtn = document.getElementById('save-search-btn');
+        if (saveSearchBtn) {
+            saveSearchBtn.addEventListener('click', function() {
+                const form = document.getElementById('marketplace-filter-form');
+                const formData = new FormData(form);
+                let queryParams = new URLSearchParams();
+
+                for (const [key, value] of formData.entries()) {
+                    if (value && value !== 'All') { // Only add if value exists and is not 'All'
+                        queryParams.append(key, value);
+                    }
+                }
+                
+                // Construct the URL for the save_search route with current query parameters
+                const saveSearchUrl = "{{ url_for('wishlist.save_search') }}?" + queryParams.toString();
+                window.location.href = saveSearchUrl;
+            });
+        }
+    });
+</script>
 {% endblock %}

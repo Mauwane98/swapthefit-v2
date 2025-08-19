@@ -1,199 +1,174 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash
 from flask_login import login_required, current_user
-from app.models.users import User
 from app.models.messages import Message
-from app.models.listings import Listing
-from app.models.notifications import Notification
-from app.extensions import socketio # Import socketio for emitting events
-from datetime import datetime
-from mongoengine.queryset.visitor import Q # For OR queries in MongoEngine
+from app.models.users import User # Import User model to fetch sender/receiver info
+from app.extensions import db
+from mongoengine.queryset.visitor import Q # Import Q for complex queries
 
-messaging_bp = Blueprint('messaging', __name__, url_prefix='/messaging', template_folder='templates')
+messaging_bp = Blueprint('messaging', __name__)
 
 @messaging_bp.route('/inbox')
 @login_required
 def inbox():
     """
-    Displays the user's inbox with all conversations.
-    Each conversation is represented by the latest message in that thread,
-    grouped by the unique combination of participants and listing.
+    Displays the user's inbox, showing a list of active conversations
+    and the messages within a selected conversation.
     """
-    # Aggregate to find the latest message for each unique conversation thread
-    # A conversation thread is defined by the two participants and the listing they are discussing.
+    # Get all unique users current_user has exchanged messages with
+    # This involves querying messages where current_user is either sender or receiver
+    sender_ids = Message.objects(receiver=current_user).distinct('sender')
+    receiver_ids = Message.objects(sender=current_user).distinct('receiver')
+
+    # Combine results and exclude current_user themselves
+    partner_ids = list(set(sender_ids + receiver_ids))
+    if current_user.id in partner_ids:
+        partner_ids.remove(current_user.id)
+
+    # Fetch User objects for conversation partners
+    conversation_partners = User.objects(id__in=partner_ids)
+
+    # Sort conversations by the latest message
+    sorted_partners = []
+    for partner in conversation_partners:
+        latest_message = Message.objects(
+            (Q(sender=current_user) & Q(receiver=partner)) |
+            (Q(sender=partner) & Q(receiver=current_user))
+        ).order_by('-timestamp').first()
+        if latest_message:
+            sorted_partners.append((partner, latest_message.timestamp))
     
-    # Step 1: Find all messages where the current user is either sender or recipient
-    # Step 2: Sort messages by sent_at in descending order (latest first)
-    # Step 3: Group messages by a unique conversation key (listing_id, user1_id, user2_id)
-    #         The user IDs are sorted to ensure the key is consistent regardless of who sent the first message.
-    # Step 4: For each group, take the first message (which is the latest due to sorting)
-    # Step 5: Replace the root with the latest message document
-    # Step 6: Sort the resulting latest messages by their timestamp again to show most recent conversations first
+    # Sort partners by the timestamp of their latest message (most recent first)
+    sorted_partners.sort(key=lambda x: x[1], reverse=True)
+    conversation_partners = [partner for partner, _ in sorted_partners]
 
-    conversations_raw = Message.objects(
-        Q(sender=current_user.id) | Q(recipient=current_user.id)
-    ).order_by('-sent_at').all()
 
-    # Manually group to find the latest message for each unique conversation thread
-    # This is a common pattern when MongoEngine's aggregation framework is not directly used for complex grouping.
-    unique_conversations = {} # Key: (listing_id, other_user_id)
-    
-    for msg in conversations_raw:
-        # Determine the 'other' participant in the conversation
-        other_user = msg.sender if msg.recipient == current_user else msg.recipient
-        
-        # Create a unique key for the conversation thread
-        # Using sorted IDs ensures consistent key regardless of sender/recipient order
-        conversation_key = (str(msg.listing.id), str(other_user.id))
+    selected_conversation_id = request.args.get('user_id', type=str) # Changed to str for ObjectId
+    messages = []
+    selected_partner = None
 
-        if conversation_key not in unique_conversations:
-            unique_conversations[conversation_key] = {
-                'listing': msg.listing,
-                'other_user': other_user,
-                'latest_message': msg,
-                'unread_count': 0 # Initialize unread count
-            }
-        
-        # Count unread messages for the current user in this specific conversation thread
-        # This needs to be done separately as the initial grouping only gets the *latest* message.
-        if msg.recipient == current_user and not msg.is_read:
-            unique_conversations[conversation_key]['unread_count'] += 1
+    if selected_conversation_id:
+        selected_partner = User.objects(id=selected_conversation_id).first()
+        if selected_partner and selected_partner.id != current_user.id:
+            # Fetch messages between current_user and selected_partner
+            messages = Message.objects(
+                (Q(sender=current_user) & Q(receiver=selected_partner)) |
+                (Q(sender=selected_partner) & Q(receiver=current_user))
+            ).order_by('timestamp')
 
-    # Convert dictionary values to a list and sort by latest message timestamp
-    conversations = sorted(
-        unique_conversations.values(), 
-        key=lambda x: x['latest_message'].sent_at, 
-        reverse=True
+            # Mark messages sent *to* the current user as read
+            for message in messages:
+                if message.receiver == current_user and not message.read_status:
+                    message.read_status = True
+                    message.save() # Save the updated message
+
+    return render_template(
+        'messaging/inbox.html',
+        conversation_partners=conversation_partners,
+        messages=messages,
+        selected_partner=selected_partner
     )
-    
-    return render_template('messaging/inbox.html', conversations=conversations, user=current_user)
 
-@messaging_bp.route('/conversation/<string:listing_id>/<string:other_user_id>', methods=['GET'])
+@messaging_bp.route('/send_message', methods=['POST'])
 @login_required
-def conversation_api(listing_id, other_user_id):
+def send_message():
     """
-    API endpoint to fetch messages for a specific conversation thread.
-    This is called via AJAX from the inbox.html to load messages dynamically.
-    Also marks messages as read when fetched.
+    Handles sending a new message.
+    Expects 'receiver_id' and 'content' in the form data.
     """
-    try:
-        # Ensure both users are part of this conversation
-        messages = Message.objects(
-            (Q(sender=current_user.id, recipient=other_user_id) | 
-             Q(sender=other_user_id, recipient=current_user.id)),
-            listing=listing_id
-        ).order_by('sent_at').all() # Order by oldest first for chat history
+    receiver_id = request.form.get('receiver_id', type=str) # Changed to str for ObjectId
+    content = request.form.get('content')
 
-        # Mark messages received by current_user in this conversation as read
-        unread_messages_in_thread = Message.objects(
-            recipient=current_user.id,
-            sender=other_user_id,
-            listing=listing_id,
-            is_read=False
-        )
-        for msg in unread_messages_in_thread:
-            msg.is_read = True
-            msg.save()
-        
-        # After marking as read, update the global unread count for the user via SocketIO
-        total_unread_count = Notification.objects(recipient=current_user.id, read=False).count()
-        socketio.emit('update_notification_count', {'count': total_unread_count}, room=str(current_user.id))
-
-        # Prepare messages for JSON response
-        messages_data = []
-        for msg in messages:
-            messages_data.append({
-                'id': str(msg.id),
-                'sender_id': str(msg.sender.id),
-                'sender_username': msg.sender.username, # Include sender's username
-                'recipient_id': str(msg.recipient.id),
-                'listing_id': str(msg.listing.id),
-                'content': msg.content,
-                'is_read': msg.is_read,
-                'timestamp': msg.sent_at.isoformat() # ISO format for easy JS parsing
-            })
-        
-        return jsonify({'messages': messages_data})
-
-    except Exception as e:
-        current_app.logger.error(f"Error fetching conversation {listing_id}/{other_user_id}: {e}")
-        return jsonify({'error': 'Could not load conversation.'}), 500
-
-@messaging_bp.route('/send_message/<string:recipient_id>', methods=['GET', 'POST'])
-@login_required
-def send_message(recipient_id):
-    """
-    Handles sending a new message to a user, potentially about a specific listing.
-    This route is typically hit when initiating a message from a listing detail page.
-    """
-    recipient = User.objects(id=recipient_id).first()
-    if not recipient:
-        flash('Recipient user not found.', 'danger')
-        return redirect(url_for('listings.marketplace')) # Redirect to a safe place
-
-    listing_id = request.args.get('listing_id')
-    listing = None
-    if listing_id:
-        listing = Listing.objects(id=listing_id).first()
-        if not listing:
-            flash('Related listing not found.', 'danger')
-            return redirect(url_for('listings.marketplace'))
-
-    if request.method == 'POST':
-        content = request.form.get('content')
-        if not content:
-            flash('Message content cannot be empty.', 'warning')
-            # Redirect back to the inbox or listing detail if no content
-            return redirect(url_for('messaging.inbox', listing_id=listing_id, other_user_id=recipient_id))
-        
-        try:
-            # Create and save the new message
-            message = Message(
-                sender=current_user.id,
-                recipient=recipient.id,
-                listing=listing.id if listing else None, # Associate with listing if present
-                content=content
-            )
-            message.save()
-
-            # Create a notification for the recipient
-            notification_message = f"You have a new message from {current_user.username} about '{listing.title}'." if listing else f"You have a new message from {current_user.username}."
-            notification_link = url_for('messaging.inbox', listing_id=str(listing.id), other_user_id=str(current_user.id), _external=True) if listing else url_for('messaging.inbox', _external=True)
-
-            Notification.create_notification(
-                recipient_user=recipient,
-                notification_type='new_message',
-                message_content=notification_message,
-                sender_user=current_user,
-                link=notification_link
-            )
-
-            # Emit real-time notification to the recipient
-            # This will update their notification badge and potentially show a toast
-            socketio.emit('new_notification', {
-                'message': notification_message,
-                'link': notification_link,
-                'timestamp': datetime.utcnow().isoformat(),
-                'type': 'new_message'
-            }, room=str(recipient.id))
-
-            # Update recipient's unread count via SocketIO
-            recipient_unread_count = Notification.objects(recipient=recipient.id, read=False).count()
-            socketio.emit('update_notification_count', {'count': recipient_unread_count}, room=str(recipient.id))
-
-            flash('Your message has been sent!', 'success')
-            # Redirect to the inbox, focusing on the new conversation
-            return redirect(url_for('messaging.inbox', listing_id=str(listing.id), other_user_id=str(recipient.id)))
-        except Exception as e:
-            current_app.logger.error(f"Error sending message: {e}")
-            flash('An error occurred while sending your message. Please try again.', 'danger')
-            return redirect(request.url)
-
-    # For GET request (when initiating a message from a listing page)
-    # We will redirect to the inbox with parameters to pre-select the conversation.
-    # The actual chat window content is loaded via AJAX in inbox.html.
-    if listing and recipient:
-        return redirect(url_for('messaging.inbox', listing_id=str(listing.id), other_user_id=str(recipient.id)))
-    else:
-        # If no listing context, just go to general inbox
+    if not receiver_id or not content:
+        flash('Receiver and message content are required.', 'danger')
         return redirect(url_for('messaging.inbox'))
 
+    receiver = User.objects(id=receiver_id).first()
+    if not receiver:
+        flash('Invalid recipient.', 'danger')
+        return redirect(url_for('messaging.inbox'))
+
+    if current_user.id == receiver.id:
+        flash('You cannot send messages to yourself.', 'danger')
+        return redirect(url_for('messaging.inbox'))
+
+    try:
+        new_message = Message(
+            sender=current_user,
+            receiver=receiver,
+            content=content
+        )
+        new_message.save()
+        flash('Message sent!', 'success')
+    except Exception as e:
+        flash(f'Error sending message: {str(e)}', 'danger')
+
+    return redirect(url_for('messaging.inbox', user_id=receiver_id))
+
+
+@messaging_bp.route('/api/messages/<string:partner_id>') # Changed to string for ObjectId
+@login_required
+def api_get_messages(partner_id):
+    """
+    API endpoint to fetch messages between the current user and a specific partner.
+    Used for AJAX updates in the chat interface.
+    """
+    partner = User.objects(id=partner_id).first()
+    if not partner:
+        return jsonify({'error': 'Partner not found'}), 404
+
+    messages = Message.objects(
+        (Q(sender=current_user) & Q(receiver=partner)) |
+        (Q(sender=partner) & Q(receiver=current_user))
+    ).order_by('timestamp')
+
+    # Mark messages sent *to* the current user as read
+    for message in messages:
+        if message.receiver == current_user and not message.read_status:
+            message.read_status = True
+            message.save() # Save the updated message
+
+    return jsonify([msg.to_dict() for msg in messages])
+
+@messaging_bp.route('/api/conversations')
+@login_required
+def api_get_conversations():
+    """
+    API endpoint to fetch a list of conversation partners for the current user.
+    Used for AJAX updates of the conversation list.
+    """
+    sender_ids = Message.objects(receiver=current_user).distinct('sender')
+    receiver_ids = Message.objects(sender=current_user).distinct('receiver')
+
+    partner_ids = list(set(sender_ids + receiver_ids))
+    if current_user.id in partner_ids:
+        partner_ids.remove(current_user.id)
+
+    conversation_partners = User.objects(id__in=partner_ids)
+
+    partners_data = []
+    for partner in conversation_partners:
+        latest_message = Message.objects(
+            (Q(sender=current_user) & Q(receiver=partner)) |
+            (Q(sender=partner) & Q(receiver=current_user))
+        ).order_by('-timestamp').first()
+
+        unread_count = Message.objects(
+            sender=partner,
+            receiver=current_user,
+            read_status=False
+        ).count()
+
+        if latest_message:
+            partners_data.append({
+                'id': str(partner.id),
+                'username': partner.username,
+                'latest_message_content': latest_message.content,
+                'latest_message_timestamp': latest_message.timestamp.isoformat() + 'Z',
+                'profile_pic': partner.image_file, # Assuming User model has image_file
+                'unread_count': unread_count
+            })
+    
+    # Sort partners by the timestamp of their latest message (most recent first)
+    partners_data.sort(key=lambda x: x['latest_message_timestamp'], reverse=True)
+
+    return jsonify(partners_data)

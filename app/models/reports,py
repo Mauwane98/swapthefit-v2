@@ -1,0 +1,64 @@
+# app/models/reports.py
+from datetime import datetime
+from app.extensions import db
+
+class Report(db.Model):
+    """
+    Report Model: Represents a report made by a user against a listing or another user.
+    This model tracks inappropriate content, fraudulent listings, or abusive user behavior.
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # The user who submitted the report
+    reporter_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # Type of entity being reported: 'listing' or 'user'
+    reported_entity_type = db.Column(db.String(20), nullable=False) 
+    
+    # ID of the reported entity (either listing.id or user.id)
+    reported_entity_id = db.Column(db.Integer, nullable=False) 
+    
+    # Reason for the report (e.g., 'fraudulent', 'inappropriate content', 'spam', 'harassment')
+    reason_category = db.Column(db.String(100), nullable=False)
+    
+    # Detailed explanation from the reporter
+    description = db.Column(db.Text, nullable=False)
+    
+    # Current status of the report: 'pending', 'under review', 'resolved', 'dismissed'
+    status = db.Column(db.String(50), nullable=False, default='pending')
+    
+    date_reported = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    date_resolved = db.Column(db.DateTime, nullable=True) # When the report was resolved
+
+    # Admin comments/resolution details
+    admin_notes = db.Column(db.Text, nullable=True) 
+
+    # Relationships
+    reporter = db.relationship('User', foreign_keys=[reporter_id], backref='submitted_reports', lazy=True)
+    
+    # Dynamic relationships based on reported_entity_type (handled in routes or logic)
+    # For display, we'll fetch the actual User or Listing object in the routes.
+
+    def __repr__(self):
+        """
+        String representation of the Report object.
+        """
+        return f"Report(ID: {self.id}, Type: {self.reported_entity_type}, Entity ID: {self.reported_entity_id}, Status: {self.status})"
+
+    def to_dict(self):
+        """
+        Converts the Report object to a dictionary.
+        """
+        return {
+            'id': self.id,
+            'reporter_id': self.reporter_id,
+            'reporter_username': self.reporter.username,
+            'reported_entity_type': self.reported_entity_type,
+            'reported_entity_id': self.reported_entity_id,
+            'reason_category': self.reason_category,
+            'description': self.description,
+            'status': self.status,
+            'date_reported': self.date_reported.isoformat() + 'Z',
+            'date_resolved': self.date_resolved.isoformat() + 'Z' if self.date_resolved else None,
+            'admin_notes': self.admin_notes
+        }

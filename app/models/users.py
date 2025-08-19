@@ -1,98 +1,177 @@
-from app.extensions import db, bcrypt, login_manager # Import db (MongoEngine) and bcrypt
-from flask_login import UserMixin
-from itsdangerous import URLSafeTimedSerializer as Serializer, SignatureExpired, BadTimeSignature
-from flask import current_app
+# app/models/users.py
 from datetime import datetime
+from app.extensions import db, login_manager, bcrypt
+from flask_login import UserMixin
+from itsdangerous import URLSafeTimedSerializer as Serializer
+from flask import current_app
+import json # For handling blocked_users_json
 
-# Define available roles for the application.
-# These roles will be used for role-based access control (RBAC).
-ROLES = ('parent', 'school', 'ngo', 'admin')
+@login_manager.user_loader
+def load_user(user_id):
+    """
+    Loads a user from the database given their ID.
+    Required by Flask-Login.
+    """
+    try:
+        return User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return None
 
 class User(db.Document, UserMixin):
     """
-    Represents a user in the system, interacting with MongoDB via MongoEngine.
-    Inherits from db.Document for MongoEngine integration and UserMixin for Flask-Login compatibility.
+    User Model: Represents a user of the application.
+    Includes authentication details, profile information, and relationships
+    to listings, messages, and other user-specific data.
     """
-    # Unique username for the user, required.
-    username = db.StringField(required=True, unique=True, max_length=80)
-    # Unique email address for the user, required.
-    email = db.StringField(required=True, unique=True, max_length=120)
-    # Hashed password for security, required.
-    password_hash = db.StringField(required=True)
-    # Profile picture URL, optional, with a default placeholder.
-    profile_pic = db.StringField(default='https://placehold.co/150x150/E0BBE4/FFFFFF?text=Profile')
-    # List of roles assigned to the user, defaulting to 'parent'.
-    # This allows for flexible role assignment (e.g., a user can be both 'parent' and 'admin').
-    roles = db.ListField(field=db.StringField(), default=['parent'])
-    # Optional field for contact person, mainly for 'school' and 'ngo' roles.
-    contact_person = db.StringField(max_length=100, help_text="Contact person for school or NGO roles.", null=True)
-    # Timestamp for when the user account was created.
-    date_joined = db.DateTimeField(default=datetime.utcnow)
-    # Boolean to indicate if the user account is active.
-    active = db.BooleanField(default=True)
-    # Last login timestamp, optional.
-    last_login = db.DateTimeField()
+    
+    username = db.StringField(max_length=20, unique=True, required=True)
+    email = db.StringField(max_length=120, unique=True, required=True)
+    image_file = db.StringField(max_length=120, required=True, default='default.jpg') # Profile picture filename
+    password = db.StringField(max_length=60, required=True) # Hashed password
+    date_joined = db.DateTimeField(required=True, default=datetime.utcnow)
+    active = db.BooleanField(default=True) # Field to indicate if user account is active
+    
+    # User roles: 'parent', 'school', 'ngo', 'admin'
+    role = db.StringField(max_length=20, required=True, default='parent') 
 
-    # Define a Meta class for MongoEngine specific configurations.
-    meta = {
-        'collection': 'users',  # Explicitly set the collection name in MongoDB
-        'indexes': [
-            {'fields': ('email',), 'unique': True},
-            {'fields': ('username',), 'unique': True},
-            {'fields': ('roles',)}, # Indexing roles for faster queries on user types
-        ],
-        'strict': False # Allows for dynamic fields not explicitly defined in the schema
-    }
+    # Fields for User Reputation/Rating System Expansion
+    trust_score = db.FloatField(required=True, default=50.0) 
+    total_transactions = db.IntField(required=True, default=0)
+    positive_reviews_count = db.IntField(required=True, default=0)
+    negative_reviews_count = db.IntField(required=True, default=0)
+    resolved_disputes_count = db.IntField(required=True, default=0)
+    fault_disputes_count = db.IntField(required=True, default=0)
 
-    def set_password(self, password):
-        """
-        Hashes the provided password and stores it in password_hash.
-        """
-        self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
+    # Field for User Blocking Feature
+    blocked_users_json = db.StringField(required=True, default='[]') 
 
-    def check_password(self, password):
-        """
-        Checks if the provided password matches the stored hash.
-        """
-        return bcrypt.check_password_hash(self.password_hash, password)
+    # New fields for NGO Impact Reports (only relevant for users with role='ngo')
+    total_donations_received_count = db.IntField(required=True, default=0) # Total items received
+    total_donations_value = db.FloatField(required=True, default=0.0) # Total estimated value of items
+    total_families_supported_ytd = db.IntField(required=True, default=0) # Total families supported (Year-To-Date)
+
+    # Field for contact person for school/NGO roles
+    contact_person = db.StringField(max_length=100, required=False)
+
+
+    # Relationships to other models
+    # saved_searches = db.relationship('SavedSearch', backref='user_saver', lazy=True)
+    # wishlist_items = db.relationship('WishlistItem', backref='user_wisher', lazy=True)
+
 
     def get_reset_token(self, expires_sec=1800):
         """
-        Generates a URL-safe signed token for password reset.
-        The token expires after 'expires_sec' seconds.
+        Generates a signed token for password reset functionality.
+        The token expires after a specified number of seconds.
         """
         s = Serializer(current_app.config['SECRET_KEY'])
-        # Store user ID in the token payload.
-        return s.dumps({'user_id': str(self.id)}) # Ensure self.id is a string
+        return s.dumps({'user_id': self.id}, expires_in=expires_sec).decode('utf-8')
 
     @staticmethod
     def verify_reset_token(token):
         """
-        Verifies and decodes a password reset token.
-        Returns the User object if the token is valid and not expired, otherwise None.
+        Verifies a password reset token and returns the user if valid.
         """
         s = Serializer(current_app.config['SECRET_KEY'])
         try:
-            # Load the token, checking for expiration and signature validity.
-            user_id = s.loads(token, max_age=1800)['user_id']
-        except (SignatureExpired, BadTimeSignature):
-            return None # Token is invalid or expired
-        except Exception as e:
-            current_app.logger.error(f"Error verifying reset token: {e}")
+            user_id = s.loads(token)['user_id']
+            return User.objects.get(id=user_id)
+        except (
+            BadSignature, 
+            SignatureExpired, 
+            KeyError, 
+            User.DoesNotExist # Catch if user_id from token doesn't exist
+        ) as e:
+            current_app.logger.warning(f"Password reset token verification failed: {e}")
             return None
-        # Find the user by the extracted user_id.
-        return User.objects(id=user_id).first()
 
-    def has_role(self, role):
+    def get_blocked_users(self):
         """
-        Checks if the user has a specific role.
+        Retrieves the list of user IDs blocked by this user.
         """
-        return role in self.roles
+        try:
+            return json.loads(self.blocked_users_json)
+        except json.JSONDecodeError:
+            return []
+
+    def add_blocked_user(self, user_id_to_block):
+        """
+        Adds a user ID to the list of blocked users.
+        """
+        blocked_users = self.get_blocked_users()
+        if user_id_to_block not in blocked_users:
+            blocked_users.append(user_id_to_block)
+            self.blocked_users_json = json.dumps(blocked_users)
+
+    def remove_blocked_user(self, user_id_to_unblock):
+        """
+        Removes a user ID from the list of blocked users.
+        """
+        blocked_users = self.get_blocked_users()
+        if user_id_to_unblock in blocked_users:
+            blocked_users.remove(user_id_to_unblock)
+            self.blocked_users_json = json.dumps(blocked_users)
+
+    def is_blocking(self, user_id_to_check):
+        """
+        Checks if this user is blocking a given user ID.
+        """
+        return user_id_to_check in self.get_blocked_users()
+
+    def is_blocked_by(self, user_id_checking):
+        """
+        Checks if this user is blocked by another user.
+        Requires querying the other user's blocked list.
+        """
+        other_user = User.objects(id=user_id_checking).first()
+        if other_user:
+            return self.id in other_user.get_blocked_users()
+        return False
+
+
+    def set_password(self, password):
+        """
+        Hashes the given password using bcrypt and stores it.
+        """
+        self.password = bcrypt.generate_password_hash(password).decode('utf-8')
+
+    def check_password(self, password):
+        """
+        Checks if the given password matches the stored hashed password.
+        """
+        return bcrypt.check_password_hash(self.password, password)
+
+    def has_role(self, role_name):
+        """
+        Checks if the user has the specified role.
+        """
+        return self.role == role_name
 
     def __repr__(self):
         """
-        String representation of the User object, useful for debugging.
+        String representation of the User object.
         """
-        return f"User('{self.username}', '{self.email}', Roles: {self.roles})"
+        return f"User('{self.username}', '{self.email}', '{self.image_file}', '{self.role}')"
 
-# The user_loader callback is defined in app/extensions.py and uses this User model.
+    def to_dict(self):
+        """
+        Converts the User object to a dictionary, useful for JSON serialization.
+        """
+        return {
+            'id': self.id,
+            'username': self.username,
+            'email': self.email,
+            'image_file': self.image_file,
+            'date_joined': self.date_joined.isoformat() + 'Z',
+            'role': self.role,
+            'trust_score': self.trust_score,
+            'total_transactions': self.total_transactions,
+            'positive_reviews_count': self.positive_reviews_count,
+            'negative_reviews_count': self.negative_reviews_count,
+            'resolved_disputes_count': self.resolved_disputes_count,
+            'fault_disputes_count': self.fault_disputes_count,
+            'blocked_users': self.get_blocked_users(), # Include blocked users in dict representation
+            'total_donations_received_count': self.total_donations_received_count,
+            'total_donations_value': self.total_donations_value,
+            'total_families_supported_ytd': self.total_families_supported_ytd
+        }

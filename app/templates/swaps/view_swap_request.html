@@ -1,116 +1,162 @@
+{# app/templates/swaps/view_swap_request.html #}
 {% extends "_layouts/base.html" %}
 
 {% block title %}Swap Request Details{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8 md:py-12">
-    <div class="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-xl border border-gray-200">
-        <div class="text-center mb-8 pb-4 border-b border-gray-200">
-            <h1 class="text-3xl font-extrabold text-gray-900">Swap Request Details</h1>
-            <p class="mt-2 text-base text-gray-600">Review the details of this swap request.</p>
-        </div>
+<div class="container mx-auto px-4 py-8 max-w-3xl">
+    <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-8">Swap Request Details #{{ swap.id }} 🤝</h1>
 
-        <!-- Swap Request Overview -->
-        <div class="mb-8 p-6 bg-gray-50 rounded-lg border border-gray-200">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-gray-700">
-                <div>
-                    <p class="text-sm font-semibold text-gray-800 mb-1">Proposer:</p>
-                    <a href="{{ url_for('listings.user_profile', user_id=swap_request.proposer.id) }}" class="flex items-center text-md text-[var(--color-accent)] hover:underline">
-                        <img src="{{ swap_request.proposer.profile_pic }}" alt="{{ swap_request.proposer.username }}" class="w-8 h-8 rounded-full object-cover mr-2">
-                        {{ swap_request.proposer.username }}
-                    </a>
-                </div>
-                <div>
-                    <p class="text-sm font-semibold text-gray-800 mb-1">Recipient:</p>
-                    <a href="{{ url_for('listings.user_profile', user_id=swap_request.recipient.id) }}" class="flex items-center text-md text-[var(--color-accent)] hover:underline">
-                        <img src="{{ swap_request.recipient.profile_pic }}" alt="{{ swap_request.recipient.username }}" class="w-8 h-8 rounded-full object-cover mr-2">
-                        {{ swap_request.recipient.username }}
-                    </a>
-                </div>
-                <div class="md:col-span-2">
-                    <p class="text-sm font-semibold text-gray-800 mb-1">Status:</p>
-                    <span class="text-lg font-bold capitalize 
-                        {% if swap_request.status == 'pending' %}text-blue-600
-                        {% elif swap_request.status == 'accepted' %}text-green-600
-                        {% elif swap_request.status == 'rejected' or swap_request.status == 'cancelled' %}text-red-600
-                        {% elif swap_request.status == 'completed' %}text-purple-600
-                        {% endif %}">
-                        {{ swap_request.status }}
+    <div class="bg-white p-8 rounded-xl shadow-2xl">
+        <div class="mb-6 border-b pb-4">
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">Request Overview</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <p class="text-gray-700"><span class="font-semibold">Status:</span> 
+                    <span class="px-2 py-1 inline-flex text-sm leading-5 font-semibold rounded-full
+                        {% if swap.status == 'pending' %}bg-yellow-100 text-yellow-800
+                        {% elif swap.status == 'accepted' %}bg-blue-100 text-blue-800
+                        {% elif swap.status == 'completed' %}bg-green-100 text-green-800
+                        {% elif swap.status == 'rejected' or swap.status == 'cancelled' %}bg-red-100 text-red-800
+                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                        {{ swap.status|capitalize }}
                     </span>
-                    <p class="text-xs text-gray-500 mt-1">Proposed on: {{ swap_request.date_proposed.strftime('%b %d, %Y at %I:%M %p') }}</p>
-                </div>
+                </p>
+                <p class="text-gray-700"><span class="font-semibold">Request Date:</span> {{ swap.request_date.strftime('%b %d, %Y %I:%M %p') }}</p>
+                <p class="text-gray-700"><span class="font-semibold">Initiator:</span> 
+                    <a href="{{ url_for('listings.user_profile', user_id=swap.initiator.id) }}" class="text-indigo-600 hover:underline">
+                        {{ swap.initiator.username }}
+                    </a>
+                </p>
+                <p class="text-gray-700"><span class="font-semibold">Respondent:</span> 
+                    <a href="{{ url_for('listings.user_profile', user_id=swap.respondent.id) }}" class="text-indigo-600 hover:underline">
+                        {{ swap.respondent.username }}
+                    </a>
+                </p>
+                <p class="text-gray-700 col-span-full"><span class="font-semibold">Message:</span> {{ swap.message }}</p>
             </div>
         </div>
 
-        <!-- Requested Listing Details -->
-        <div class="mb-8">
-            <h2 class="text-xl font-bold text-gray-900 mb-4">Item Requested:</h2>
-            <div class="flex flex-col sm:flex-row items-center bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                <img src="{{ swap_request.requested_listing.images[0] if swap_request.requested_listing.images else 'https://placehold.co/100x100/E0E0E0/888888?text=No+Image' }}" 
-                     alt="{{ swap_request.requested_listing.title }}" 
-                     class="w-24 h-24 object-cover rounded-md mr-4 mb-4 sm:mb-0">
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-900">{{ swap_request.requested_listing.title }}</h3>
-                    <p class="text-sm text-gray-600">Category: {{ swap_request.requested_listing.category }} | Size: {{ swap_request.requested_listing.size }}</p>
-                    <p class="text-sm text-gray-600">Condition: {{ swap_request.requested_listing.condition }}</p>
-                    <a href="{{ url_for('listings.listing_detail', listing_id=swap_request.requested_listing.id) }}" 
-                       class="text-[var(--color-accent)] hover:underline text-sm font-medium mt-1 inline-block">View Listing</a>
+        <div class="mb-6 border-b pb-4">
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">Offered Listing</h2>
+            {% if swap.offered_listing %}
+                <div class="flex items-center space-x-4">
+                    <img src="{{ url_for('static', filename='uploads/' + swap.offered_listing.image_file) }}"
+                         alt="{{ swap.offered_listing.title }}"
+                         class="w-24 h-24 object-cover rounded-lg shadow-md">
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-900">{{ swap.offered_listing.title }}</h3>
+                        <p class="text-gray-700">Condition: {{ swap.offered_listing.condition }}</p>
+                        <p class="text-gray-700">Size: {{ swap.offered_listing.size }}</p>
+                        <a href="{{ url_for('listings.listing_detail', listing_id=swap.offered_listing.id) }}" class="text-blue-600 hover:underline text-sm">View Details</a>
+                    </div>
                 </div>
-            </div>
+            {% else %}
+                <p class="text-gray-600">Offered listing not found or deleted.</p>
+            {% endif %}
         </div>
 
-        <!-- Offered Listing Details -->
-        <div class="mb-8">
-            <h2 class="text-xl font-bold text-gray-900 mb-4">Item Offered:</h2>
-            <div class="flex flex-col sm:flex-row items-center bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                <img src="{{ swap_request.offered_listing.images[0] if swap_request.offered_listing.images else 'https://placehold.co/100x100/E0E0E0/888888?text=No+Image' }}" 
-                     alt="{{ swap_request.offered_listing.title }}" 
-                     class="w-24 h-24 object-cover rounded-md mr-4 mb-4 sm:mb-0">
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-900">{{ swap_request.offered_listing.title }}</h3>
-                    <p class="text-sm text-gray-600">Category: {{ swap_request.offered_listing.category }} | Size: {{ swap_request.offered_listing.size }}</p>
-                    <p class="text-sm text-gray-600">Condition: {{ swap_request.offered_listing.condition }}</p>
-                    <a href="{{ url_for('listings.listing_detail', listing_id=swap_request.offered_listing.id) }}" 
-                       class="text-[var(--color-accent)] hover:underline text-sm font-medium mt-1 inline-block">View Listing</a>
+        <div class="mb-6 border-b pb-4">
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">Requested Listing</h2>
+            {% if swap.requested_listing %}
+                <div class="flex items-center space-x-4">
+                    <img src="{{ url_for('static', filename='uploads/' + swap.requested_listing.image_file) }}"
+                         alt="{{ swap.requested_listing.title }}"
+                         class="w-24 h-24 object-cover rounded-lg shadow-md">
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-900">{{ swap.requested_listing.title }}</h3>
+                        <p class="text-gray-700">Condition: {{ swap.requested_listing.condition }}</p>
+                        <p class="text-gray-700">Size: {{ swap.requested_listing.size }}</p>
+                        <a href="{{ url_for('listings.listing_detail', listing_id=swap.requested_listing.id) }}" class="text-blue-600 hover:underline text-sm">View Details</a>
+                    </div>
                 </div>
-            </div>
+            {% else %}
+                <p class="text-gray-600">Requested listing not found or deleted.</p>
+            {% endif %}
         </div>
 
-        <!-- Actions Section -->
-        <div class="mt-8 pt-6 border-t border-gray-200">
-            <h2 class="text-xl font-bold text-gray-900 mb-4">Actions</h2>
-            <div class="flex flex-wrap gap-4">
-                {% if current_user.id == swap_request.recipient.id and swap_request.status == 'pending' %}
-                    <!-- Recipient Actions (Accept/Reject) -->
-                    <form action="{{ url_for('swaps.respond_swap', request_id=swap_request.id, action='accept') }}" method="POST" class="inline-block">
-                        {{ csrf_token() }}
-                        <button type="submit" class="inline-flex items-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-md text-white bg-[var(--color-accent)] hover:bg-[#2F9C6E] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-accent)] transition-colors duration-200 shadow-md">
-                            <i class="fas fa-check-circle mr-2"></i> Accept Swap
+        {# Action Buttons for Swap Request #}
+        <div class="mt-8 flex flex-col sm:flex-row sm:space-x-4 space-y-4 sm:space-y-0">
+            {% if swap.status == 'pending' %}
+                {% if current_user.id == swap.respondent.id %}
+                    <form action="{{ url_for('swaps.accept_swap', swap_id=swap.id) }}" method="POST" class="flex-1">
+                        <button type="submit"
+                                class="w-full text-center bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md">
+                            Accept Swap
                         </button>
                     </form>
-                    <form action="{{ url_for('swaps.respond_swap', request_id=swap_request.id, action='reject') }}" method="POST" class="inline-block">
-                        {{ csrf_token() }}
-                        <button type="submit" class="inline-flex items-center px-5 py-2.5 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200 shadow-md">
-                            <i class="fas fa-times-circle mr-2"></i> Reject Swap
+                    <form action="{{ url_for('swaps.reject_swap', swap_id=swap.id) }}" method="POST" class="flex-1">
+                        <button type="submit"
+                                class="w-full text-center bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md">
+                            Reject Swap
                         </button>
                     </form>
-                {% elif current_user.id == swap_request.proposer.id and swap_request.status == 'pending' %}
-                    <!-- Proposer Action (Cancel) -->
-                    <form action="{{ url_for('swaps.respond_swap', request_id=swap_request.id, action='cancel') }}" method="POST" class="inline-block">
-                        {{ csrf_token() }}
-                        <button type="submit" class="inline-flex items-center px-5 py-2.5 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200 shadow-md">
-                            <i class="fas fa-ban mr-2"></i> Cancel Request
+                {% elif current_user.id == swap.initiator.id %}
+                    <form action="{{ url_for('swaps.cancel_swap', swap_id=swap.id) }}" method="POST" class="flex-1">
+                        <button type="submit"
+                                class="w-full text-center bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md"
+                                onclick="return confirm('Are you sure you want to cancel this swap request?');">
+                            Cancel Request
                         </button>
                     </form>
-                {% else %}
-                    <p class="text-gray-600">No actions available for this swap request at its current status.</p>
                 {% endif %}
+            {% elif swap.status == 'accepted' %}
+                {# Logistics Section for Accepted Swaps #}
+                <div class="mt-8 pt-4 border-t border-gray-200 w-full">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Logistics</h2>
+                    {% if swap.logistics_record %} {# Assuming swap.logistics_record is available from route #}
+                        <p class="text-gray-700 mb-4">Current Logistics Status: 
+                            <span class="px-2 py-1 inline-flex text-sm leading-5 font-semibold rounded-full
+                                {% if swap.logistics_record.status == 'delivered' %}bg-green-100 text-green-800
+                                {% elif swap.logistics_record.status == 'in_transit' %}bg-blue-100 text-blue-800
+                                {% elif swap.logistics_record.status == 'pending_pickup' or swap.logistics_record.status == 'ready_for_collection' %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ swap.logistics_record.status|replace('_', ' ')|title }}
+                            </span>
+                        </p>
+                        <a href="{{ url_for('logistics.view_logistics', logistics_id=swap.logistics_record.id) }}"
+                           class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+                            View Logistics Details
+                        </a>
+                    {% else %}
+                        <p class="text-gray-700 mb-4">Logistics have not been set up for this swap yet.</p>
+                        {% if current_user.id == swap.initiator.id or current_user.id == swap.respondent.id %} {# Either party can initiate logistics setup for a swap #}
+                            <a href="{{ url_for('logistics.setup_logistics', transaction_type='swap', transaction_id=swap.id) }}"
+                               class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
+                                Setup Logistics
+                            </a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+                {# Mark as Completed Button (after logistics are delivered) #}
+                {% if current_user.id == swap.initiator.id or current_user.id == swap.respondent.id %}
+                    {% if swap.logistics_record and swap.logistics_record.status == 'delivered' %}
+                        <form action="{{ url_for('swaps.complete_swap', swap_id=swap.id) }}" method="POST" class="flex-1 mt-4">
+                            <button type="submit"
+                                    class="w-full text-center bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md">
+                                Mark Swap as Completed
+                            </button>
+                        </form>
+                    {% endif %}
+                {% endif %}
+            {% endif %}
+        </div>
 
-                <a href="{{ url_for('swaps.manage_swaps') }}" 
-                   class="inline-flex items-center px-5 py-2.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200 shadow-sm">
-                    <i class="fas fa-arrow-left mr-2"></i> Back to Manage Swaps
-                </a>
-            </div>
+        {# Admin actions if current user is an admin #}
+        {% if current_user.role == 'admin' %}
+        <div class="mt-8 pt-4 border-t border-gray-200">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Admin Actions</h2>
+            {# Example: Button to manually change swap status #}
+            {# <form action="{{ url_for('swaps.admin_update_swap_status', swap_id=swap.id) }}" method="POST" class="inline-block">
+                <button type="submit" class="px-6 py-3 bg-orange-600 text-white rounded-md">Update Status</button>
+            </form> #}
+        </div>
+        {% endif %}
+
+        <div class="mt-8 text-center">
+            <a href="{{ url_for('swaps.manage_swaps') }}"
+               class="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Back to Manage Swaps
+            </a>
         </div>
     </div>
 </div>

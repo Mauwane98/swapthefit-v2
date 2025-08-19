@@ -1,3 +1,4 @@
+{# app/templates/parent_dashboard.html #}
 {% extends '_layouts/base.html' %}
 
 {% block content %}
@@ -16,24 +17,25 @@
                 My Listings
             </h2>
             <p class="text-gray-600 mb-4">View and manage items you've listed for swap, sale, or donation.</p>
-            <a href="{{ url_for('listings.parent_dashboard') }}" class="inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
-                View My Listings
+            <a href="{{ url_for('listings.dashboard') }}" class="inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                View All My Listings
             </a>
             <p class="text-sm text-gray-500 mt-2">({{ user_listings|length if user_listings else 0 }} active listings)</p>
             {% if user_listings %}
                 <ul class="mt-4 space-y-2">
                     {% for listing in user_listings|slice(':3') %} {# Show first 3 listings #}
                         <li class="flex items-center bg-gray-50 p-3 rounded-md shadow-sm">
-                            <img src="{{ listing.images[0] }}" alt="{{ listing.title }}" class="h-10 w-10 object-cover rounded-md mr-3">
+                            {# Corrected image source to use url_for for static files #}
+                            <img src="{{ url_for('static', filename='uploads/' + listing.image_file) }}" alt="{{ listing.title }}" class="h-10 w-10 object-cover rounded-md mr-3">
                             <div>
                                 <a href="{{ url_for('listings.listing_detail', listing_id=listing.id) }}" class="text-indigo-600 hover:underline font-medium">{{ listing.title }}</a>
-                                <p class="text-sm text-gray-500">{{ listing.listing_type|capitalize }} - {{ listing.status|capitalize }}</p>
+                                <p class="text-sm text-gray-500">{{ listing.listing_type|capitalize }} - {{ listing.status|replace('_', ' ')|capitalize }}</p>
                             </div>
                         </li>
                     {% endfor %}
                     {% if user_listings|length > 3 %}
                         <li class="text-center mt-3">
-                            <a href="{{ url_for('listings.parent_dashboard') }}" class="text-indigo-500 hover:underline text-sm">View All My Listings &rarr;</a>
+                            <a href="{{ url_for('listings.dashboard') }}" class="text-indigo-500 hover:underline text-sm">View All My Listings &rarr;</a>
                         </li>
                     {% endif %}
                 </ul>
@@ -87,47 +89,52 @@
 
             <h3 class="text-xl font-semibold text-gray-700 mt-6 mb-3">Logistics Status Overview</h3>
             <ul class="space-y-2 text-gray-600">
+                {# Loop through bought items with active logistics #}
                 {% for order in bought_items %}
-                    {% if order.logistics_status != 'delivered' and order.logistics_status != 'failed' %}
+                    {% if order.logistics_record and order.logistics_record.status not in ['delivered', 'failed', 'cancelled'] %}
                         <li class="flex items-center justify-between bg-gray-100 p-2 rounded-md">
                             <span class="text-sm">Order for "{{ order.purchased_listing.title }}" (Buyer)</span>
-                            <a href="{{ url_for('logistics.view_logistics', transaction_type='order', transaction_id=order.id) }}" class="text-blue-500 hover:underline text-sm">
-                                Status: {{ order.logistics_status|replace('_', ' ')|capitalize }} &rarr;
+                            <a href="{{ url_for('logistics.view_logistics', logistics_id=order.logistics_record.id) }}" class="text-blue-500 hover:underline text-sm">
+                                Status: {{ order.logistics_record.status|replace('_', ' ')|capitalize }} &rarr;
                             </a>
                         </li>
                     {% endif %}
                 {% endfor %}
+                {# Loop through sold items with active logistics #}
                 {% for order in sold_items %}
-                    {% if order.logistics_status != 'delivered' and order.logistics_status != 'failed' %}
+                    {% if order.logistics_record and order.logistics_record.status not in ['delivered', 'failed', 'cancelled'] %}
                         <li class="flex items-center justify-between bg-gray-100 p-2 rounded-md">
                             <span class="text-sm">Order for "{{ order.purchased_listing.title }}" (Seller)</span>
-                            <a href="{{ url_for('logistics.view_logistics', transaction_type='order', transaction_id=order.id) }}" class="text-blue-500 hover:underline text-sm">
-                                Status: {{ order.logistics_status|replace('_', ' ')|capitalize }} &rarr;
+                            <a href="{{ url_for('logistics.view_logistics', logistics_id=order.logistics_record.id) }}" class="text-blue-500 hover:underline text-sm">
+                                Status: {{ order.logistics_record.status|replace('_', ' ')|capitalize }} &rarr;
                             </a>
                         </li>
                     {% endif %}
                 {% endfor %}
-                {% for swap in pending_swaps + accepted_swaps %} {# Include both pending and accepted swaps #}
-                    {% if swap.logistics_status != 'delivered' and swap.logistics_status != 'failed' %}
+                {# Loop through pending and accepted swaps with active logistics #}
+                {% for swap in pending_swaps + accepted_swaps %}
+                    {% if swap.logistics_record and swap.logistics_record.status not in ['delivered', 'failed', 'cancelled'] %}
                         <li class="flex items-center justify-between bg-gray-100 p-2 rounded-md">
-                            <span class="text-sm">Swap for "{{ swap.responder_listing.title }}"</span>
-                            <a href="{{ url_for('logistics.view_logistics', transaction_type='swap', transaction_id=swap.id) }}" class="text-blue-500 hover:underline text-sm">
-                                Status: {{ swap.logistics_status|replace('_', ' ')|capitalize }} &rarr;
+                            <span class="text-sm">Swap for "{{ swap.offered_listing_obj.title }}" & "{{ swap.requested_listing_obj.title }}"</span>
+                            <a href="{{ url_for('logistics.view_logistics', logistics_id=swap.logistics_record.id) }}" class="text-blue-500 hover:underline text-sm">
+                                Status: {{ swap.logistics_record.status|replace('_', ' ')|capitalize }} &rarr;
                             </a>
                         </li>
                     {% endif %}
                 {% endfor %}
+                {# Loop through sent donations with active logistics #}
                 {% for donation in sent_donations %}
-                    {% if donation.logistics_status != 'delivered' and donation.logistics_status != 'failed' %}
+                    {% if donation.logistics_record and donation.logistics_record.status not in ['delivered', 'failed', 'cancelled'] %}
                         <li class="flex items-center justify-between bg-gray-100 p-2 rounded-md">
-                            <span class="text-sm">Donation of "{{ donation.donated_listing.title }}"</span>
-                            <a href="{{ url_for('logistics.view_logistics', transaction_type='donation', transaction_id=donation.id) }}" class="text-blue-500 hover:underline text-sm">
-                                Status: {{ donation.logistics_status|replace('_', ' ')|capitalize }} &rarr;
+                            <span class="text-sm">Donation of "{{ donation.donated_listing_obj.title }}"</span>
+                            <a href="{{ url_for('logistics.view_logistics', logistics_id=donation.logistics_record.id) }}" class="text-blue-500 hover:underline text-sm">
+                                Status: {{ donation.logistics_record.status|replace('_', ' ')|capitalize }} &rarr;
                             </a>
                         </li>
                     {% endif %}
                 {% endfor %}
-                {% if not bought_items and not sold_items and not pending_swaps and not accepted_swaps and not sent_donations %}
+                {# Display message if no active logistics to track #}
+                {% if not (bought_items or sold_items or pending_swaps or accepted_swaps or sent_donations) %}
                     <li class="text-gray-500 text-sm">No active logistics to track.</li>
                 {% endif %}
             </ul>
@@ -142,7 +149,7 @@
                 Account & Payments
             </h2>
             <p class="text-gray-600 mb-4">Manage your profile, payment methods, and transaction history.</p>
-            <a href="{{ url_for('profile.edit_profile') }}" class="inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+            <a href="{{ url_for('profile.profile') }}" class="inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                 View Profile
             </a>
             <ul class="mt-4 space-y-2 text-gray-600">

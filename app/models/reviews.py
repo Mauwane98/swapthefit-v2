@@ -1,55 +1,45 @@
-from app.extensions import db
+# app/models/reviews.py
 from datetime import datetime
+from app.extensions import db
+from mongoengine.fields import ReferenceField, IntField, StringField, BooleanField, DateTimeField
 
 class Review(db.Document):
-    """
-    Represents a review given by one user to another within the SwapTheFit application.
-    This model uses MongoEngine to interact with MongoDB.
-    """
-    # Reference to the User who provided the review.
-    reviewer = db.ReferenceField(document_type='User', required=True, help_text="The user who wrote this review.")
-
-    # Reference to the User who is being reviewed.
-    reviewed_user = db.ReferenceField(document_type='User', required=True, help_text="The user who is being reviewed.")
-
-    # Numerical rating given by the reviewer (e.g., 1 to 5 stars).
-    # Choices enforce valid rating values.
-    rating = db.IntField(required=True, min_value=1, max_value=5, help_text="The numerical rating (1-5 stars).")
-
-    # Optional text comment accompanying the review.
-    comment = db.StringField(max_length=500, help_text="Optional text comment for the review.")
-
-    # Timestamp for when the review was posted.
-    date_posted = db.DateTimeField(default=datetime.utcnow, help_text="Timestamp when the review was posted.")
-
-    # Define a Meta class for MongoEngine specific configurations.
-    meta = {
-        'collection': 'reviews',  # Explicitly set the collection name in MongoDB
-        'indexes': [
-            {'fields': ('reviewer',)},      # Index by reviewer for faster lookup of reviews given by a user
-            {'fields': ('reviewed_user',)}, # Index by reviewed user for faster retrieval of reviews for a user
-            {'fields': ('-date_posted',)} # Descending index on date_posted for latest reviews
-        ],
-        'strict': False # Allows for dynamic fields not explicitly defined in the schema
-    }
-
-    @staticmethod
-    def get_average_rating(user_id):
-        reviews = Review.objects(reviewed_user=user_id)
-        if reviews:
-            total_rating = sum(review.rating for review in reviews)
-            return total_rating / len(reviews)
-        return 0
-
-    @staticmethod
-    def has_reviewed(reviewer_id, reviewed_user_id):
-        return Review.objects(reviewer=reviewer_id, reviewed_user=reviewed_user_id).first() is not None
+    reviewer = ReferenceField('User', required=True)
+    reviewed_user = ReferenceField('User', required=True)
+    comment = StringField(required=True)
+    rating = IntField(required=True)
+    is_positive = BooleanField(required=True)
+    communication_rating = IntField(required=True)
+    logistics_rating = IntField(required=True)
+    item_as_described = BooleanField(default=True)
+    date_posted = DateTimeField(default=datetime.utcnow)
+    transaction_id = StringField(required=True)
+    listing = ReferenceField('Listing')
 
     def __repr__(self):
         """
-        String representation of the Review object, useful for debugging.
+        String representation of the Review object.
         """
-        reviewer_name = self.reviewer.username if self.reviewer else "Unknown Reviewer"
-        reviewed_name = self.reviewed_user.username if self.reviewed_user else "Unknown Reviewed User"
-        return f"Review by '{reviewer_name}' for '{reviewed_name}': {self.rating} stars"
+        return f"Review(ID: {self.id}, Reviewer: {self.reviewer.username}, Reviewed: {self.reviewed_user.username}, Rating: {self.rating})"
 
+    def to_dict(self):
+        """
+        Converts the Review object to a dictionary.
+        """
+        return {
+            'id': str(self.id),
+            'reviewer_id': str(self.reviewer.id),
+            'reviewer_username': self.reviewer.username,
+            'reviewed_user_id': str(self.reviewed_user.id),
+            'reviewed_user_username': self.reviewed_user.username,
+            'comment': self.comment,
+            'rating': self.rating,
+            'is_positive': self.is_positive,
+            'communication_rating': self.communication_rating,
+            'logistics_rating': self.logistics_rating,
+            'item_as_described': self.item_as_described,
+            'transaction_id': self.transaction_id,
+            'date_posted': self.date_posted.isoformat() + 'Z',
+            'listing_id': str(self.listing.id) if self.listing else None,
+            'listing_title': self.listing.title if self.listing else None
+        }

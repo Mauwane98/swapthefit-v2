@@ -1,89 +1,86 @@
+# app/blueprints/logistics/forms.py
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, SelectField, SubmitField
-from wtforms.validators import DataRequired, Length, Optional, ValidationError
+from wtforms import StringField, TextAreaField, SelectField, SubmitField, DateTimeLocalField
+from wtforms.validators import DataRequired, Length, Optional, URL, ValidationError
+from datetime import datetime
 
-class SetLogisticsDetailsForm(FlaskForm):
+class SetupLogisticsForm(FlaskForm):
     """
-    Form for sellers/donors to set up logistics details for an item.
+    Form for setting up initial logistics details for a transaction.
+    This form will be used by the sender (seller/swap initiator).
     """
-    delivery_method = SelectField(
-        'Delivery Method',
-        choices=[
-            ('', 'Select Delivery Method'),
-            ('pickup', 'Local Pickup (Arrange directly)'),
-            ('pudo_locker', 'PUDO Locker'),
-            ('courier_delivery', 'Courier Delivery')
-        ],
-        validators=[DataRequired(message="Please select a delivery method.")],
-        render_kw={"class": "block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"}
-    )
-    
-    pickup_location_details = TextAreaField(
-        'Pickup Location Details (if Local Pickup)',
-        validators=[Optional(), Length(max=255)],
-        render_kw={"placeholder": "e.g., Your address for pickup, or specific instructions.", "rows": 3, "class": "block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"}
-    )
-    
-    delivery_address_details = TextAreaField(
-        'Delivery Address (if Courier Delivery)',
-        validators=[Optional(), Length(max=255)],
-        render_kw={"placeholder": "e.g., Recipient's full address for courier delivery.", "rows": 3, "class": "block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"}
-    )
+    shipping_method = SelectField('Shipping Method', choices=[
+        ('pickup_dropoff', 'PUDO Locker Pickup/Dropoff'),
+        ('courier', 'Courier Delivery'),
+        ('in_person', 'In-Person Exchange')
+    ], validators=[DataRequired()])
 
-    pudo_locker_id = StringField(
-        'PUDO Locker ID (if PUDO Locker)',
-        validators=[Optional(), Length(max=50)],
-        render_kw={"placeholder": "Enter the PUDO Locker ID (e.g., PUDO-XYZ)", "class": "block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"}
-    )
+    # Fields for Courier Delivery
+    courier_name = StringField('Courier Name (Optional)', validators=[Optional(), Length(max=100)],
+                               render_kw={"placeholder": "e.g., DHL, FedEx"})
+    tracking_number = StringField('Tracking Number (Optional)', validators=[Optional(), Length(max=100)],
+                                  render_kw={"placeholder": "e.g., TRK123456789"})
+    tracking_url = StringField('Tracking URL (Optional)', validators=[Optional(), URL(), Length(max=255)],
+                               render_kw={"placeholder": "e.g., https://track.example.com/TRK123"})
 
-    logistics_provider = StringField(
-        'Logistics Provider (e.g., PUDO, DHL, Aramex)',
-        validators=[Optional(), Length(max=50)],
-        render_kw={"placeholder": "e.g., PUDO, DHL, Aramex", "class": "block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"}
-    )
+    # Fields for PUDO Locker
+    pudo_location_name = StringField('PUDO Location Name (Optional)', validators=[Optional(), Length(max=255)],
+                                     render_kw={"placeholder": "e.g., LockerXYZ at Mall ABC"})
+    pudo_address = StringField('PUDO Address (Optional)', validators=[Optional(), Length(max=255)],
+                               render_kw={"placeholder": "e.g., 123 Main St, City"})
+    pudo_code = StringField('PUDO Collection Code (Optional)', validators=[Optional(), Length(max=50)],
+                            render_kw={"placeholder": "e.g., ABC123DEF"})
 
-    submit = SubmitField('Save Logistics Details', render_kw={"class": "w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"})
+    # Fields for In-Person / Courier Addresses
+    pickup_address = StringField('Pickup Address (Optional)', validators=[Optional(), Length(max=255)],
+                                 render_kw={"placeholder": "e.g., Your address for pickup"})
+    delivery_address = StringField('Delivery Address (Optional)', validators=[Optional(), Length(max=255)],
+                                  render_kw={"placeholder": "e.g., Recipient's delivery address"})
 
-    def validate(self):
-        """
-        Custom validation to ensure correct fields are filled based on delivery method.
-        """
-        if not super().validate():
-            return False
-        
-        if self.delivery_method.data == 'pickup':
-            if not self.pickup_location_details.data:
-                self.pickup_location_details.errors.append("Pickup location details are required for local pickup.")
-                return False
-        elif self.delivery_method.data == 'pudo_locker':
-            if not self.pudo_locker_id.data:
-                self.pudo_locker_id.errors.append("PUDO Locker ID is required for PUDO delivery.")
-                return False
-            if not self.logistics_provider.data:
-                self.logistics_provider.errors.append("Logistics provider (e.g., PUDO) is required.")
-                return False
-        elif self.delivery_method.data == 'courier_delivery':
-            if not self.delivery_address_details.data:
-                self.delivery_address_details.errors.append("Delivery address is required for courier delivery.")
-                return False
-            if not self.logistics_provider.data:
-                self.logistics_provider.errors.append("Logistics provider (e.g., DHL) is required.")
-                return False
-        
-        return True
+    # Scheduled dates (optional, can be set by sender or courier)
+    scheduled_pickup_date = DateTimeLocalField('Scheduled Pickup Date/Time (Optional)', format='%Y-%m-%dT%H:%M', validators=[Optional()])
+    scheduled_delivery_date = DateTimeLocalField('Scheduled Delivery Date/Time (Optional)', format='%Y-%m-%dT%H:%M', validators=[Optional()])
+
+    notes = TextAreaField('Additional Notes (Optional)', validators=[Optional(), Length(max=500)],
+                          render_kw={"rows": 3, "placeholder": "Any specific instructions or details."})
+
+    submit = SubmitField('Setup Logistics')
+
+    def validate_shipping_method(self, field):
+        """Custom validation to ensure required fields for selected method are present."""
+        if field.data == 'courier':
+            if not self.courier_name.data and not self.tracking_number.data:
+                raise ValidationError('Courier Name or Tracking Number is recommended for Courier method.')
+            if not self.delivery_address.data:
+                raise ValidationError('Delivery Address is required for Courier method.')
+        elif field.data == 'pickup_dropoff':
+            if not self.pudo_location_name.data and not self.pudo_address.data:
+                raise ValidationError('PUDO Location Name or Address is required for PUDO method.')
+        elif field.data == 'in_person':
+            if not self.pickup_address.data and not self.delivery_address.data:
+                raise ValidationError('Pickup or Delivery Address is recommended for In-Person method.')
 
 
 class UpdateLogisticsStatusForm(FlaskForm):
     """
-    Form for updating the logistics status and adding a tracking number.
+    Form for updating the status of an existing logistics record.
+    Can be used by sender, receiver, or admin.
     """
-    tracking_number = StringField(
-        'Tracking Number (Optional)',
-        validators=[Optional(), Length(max=100)],
-        render_kw={"placeholder": "Enter tracking number if applicable.", "class": "block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"}
-    )
+    status = SelectField('Logistics Status', choices=[
+        ('pending_pickup', 'Pending Pickup'),
+        ('in_transit', 'In Transit'),
+        ('ready_for_collection', 'Ready for Collection'),
+        ('delivered', 'Delivered'),
+        ('cancelled', 'Cancelled'),
+        ('failed', 'Failed')
+    ], validators=[DataRequired()])
     
-    submit_shipped = SubmitField('Mark as Shipped/Ready for Pickup', render_kw={"class": "w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"})
-    submit_received = SubmitField('Confirm Received', render_kw={"class": "w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"})
-    submit_cancel_logistics = SubmitField('Cancel Logistics', render_kw={"class": "w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"})
+    # Actual dates (optional, updated as events occur)
+    actual_pickup_date = DateTimeLocalField('Actual Pickup Date/Time (Optional)', format='%Y-%m-%dT%H:%M', validators=[Optional()])
+    actual_delivery_date = DateTimeLocalField('Actual Delivery Date/Time (Optional)', format='%Y-%m-%dT%H:%M', validators=[Optional()])
+
+    notes = TextAreaField('Status Update Notes (Optional)', validators=[Optional(), Length(max=500)],
+                          render_kw={"rows": 3, "placeholder": "Add any notes related to this status update."})
+
+    submit = SubmitField('Update Logistics Status')
 

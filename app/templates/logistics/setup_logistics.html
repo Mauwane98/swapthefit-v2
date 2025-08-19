@@ -1,74 +1,128 @@
-{% extends '_layouts/base.html' %}
-{% import 'macros.html' as macros %}
+{# app/templates/logistics/setup_logistics.html #}
+{% extends "_layouts/base.html" %}
+
+{% block title %}Setup Logistics{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8 max-w-lg">
-    <div class="bg-white p-8 rounded-lg shadow-xl border border-gray-200">
-        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Set Up Logistics</h1>
-        <p class="text-gray-600 mb-6 text-center">
-            Setting up delivery for: 
-            <span class="font-semibold text-indigo-700">
-                {% if transaction_type == 'order' %}{{ transaction.purchased_listing.title }}
-                {% elif transaction_type == 'swap' %}{{ transaction.responder_listing.title }} (for swap with {{ transaction.requester_listing.title }})
-                {% elif transaction_type == 'donation' %}{{ transaction.donated_listing.title }}
-                {% endif %}
-            </span>
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-8">Setup Logistics for {{ transaction_type|capitalize }} (ID: {{ transaction_id }}) 🚚</h1>
+
+    <div class="bg-white p-8 rounded-xl shadow-2xl">
+        <p class="text-gray-700 mb-6 text-center">
+            You are setting up logistics for the {{ transaction_type }} of "<span class="font-semibold text-indigo-600">{{ listing_title }}</span>".
+            Please provide the shipping details below.
         </p>
-        
-        <div class="mb-6 border-b pb-4">
-            <h2 class="text-xl font-semibold text-gray-700 mb-3">Transaction Details:</h2>
-            <div class="flex items-center space-x-4 mb-4">
-                {% if transaction_type == 'order' %}
-                    <img src="{{ transaction.purchased_listing.images[0] }}" alt="{{ transaction.purchased_listing.title }}" class="w-24 h-24 object-cover rounded-md shadow-md">
-                    <div>
-                        <p class="text-lg font-medium text-gray-800">{{ transaction.purchased_listing.title }}</p>
-                        <p class="text-sm text-gray-600">Buyer: {{ transaction.buyer.username }} | Seller: {{ transaction.seller.username }}</p>
-                        <p class="text-sm text-gray-600 font-bold text-green-700">Price: R {{ "%.2f" | format(transaction.price_at_purchase) }}</p>
-                    </div>
-                {% elif transaction_type == 'swap' %}
-                    <img src="{{ transaction.responder_listing.images[0] }}" alt="{{ transaction.responder_listing.title }}" class="w-24 h-24 object-cover rounded-md shadow-md">
-                    <div>
-                        <p class="text-lg font-medium text-gray-800">Your Item: {{ transaction.requester_listing.title }}</p>
-                        <p class="text-lg font-medium text-gray-800">Desired Item: {{ transaction.responder_listing.title }}</p>
-                        <p class="text-sm text-gray-600">Requester: {{ transaction.requester.username }} | Responder: {{ transaction.responder.username }}</p>
-                    </div>
-                {% elif transaction_type == 'donation' %}
-                    <img src="{{ transaction.donated_listing.images[0] }}" alt="{{ transaction.donated_listing.title }}" class="w-24 h-24 object-cover rounded-md shadow-md">
-                    <div>
-                        <p class="text-lg font-medium text-gray-800">{{ transaction.donated_listing.title }}</p>
-                        <p class="text-sm text-gray-600">Donor: {{ transaction.donor.username }} | Recipient: {{ transaction.recipient.username }}</p>
-                    </div>
-                {% endif %}
-            </div>
-            <p class="text-md text-gray-700 mt-4">Transaction Status: <span class="font-semibold text-blue-600">{{ transaction.status|replace('_', ' ')|capitalize }}</span></p>
-            <p class="text-md text-gray-700">Current Logistics Status: <span class="font-semibold text-purple-600">{{ transaction.logistics_status|replace('_', ' ')|capitalize }}</span></p>
-        </div>
 
-        <form method="POST" action="{{ url_for('logistics.setup_logistics', transaction_type=transaction_type, transaction_id=transaction.id) }}" class="space-y-6">
-            {{ form.csrf_token }}
-
-            <div>
-                {{ macros.render_field(form.delivery_method, class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm") }}
+        <form method="POST" action="{{ url_for('logistics.setup_logistics', transaction_type=transaction_type, transaction_id=transaction_id) }}">
+            {{ form.hidden_tag() }}
+            
+            <div class="mb-5">
+                {{ form.shipping_method.label(class="block text-sm font-medium text-gray-700 mb-1") }}
+                {{ form.shipping_method(id="shipping_method_select", class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md") }}
+                {% for error in form.shipping_method.errors %}
+                    <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                {% endfor %}
             </div>
 
-            <div id="pickup_location_field" style="display: none;">
-                {{ macros.render_field(form.pickup_location_details, class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm") }}
+            {# Courier Fields #}
+            <div id="courier_fields" class="space-y-5 hidden">
+                <h3 class="text-lg font-bold text-gray-800 border-b pb-2 mb-4">Courier Details</h3>
+                <div class="mb-5">
+                    {{ form.courier_name.label(class="block text-sm font-medium text-gray-700 mb-1") }}
+                    {{ form.courier_name(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-base") }}
+                    {% for error in form.courier_name.errors %}
+                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                    {% endfor %}
+                </div>
+                <div class="mb-5">
+                    {{ form.tracking_number.label(class="block text-sm font-medium text-gray-700 mb-1") }}
+                    {{ form.tracking_number(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-base") }}
+                    {% for error in form.tracking_number.errors %}
+                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                    {% endfor %}
+                </div>
+                <div class="mb-5">
+                    {{ form.tracking_url.label(class="block text-sm font-medium text-gray-700 mb-1") }}
+                    {{ form.tracking_url(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-base") }}
+                    {% for error in form.tracking_url.errors %}
+                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                    {% endfor %}
+                </div>
             </div>
 
-            <div id="delivery_address_field" style="display: none;">
-                {{ macros.render_field(form.delivery_address_details, class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm") }}
+            {# PUDO Locker Fields #}
+            <div id="pudo_fields" class="space-y-5 hidden">
+                <h3 class="text-lg font-bold text-gray-800 border-b pb-2 mb-4">PUDO Locker Details</h3>
+                <div class="mb-5">
+                    {{ form.pudo_location_name.label(class="block text-sm font-medium text-gray-700 mb-1") }}
+                    {{ form.pudo_location_name(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-base") }}
+                    {% for error in form.pudo_location_name.errors %}
+                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                    {% endfor %}
+                </div>
+                <div class="mb-5">
+                    {{ form.pudo_address.label(class="block text-sm font-medium text-gray-700 mb-1") }}
+                    {{ form.pudo_address(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-base") }}
+                    {% for error in form.pudo_address.errors %}
+                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                    {% endfor %}
+                </div>
+                <div class="mb-5">
+                    {{ form.pudo_code.label(class="block text-sm font-medium text-gray-700 mb-1") }}
+                    {{ form.pudo_code(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-base") }}
+                    {% for error in form.pudo_code.errors %}
+                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                    {% endfor %}
+                </div>
             </div>
 
-            <div id="pudo_locker_field" style="display: none;">
-                {{ macros.render_field(form.pudo_locker_id, class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm") }}
+            {# General Address Fields (for Courier or In-Person) #}
+            <div id="address_fields" class="space-y-5 hidden">
+                <h3 class="text-lg font-bold text-gray-800 border-b pb-2 mb-4">Address Details</h3>
+                <div class="mb-5">
+                    {{ form.pickup_address.label(class="block text-sm font-medium text-gray-700 mb-1") }}
+                    {{ form.pickup_address(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-base") }}
+                    {% for error in form.pickup_address.errors %}
+                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                    {% endfor %}
+                </div>
+                <div class="mb-5">
+                    {{ form.delivery_address.label(class="block text-sm font-medium text-gray-700 mb-1") }}
+                    {{ form.delivery_address(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-base") }}
+                    {% for error in form.delivery_address.errors %}
+                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                    {% endfor %}
+                </div>
             </div>
 
-            <div id="logistics_provider_field" style="display: none;">
-                {{ macros.render_field(form.logistics_provider, class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm") }}
+            {# Scheduled Dates #}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                <div>
+                    {{ form.scheduled_pickup_date.label(class="block text-sm font-medium text-gray-700 mb-1") }}
+                    {{ form.scheduled_pickup_date(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-base") }}
+                    {% for error in form.scheduled_pickup_date.errors %}
+                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                    {% endfor %}
+                </div>
+                <div>
+                    {{ form.scheduled_delivery_date.label(class="block text-sm font-medium text-gray-700 mb-1") }}
+                    {{ form.scheduled_delivery_date(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-base") }}
+                    {% for error in form.scheduled_delivery_date.errors %}
+                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                    {% endfor %}
+                </div>
             </div>
 
-            <div>
-                {{ form.submit(class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500") }}
+            <div class="mb-6">
+                {{ form.notes.label(class="block text-sm font-medium text-gray-700 mb-1") }}
+                {{ form.notes(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-base") }}
+                {% for error in form.notes.errors %}
+                    <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <div class="flex justify-center">
+                {{ form.submit(class="inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200") }}
             </div>
         </form>
     </div>
@@ -76,35 +130,35 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const deliveryMethodSelect = document.getElementById('delivery_method');
-        const pickupLocationField = document.getElementById('pickup_location_field');
-        const deliveryAddressField = document.getElementById('delivery_address_field');
-        const pudoLockerField = document.getElementById('pudo_locker_field');
-        const logisticsProviderField = document.getElementById('logistics_provider_field');
+        const shippingMethodSelect = document.getElementById('shipping_method_select');
+        const courierFields = document.getElementById('courier_fields');
+        const pudoFields = document.getElementById('pudo_fields');
+        const addressFields = document.getElementById('address_fields');
 
         function toggleFields() {
-            // Ensure elements exist before trying to access their style property
-            if (pickupLocationField) pickupLocationField.style.display = 'none';
-            if (deliveryAddressField) deliveryAddressField.style.display = 'none';
-            if (pudoLockerField) pudoLockerField.style.display = 'none';
-            if (logisticsProviderField) logisticsProviderField.style.display = 'none';
+            const selectedMethod = shippingMethodSelect.value;
 
-            if (deliveryMethodSelect && deliveryMethodSelect.value === 'pickup') {
-                if (pickupLocationField) pickupLocationField.style.display = 'block';
-            } else if (deliveryMethodSelect && deliveryMethodSelect.value === 'pudo_locker') {
-                if (pudoLockerField) pudoLockerField.style.display = 'block';
-                if (logisticsProviderField) logisticsProviderField.style.display = 'block';
-            } else if (deliveryMethodSelect && deliveryMethodSelect.value === 'courier_delivery') {
-                if (deliveryAddressField) deliveryAddressField.style.display = 'block';
-                if (logisticsProviderField) logisticsProviderField.style.display = 'block';
+            // Hide all optional fields first
+            courierFields.classList.add('hidden');
+            pudoFields.classList.add('hidden');
+            addressFields.classList.add('hidden');
+
+            // Show fields based on selected method
+            if (selectedMethod === 'courier') {
+                courierFields.classList.remove('hidden');
+                addressFields.classList.remove('hidden'); // Courier also needs pickup/delivery addresses
+            } else if (selectedMethod === 'pickup_dropoff') {
+                pudoFields.classList.remove('hidden');
+            } else if (selectedMethod === 'in_person') {
+                addressFields.classList.remove('hidden'); // In-person needs pickup/delivery addresses
             }
         }
 
-        // Only add event listener and call toggleFields if deliveryMethodSelect exists
-        if (deliveryMethodSelect) {
-            deliveryMethodSelect.addEventListener('change', toggleFields);
-            toggleFields(); // Call on load to set initial state based on pre-filled data
-        }
+        // Initial toggle on page load
+        toggleFields();
+
+        // Add event listener for changes to the select field
+        shippingMethodSelect.addEventListener('change', toggleFields);
     });
 </script>
 {% endblock %}

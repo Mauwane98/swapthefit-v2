@@ -1,294 +1,238 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, abort, current_app
+# app/blueprints/payments/routes.py
+from flask import Blueprint, render_template, url_for, flash, redirect, request, abort, current_app
 from flask_login import login_required, current_user
+from app.models.payments import Order
 from app.models.listings import Listing
 from app.models.users import User
-from app.models.payments import Order # Import the new Order model
-from app.models.notifications import Notification # For sending notifications
-from app.blueprints.payments.forms import ProcessPaymentForm # Import the payment form
-from app.utils.security import roles_required
-from datetime import datetime
-import os
+from app.models.notifications import Notification
+from app.blueprints.payments.forms import ProcessPaymentForm, PremiumListingPurchaseForm
+from app.extensions import db
+from app.blueprints.notifications.routes import add_notification
+from datetime import datetime, timedelta
+import secrets # For simulating transaction IDs
 
 payments_bp = Blueprint('payments', __name__)
 
-@payments_bp.route('/buy/<string:listing_id>', methods=['GET', 'POST'])
+# Define platform fee rate (e.g., 5% of the sale price)
+PLATFORM_FEE_RATE = 0.05
+
+# Define premium package pricing and duration
+PREMIUM_PACKAGES = {
+    '7_days_50': {'duration_days': 7, 'cost': 50.00},
+    '14_days_90': {'duration_days': 14, 'cost': 90.00},
+    '30_days_150': {'duration_days': 30, 'cost': 150.00}
+}
+
+@payments_bp.route("/process_payment/<string:listing_id>", methods=['GET', 'POST'])
 @login_required
-@roles_required('parent') # Only parents can buy items
-def buy_item(listing_id):
+def process_payment(listing_id):
     """
-    Initiates the purchase process for a listing.
-    This route will typically redirect to a payment gateway or display a payment form.
+    Handles the payment process for a specific listing (sale).
     """
-    listing = Listing.objects(id=listing_id).first()
-    if not listing:
-        abort(404)
+    listing = Listing.objects(id=listing_id).first_or_404()
 
-    # Prevent buying your own listing
-    if listing.owner.id == current_user.id:
-        flash('You cannot buy your own listing.', 'danger')
-        return redirect(url_for('listings.listing_detail', listing_id=listing_id))
-
-    # Ensure the listing is for sale and available
-    if listing.listing_type != 'sale' or listing.status != 'available' or listing.price is None:
-        flash('This item is not available for purchase or is not listed for sale.', 'danger')
-        return redirect(url_for('listings.listing_detail', listing_id=listing_id))
+    # Ensure listing is for sale and available
+    if listing.listing_type != 'sale' or not listing.is_available:
+        flash('This listing is not available for sale.', 'danger')
+        return redirect(url_for('listings.listing_detail', listing_id=listing.id))
     
-    # Check if there's already a pending order for this user and listing
-    existing_order = Order.objects(
-        buyer=current_user.id,
-        purchased_listing=listing.id,
-        status__in=['pending_payment', 'paid', 'pending_pickup'] # Exclude cancelled/completed
-    ).first()
-
-    if existing_order:
-        flash(f'You already have an active order for this item (Status: {existing_order.status.replace("_", " ").capitalize()}).', 'info')
-        return redirect(url_for('payments.view_order', order_id=existing_order.id))
-
-    # Create a new order with 'pending_payment' status
-    order = Order(
-        buyer=current_user.id,
-        purchased_listing=listing.id,
-        seller=listing.owner.id,
-        price_at_purchase=listing.price,
-        status='pending_payment'
-    )
-    order.save()
-
-    # Update listing status to indicate it's under pending payment
-    listing.status = 'pending_payment'
-    listing.save()
-
-    flash(f'Order created for R{listing.price:.2f}. Please complete the payment.', 'info')
-    
-    # Redirect to a mock payment page or an actual payment gateway integration
-    return redirect(url_for('payments.process_payment', order_id=order.id))
-
-
-@payments_bp.route('/process_payment/<string:order_id>', methods=['GET', 'POST'])
-@login_required
-@roles_required('parent') # Only the buyer can process the payment for their order
-def process_payment(order_id):
-    """
-    Simulates a payment processing page. In a real scenario, this would be an integration
-    with a payment gateway like PayFast or PayPal.
-    """
-    order = Order.objects(id=order_id).first()
-    if not order:
-        abort(404)
-
-    if order.buyer.id != current_user.id:
-        flash('You do not have permission to process this payment.', 'danger')
-        return redirect(url_for('payments.manage_orders'))
-
-    if order.status != 'pending_payment':
-        flash(f'This order is already {order.status.replace("_", " ")}.', 'info')
-        return redirect(url_for('payments.view_order', order_id=order.id))
+    # Prevent buying own listing
+    if listing.user_id == current_user.id:
+        flash('You cannot purchase your own listing.', 'danger')
+        return redirect(url_for('listings.listing_detail', listing_id=listing.id))
 
     form = ProcessPaymentForm()
     if form.validate_on_submit():
-        # Simulate successful payment
-        order.status = 'paid'
-        order.transaction_id = form.transaction_id.data if form.transaction_id.data else f"MOCK_TXN_{order.id}"
-        order.updated_date = datetime.utcnow()
-        order.save()
+        # --- Simulate Payment Gateway Interaction ---
+        # In a real application, this would involve API calls to PayFast, PayPal, etc.
+        # For now, we'll simulate success.
+        payment_successful = True # Assume payment is successful for simulation
+        gateway_transaction_id = secrets.token_urlsafe(16) # Simulate a unique transaction ID
 
-        # Update listing status to 'paid' (or 'pending_pickup' if logistics starts immediately)
-        order.purchased_listing.status = 'paid'
-        order.purchased_listing.save()
+        if payment_successful:
+            # Calculate fees
+            platform_fee = listing.price * PLATFORM_FEE_RATE
+            seller_payout = listing.price - platform_fee
+            amount_paid_total = listing.price # For simple sales, total paid is listing price
 
-        # Notify the seller that their item has been bought and paid for
-        notification_message = f"Your item '{order.purchased_listing.title}' has been bought by {current_user.username} for R{order.price_at_purchase:.2f}! Payment received."
-        notification = Notification(
-            recipient=order.seller.id,
-            sender=current_user.id,
-            message=notification_message,
-            link=url_for('payments.view_order', order_id=order.id),
-            notification_type='payment_received'
-        )
-        notification.save()
-        current_app.extensions['socketio'].emit(
-            'new_notification',
-            {'message': notification.message, 'count': Notification.objects(recipient=order.seller.id, read=False).count()},
-            room=str(order.seller.id)
-        )
+            # Create Order record
+            order = Order(
+                buyer_id=current_user.id,
+                seller_id=listing.user_id,
+                listing_id=listing.id,
+                price_at_purchase=listing.price,
+                status='completed', # Mark as completed upon successful payment
+                transaction_id_gateway=gateway_transaction_id,
+                payment_gateway=form.payment_gateway.data,
+                amount_paid_total=amount_paid_total,
+                platform_fee=platform_fee,
+                seller_payout_amount=seller_payout,
+                payout_status='pending' # Payout to seller is pending initially
+            )
+            db.session.add(order)
 
-        flash('Payment confirmed successfully! Seller has been notified.', 'success')
-        return redirect(url_for('payments.view_order', order_id=order.id))
+            # Update listing status
+            listing.is_available = False
+            listing.status = 'sold' # Mark listing as sold
+            db.session.commit()
 
-    return render_template('payments/process_payment.html', form=form, order=order)
+            flash('Payment successful! Your order has been placed.', 'success')
+
+            # Notify seller about the sale
+            add_notification(
+                user_id=listing.user_id,
+                message=f"Your listing '{listing.title}' has been sold to {current_user.username} for R{listing.price:.2f}!",
+                notification_type='listing_sold',
+                payload={'order_id': order.id, 'listing_id': listing.id, 'buyer_id': current_user.id}
+            )
+            # Notify buyer about successful purchase
+            add_notification(
+                user_id=current_user.id,
+                message=f"You successfully purchased '{listing.title}' from {listing.user.username} for R{listing.price:.2f}.",
+                notification_type='listing_purchased',
+                payload={'order_id': order.id, 'listing_id': listing.id, 'seller_id': listing.user_id}
+            )
+
+            return redirect(url_for('payments.view_order', order_id=order.id))
+        else:
+            flash('Payment failed. Please try again.', 'danger')
+
+    return render_template('payments/process_payment.html', title='Process Payment', form=form, listing=listing)
+
+@payments_bp.route("/purchase_premium", methods=['GET', 'POST'])
+@login_required
+def purchase_premium_listing():
+    """
+    Allows a user to purchase premium visibility for one of their listings.
+    """
+    form = PremiumListingPurchaseForm()
+    
+    # Dynamically populate listing choices (only user's own listings)
+    user_listings = Listing.objects(user=current_user.id)
+    form.listing_id.choices = [(str(l.id), f"{l.title} (ID: {l.id})") for l in user_listings]
+    form.listing_id.choices.insert(0, ('', 'Select your listing'))
+
+    if form.validate_on_submit():
+        listing_to_promote = Listing.objects(id=form.listing_id.data).first()
+
+        # Validate that the listing belongs to the current user
+        if not listing_to_promote or listing_to_promote.user_id != current_user.id:
+            flash('Invalid listing selected or you do not own this listing.', 'danger')
+            return render_template('payments/purchase_premium.html', title='Purchase Premium', form=form)
+
+        premium_package_key = form.premium_package.data
+        package_details = PREMIUM_PACKAGES.get(premium_package_key)
+
+        if not package_details:
+            flash('Invalid premium package selected.', 'danger')
+            return render_template('payments/purchase_premium.html', title='Purchase Premium', form=form)
+
+        cost = package_details['cost']
+        duration_days = package_details['duration_days']
+
+        # --- Simulate Payment Gateway Interaction for Premium ---
+        payment_successful = True # Assume payment is successful for simulation
+        gateway_transaction_id = secrets.token_urlsafe(16) # Simulate a unique transaction ID
+
+        if payment_successful:
+            # Calculate premium expiry date
+            new_expiry_date = datetime.utcnow() + timedelta(days=duration_days)
+            
+            # If already premium, extend the expiry date
+            if listing_to_promote.is_premium and listing_to_promote.premium_expiry_date and listing_to_promote.premium_expiry_date > datetime.utcnow():
+                new_expiry_date = listing_to_promote.premium_expiry_date + timedelta(days=duration_days)
+
+            # Update listing to premium
+            listing_to_promote.is_premium = True
+            listing_to_promote.premium_expiry_date = new_expiry_date
+            db.session.commit()
+
+            # Create an Order record for the premium purchase
+            # Note: For premium purchases, the 'seller' is essentially the platform,
+            # but we'll use a dummy seller_id or current_user.id for simplicity if necessary.
+            # Or, if you have a dedicated 'platform' user, use that ID.
+            # For now, we'll set seller_id to current_user.id as a placeholder,
+            # but ideally this should be a system/platform account if tracking platform income.
+            order = Order(
+                buyer_id=current_user.id,
+                seller_id=current_user.id, # Placeholder: In a real app, this might be a system account
+                listing_id=listing_to_promote.id, # Link to the listing being promoted
+                price_at_purchase=cost,
+                status='completed',
+                transaction_id_gateway=gateway_transaction_id,
+                payment_gateway=form.payment_gateway.data,
+                amount_paid_total=cost,
+                platform_fee=cost, # Entire amount is platform fee for premium purchase
+                seller_payout_amount=0.0, # No payout to seller for premium purchase
+                payout_status='paid', # Already "paid" to platform
+                is_premium_listing_purchase=True,
+                premium_listing_id=listing_to_promote.id
+            )
+            db.session.add(order)
+            db.session.commit()
+
+            flash(f'Premium visibility purchased successfully for "{listing_to_promote.title}"! It is now premium until {new_expiry_date.strftime("%b %d, %Y")}.', 'success')
+
+            # Notify user about premium upgrade
+            add_notification(
+                user_id=current_user.id,
+                message=f"Your listing '{listing_to_promote.title}' is now premium until {new_expiry_date.strftime('%b %d, %Y')}.",
+                notification_type='premium_purchased',
+                payload={'listing_id': listing_to_promote.id, 'expiry_date': new_expiry_date.isoformat()}
+            )
+
+            return redirect(url_for('listings.dashboard')) # Redirect to user's dashboard
+        else:
+            flash('Payment failed for premium purchase. Please try again.', 'danger')
+
+    return render_template('payments/purchase_premium.html', title='Purchase Premium', form=form)
 
 
-@payments_bp.route('/manage', methods=['GET'])
+@payments_bp.route("/manage_orders")
 @login_required
 def manage_orders():
     """
-    Displays all orders related to the current user (as buyer or seller).
+    Displays orders relevant to the current user (as buyer or seller).
     """
     # Orders where current user is the buyer
-    bought_items = Order.objects(buyer=current_user.id).order_by('-order_date')
-    
+    purchased_orders = Order.query.filter_by(buyer_id=current_user.id, is_premium_listing_purchase=False).order_by(Order.order_date.desc()).all()
     # Orders where current user is the seller
-    sold_items = Order.objects(seller=current_user.id).order_by('-order_date')
-    
+    sold_orders = Order.query.filter_by(seller_id=current_user.id, is_premium_listing_purchase=False).order_by(Order.order_date.desc()).all()
+    # Premium purchases made by the current user
+    premium_purchases = Order.query.filter_by(buyer_id=current_user.id, is_premium_listing_purchase=True).order_by(Order.order_date.desc()).all()
+
     return render_template(
         'payments/manage_orders.html', 
-        bought_items=bought_items, 
-        sold_items=sold_items
+        purchased_orders=purchased_orders, 
+        sold_orders=sold_orders,
+        premium_purchases=premium_purchases,
+        title="Manage Orders"
     )
 
-@payments_bp.route('/view_order/<string:order_id>')
+@payments_bp.route("/view_order/<int:order_id>")
 @login_required
 def view_order(order_id):
     """
     Displays the details of a specific order.
-    Only accessible by buyer or seller.
+    Only accessible by buyer, seller, or admin.
     """
-    order = Order.objects(id=order_id).first()
-    if not order:
-        abort(404)
+    order = Order.query.get_or_404(order_id)
 
-    # Ensure only buyer or seller can view the order
-    if current_user.id != order.buyer.id and current_user.id != order.seller.id:
+    # Ensure current user is authorized
+    if not (current_user.id == order.buyer_id or 
+            current_user.id == order.seller_id or 
+            current_user.role == 'admin'):
         flash('You do not have permission to view this order.', 'danger')
         return redirect(url_for('payments.manage_orders'))
     
-    return render_template('payments/view_order.html', order=order)
+    return render_template('payments/view_order.html', title='Order Details', order=order)
 
+# --- Admin Routes for Payments (Optional, can be integrated into admin blueprint) ---
+# @payments_bp.route("/admin/manage_payments")
+# @login_required
+# @roles_required('admin')
+# def admin_manage_payments():
+#     """Admin route to view and manage all orders/payments."""
+#     orders = Order.query.order_by(Order.order_date.desc()).all()
+#     return render_template('admin/manage_payments.html', title='Manage Payments', orders=orders)
 
-@payments_bp.route('/mark_picked_up/<string:order_id>', methods=['POST'])
-@login_required
-@roles_required('parent', 'school', 'ngo') # Both buyer and seller can mark as picked up/shipped
-def mark_picked_up(order_id):
-    """
-    Allows the seller or buyer to mark an order as picked up/ready for delivery.
-    This implies the item is no longer with the seller.
-    """
-    order = Order.objects(id=order_id).first()
-    if not order:
-        flash('Order not found.', 'danger')
-        return redirect(url_for('payments.manage_orders'))
-
-    # Only the seller or buyer can mark as picked up, and only if paid
-    if (current_user.id != order.seller.id and current_user.id != order.buyer.id) or order.status != 'paid':
-        flash('You do not have permission to update this order status or it is not in the correct state.', 'danger')
-        return redirect(url_for('payments.view_order', order_id=order.id))
-
-    order.status = 'pending_pickup'
-    order.updated_date = datetime.utcnow()
-    order.save()
-
-    # Listing status should already be 'paid' or similar, keep it.
-    
-    # Notify both parties
-    recipient_user = order.buyer if current_user.id == order.seller.id else order.seller
-    notification_message = f"Order for '{order.purchased_listing.title}' has been marked as 'Ready for Pickup/Shipped' by {current_user.username}."
-    notification = Notification(
-        recipient=recipient_user.id,
-        sender=current_user.id,
-        message=notification_message,
-        link=url_for('payments.view_order', order_id=order.id),
-        notification_type='order_status_update'
-    )
-    notification.save()
-    current_app.extensions['socketio'].emit(
-        'new_notification',
-        {'message': notification.message, 'count': Notification.objects(recipient=recipient_user.id, read=False).count()},
-        room=str(recipient_user.id)
-    )
-
-    flash('Order status updated to "Ready for Pickup/Shipped".', 'success')
-    return redirect(url_for('payments.view_order', order_id=order.id))
-
-
-@payments_bp.route('/complete_order/<string:order_id>', methods=['POST'])
-@login_required
-@roles_required('parent', 'school', 'ngo') # Both buyer and seller can confirm completion
-def complete_order(order_id):
-    """
-    Marks an order as completed. This typically means the item has been successfully
-    delivered to the buyer.
-    """
-    order = Order.objects(id=order_id).first()
-    if not order:
-        flash('Order not found.', 'danger')
-        return redirect(url_for('payments.manage_orders'))
-
-    # Only the buyer or seller can complete, and only if pending pickup
-    if (current_user.id != order.buyer.id and current_user.id != order.seller.id) or order.status != 'pending_pickup':
-        flash('You do not have permission to complete this order or it is not in the correct state.', 'danger')
-        return redirect(url_for('payments.view_order', order_id=order.id))
-
-    order.status = 'completed'
-    order.updated_date = datetime.utcnow()
-    order.save()
-
-    # Mark the listing as inactive and 'sold'
-    order.purchased_listing.status = 'sold'
-    order.purchased_listing.is_active = False
-    order.purchased_listing.save()
-
-    # Notify both parties
-    recipient_user = order.buyer if current_user.id == order.seller.id else order.seller
-    notification_message = f"Order for '{order.purchased_listing.title}' has been successfully COMPLETED!"
-    notification = Notification(
-        recipient=recipient_user.id,
-        sender=current_user.id,
-        message=notification_message,
-        link=url_for('payments.view_order', order_id=order.id),
-        notification_type='order_status_update'
-    )
-    notification.save()
-    current_app.extensions['socketio'].emit(
-        'new_notification',
-        {'message': notification.message, 'count': Notification.objects(recipient=recipient_user.id, read=False).count()},
-        room=str(recipient_user.id)
-    )
-
-    flash('Order marked as completed!', 'success')
-    return redirect(url_for('payments.manage_orders'))
-
-@payments_bp.route('/cancel_order/<string:order_id>', methods=['POST'])
-@login_required
-@roles_required('parent', 'school', 'ngo') # Buyer or seller can cancel if not yet completed
-def cancel_order(order_id):
-    """
-    Allows a buyer or seller to cancel an order if it has not been completed.
-    """
-    order = Order.objects(id=order_id).first()
-    if not order:
-        flash('Order not found.', 'danger')
-        return redirect(url_for('payments.manage_orders'))
-
-    # Only buyer or seller can cancel, and only if not completed or already cancelled
-    if (current_user.id != order.buyer.id and current_user.id != order.seller.id) or order.status == 'completed' or order.status == 'cancelled':
-        flash('You do not have permission to cancel this order or it cannot be cancelled at this stage.', 'danger')
-        return redirect(url_for('payments.view_order', order_id=order.id))
-
-    order.status = 'cancelled'
-    order.updated_date = datetime.utcnow()
-    order.save()
-
-    # Return the listing to 'available' status if it was 'pending_payment' or 'paid'
-    if order.purchased_listing.status in ['pending_payment', 'paid']:
-        order.purchased_listing.status = 'available'
-        order.purchased_listing.save()
-
-    # Notify the other party
-    recipient_user = order.buyer if current_user.id == order.seller.id else order.seller
-    notification_message = f"The order for '{order.purchased_listing.title}' has been CANCELLED by {current_user.username}."
-    notification = Notification(
-        recipient=recipient_user.id,
-        sender=current_user.id,
-        message=notification_message,
-        link=url_for('payments.view_order', order_id=order.id),
-        notification_type='order_status_update'
-    )
-    notification.save()
-    current_app.extensions['socketio'].emit(
-        'new_notification',
-        {'message': notification.message, 'count': Notification.objects(recipient=recipient_user.id, read=False).count()},
-        room=str(recipient_user.id)
-    )
-
-    flash('Order cancelled successfully.', 'info')
-    return redirect(url_for('payments.manage_orders'))
