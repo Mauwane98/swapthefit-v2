@@ -1,128 +1,179 @@
-{# app/templates/logistics/view_logistics.html #}
 {% extends "_layouts/base.html" %}
 
 {% block title %}Logistics Details{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8 max-w-3xl">
-    <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-8">Logistics Details 📦</h1>
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+                    <h1 class="h3 fw-bold text-center mb-4">Logistics Details</h1>
 
-    <div class="bg-white p-8 rounded-xl shadow-2xl">
-        <div class="mb-6 border-b pb-4">
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">Transaction Overview</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <p class="text-gray-700"><span class="font-semibold">Transaction ID:</span> {{ logistics.transaction_id }}</p>
-                <p class="text-gray-700"><span class="font-semibold">Transaction Type:</span> {{ logistics.transaction_type|capitalize }}</p>
-                <p class="text-gray-700"><span class="font-semibold">Sender:</span> 
-                    <a href="{{ url_for('listings.user_profile', user_id=logistics.sender.id) }}" class="text-indigo-600 hover:underline">
-                        {{ logistics.sender.username }}
-                    </a>
-                </p>
-                <p class="text-gray-700"><span class="font-semibold">Receiver:</span> 
-                    <a href="{{ url_for('listings.user_profile', user_id=logistics.receiver.id) }}" class="text-indigo-600 hover:underline">
-                        {{ logistics.receiver.username }}
-                    </a>
-                </p>
-                {% if related_listing %}
-                    <p class="text-gray-700 col-span-full"><span class="font-semibold">Related Listing:</span> 
-                        <a href="{{ url_for('listings.listing_detail', listing_id=related_listing.id) }}" class="text-blue-600 hover:underline">
-                            {{ related_listing.title }}
-                        </a>
-                    </p>
-                {% endif %}
-            </div>
-        </div>
+                    <div class="mb-4">
+                        <h2 class="h5 fw-bold">Transaction Overview</h2>
+                        <dl class="row">
+                            <dt class="col-sm-4">Transaction ID:</dt>
+                            <dd class="col-sm-8">{{ logistics.transaction_id }}</dd>
 
-        <div class="mb-6 border-b pb-4">
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">Shipping Details</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <p class="text-gray-700"><span class="font-semibold">Method:</span> {{ logistics.shipping_method|replace('_', ' ')|title }}</p>
-                <p class="text-gray-700"><span class="font-semibold">Current Status:</span> 
-                    <span class="px-2 py-1 inline-flex text-sm leading-5 font-semibold rounded-full
-                        {% if logistics.status == 'delivered' %}bg-green-100 text-green-800
-                        {% elif logistics.status == 'in_transit' %}bg-blue-100 text-blue-800
-                        {% elif logistics.status == 'pending_pickup' or logistics.status == 'ready_for_collection' %}bg-yellow-100 text-yellow-800
-                        {% else %}bg-gray-100 text-gray-800{% endif %}">
-                        {{ logistics.status|replace('_', ' ')|title }}
-                    </span>
-                </p>
-                {% if logistics.courier_name %}<p class="text-gray-700"><span class="font-semibold">Courier:</span> {{ logistics.courier_name }}</p>{% endif %}
-                {% if logistics.tracking_number %}<p class="text-gray-700"><span class="font-semibold">Tracking No.:</span> 
-                    {% if logistics.tracking_url %}
-                        <a href="{{ logistics.tracking_url }}" target="_blank" class="text-blue-600 hover:underline">{{ logistics.tracking_number }}</a>
-                    {% else %}
-                        {{ logistics.tracking_number }}
+                            <dt class="col-sm-4">Transaction Type:</dt>
+                            <dd class="col-sm-8">{{ logistics.transaction_type|capitalize }}</dd>
+
+                            <dt class="col-sm-4">Sender:</dt>
+                            <dd class="col-sm-8"><a href="{{ url_for('listings.user_profile', user_id=logistics.sender.id) }}">{{ logistics.sender.username }}</a></dd>
+
+                            <dt class="col-sm-4">Receiver:</dt>
+                            <dd class="col-sm-8"><a href="{{ url_for('listings.user_profile', user_id=logistics.receiver.id) }}">{{ logistics.receiver.username }}</a></dd>
+
+                            {% if related_listing %}
+                            <dt class="col-sm-4">Related Listing:</dt>
+                            <dd class="col-sm-8"><a href="{{ url_for('listings.listing_detail', listing_id=related_listing.id) }}">{{ related_listing.title }}</a></dd>
+                            {% endif %}
+                        </dl>
+                    </div>
+
+                    <div class="mb-4">
+                        <h2 class="h5 fw-bold">Shipping Details</h2>
+                        <dl class="row">
+                            <dt class="col-sm-4">Method:</dt>
+                            <dd class="col-sm-8">{{ logistics.shipping_method|replace('_', ' ')|title }}</dd>
+
+                            <dt class="col-sm-4">Current Status:</dt>
+                            <dd class="col-sm-8">
+                                <span class="badge 
+                                    {% if logistics.status == 'delivered' %}bg-success
+                                    {% elif logistics.status == 'in_transit' %}bg-info
+                                    {% elif logistics.status == 'pending_pickup' or logistics.status == 'ready_for_collection' %}bg-warning text-dark
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ logistics.status|replace('_', ' ')|title }}
+                                </span>
+                            </dd>
+
+                            {% if logistics.courier_name %}
+                            <dt class="col-sm-4">Courier:</dt>
+                            <dd class="col-sm-8">{{ logistics.courier_name }}</dd>
+                            {% endif %}
+
+                            {% if logistics.tracking_number %}
+                            <dt class="col-sm-4">Tracking No.:</dt>
+                            <dd class="col-sm-8">
+                                {% if logistics.tracking_url %}
+                                    <a href="{{ logistics.tracking_url }}" target="_blank">{{ logistics.tracking_number }}</a>
+                                {% else %}
+                                    {{ logistics.tracking_number }}
+                                {% endif %}
+                            </dd>
+                            {% endif %}
+
+                            {% if logistics.pudo_location_name %}
+                            <dt class="col-sm-4">PUDO Location:</dt>
+                            <dd class="col-sm-8">{{ logistics.pudo_location_name }}</dd>
+                            {% endif %}
+
+                            {% if logistics.pudo_address %}
+                            <dt class="col-sm-4">PUDO Address:</dt>
+                            <dd class="col-sm-8">{{ logistics.pudo_address }}</dd>
+                            {% endif %}
+
+                            {% if logistics.pudo_code %}
+                            <dt class="col-sm-4">PUDO Code:</dt>
+                            <dd class="col-sm-8">{{ logistics.pudo_code }}</dd>
+                            {% endif %}
+
+                            {% if logistics.pickup_address %}
+                            <dt class="col-sm-4">Pickup Address:</dt>
+                            <dd class="col-sm-8">{{ logistics.pickup_address }}</dd>
+                            {% endif %}
+
+                            {% if logistics.delivery_address %}
+                            <dt class="col-sm-4">Delivery Address:</dt>
+                            <dd class="col-sm-8">{{ logistics.delivery_address }}</dd>
+                            {% endif %}
+
+                            <dt class="col-sm-4">Created At:</dt>
+                            <dd class="col-sm-8">{{ logistics.created_at.strftime('%b %d, %Y %I:%M %p') }}</dd>
+
+                            <dt class="col-sm-4">Last Updated:</dt>
+                            <dd class="col-sm-8">{{ logistics.last_status_update.strftime('%b %d, %Y %I:%M %p') }}</dd>
+
+                            {% if logistics.scheduled_pickup_date %}
+                            <dt class="col-sm-4">Scheduled Pickup:</dt>
+                            <dd class="col-sm-8">{{ logistics.scheduled_pickup_date.strftime('%b %d, %Y %I:%M %p') }}</dd>
+                            {% endif %}
+
+                            {% if logistics.actual_pickup_date %}
+                            <dt class="col-sm-4">Actual Pickup:</dt>
+                            <dd class="col-sm-8">{{ logistics.actual_pickup_date.strftime('%b %d, %Y %I:%M %p') }}</dd>
+                            {% endif %}
+
+                            {% if logistics.scheduled_delivery_date %}
+                            <dt class="col-sm-4">Scheduled Delivery:</dt>
+                            <dd class="col-sm-8">{{ logistics.scheduled_delivery_date.strftime('%b %d, %Y %I:%M %p') }}</dd>
+                            {% endif %}
+
+                            {% if logistics.actual_delivery_date %}
+                            <dt class="col-sm-4">Actual Delivery:</dt>
+                            <dd class="col-sm-8">{{ logistics.actual_delivery_date.strftime('%b %d, %Y %I:%M %p') }}</dd>
+                            {% endif %}
+
+                            {% if logistics.notes %}
+                            <dt class="col-sm-4">Notes:</dt>
+                            <dd class="col-sm-8">{{ logistics.notes }}</dd>
+                            {% endif %}
+                        </dl>
+                    </div>
+
+                    {% if current_user.id == logistics.sender_user_id or current_user.id == logistics.receiver_user_id or current_user.role == 'admin' %}
+                    <div class="mt-4 pt-4 border-top">
+                        <h2 class="h5 fw-bold">Update Status</h2>
+                        <form method="POST" action="{{ url_for('logistics.update_logistics_status', logistics_id=logistics.id) }}">
+                            {{ update_form.hidden_tag() }}
+                            
+                            <div class="mb-3">
+                                {{ update_form.status.label(class="form-label") }}
+                                {{ update_form.status(class="form-select form-select-lg") }}
+                                {% for error in update_form.status.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-md-6 mb-3">
+                                    {{ update_form.actual_pickup_date.label(class="form-label") }}
+                                    {{ update_form.actual_pickup_date(class="form-control form-control-lg") }}
+                                    {% for error in update_form.actual_pickup_date.errors %}
+                                        <div class="invalid-feedback d-block">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ update_form.actual_delivery_date.label(class="form-label") }}
+                                    {{ update_form.actual_delivery_date(class="form-control form-control-lg") }}
+                                    {% for error in update_form.actual_delivery_date.errors %}
+                                        <div class="invalid-feedback d-block">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                {{ update_form.notes.label(class="form-label") }}
+                                {{ update_form.notes(class="form-control form-control-lg", rows="5") }}
+                                {% for error in update_form.notes.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary btn-lg">Update Status</button>
+                            </div>
+                        </form>
+                    </div>
                     {% endif %}
-                </p>{% endif %}
-                {% if logistics.pudo_location_name %}<p class="text-gray-700"><span class="font-semibold">PUDO Location:</span> {{ logistics.pudo_location_name }}</p>{% endif %}
-                {% if logistics.pudo_address %}<p class="text-gray-700"><span class="font-semibold">PUDO Address:</span> {{ logistics.pudo_address }}</p>{% endif %}
-                {% if logistics.pudo_code %}<p class="text-gray-700"><span class="font-semibold">PUDO Code:</span> {{ logistics.pudo_code }}</p>{% endif %}
-                {% if logistics.pickup_address %}<p class="text-gray-700"><span class="font-semibold">Pickup Address:</span> {{ logistics.pickup_address }}</p>{% endif %}
-                {% if logistics.delivery_address %}<p class="text-gray-700"><span class="font-semibold">Delivery Address:</span> {{ logistics.delivery_address }}</p>{% endif %}
-                <p class="text-gray-700"><span class="font-semibold">Created At:</span> {{ logistics.created_at.strftime('%b %d, %Y %I:%M %p') }}</p>
-                <p class="text-gray-700"><span class="font-semibold">Last Updated:</span> {{ logistics.last_status_update.strftime('%b %d, %Y %I:%M %p') }}</p>
-                {% if logistics.scheduled_pickup_date %}<p class="text-gray-700"><span class="font-semibold">Scheduled Pickup:</span> {{ logistics.scheduled_pickup_date.strftime('%b %d, %Y %I:%M %p') }}</p>{% endif %}
-                {% if logistics.actual_pickup_date %}<p class="text-gray-700"><span class="font-semibold">Actual Pickup:</span> {{ logistics.actual_pickup_date.strftime('%b %d, %Y %I:%M %p') }}</p>{% endif %}
-                {% if logistics.scheduled_delivery_date %}<p class="text-gray-700"><span class="font-semibold">Scheduled Delivery:</span> {{ logistics.scheduled_delivery_date.strftime('%b %d, %Y %I:%M %p') }}</p>{% endif %}
-                {% if logistics.actual_delivery_date %}<p class="text-gray-700"><span class="font-semibold">Actual Delivery:</span> {{ logistics.actual_delivery_date.strftime('%b %d, %Y %I:%M %p') }}</p>{% endif %}
+
+                    <div class="mt-4 text-center">
+                        <a href="{{ url_for('listings.dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+                    </div>
+                </div>
             </div>
-            {% if logistics.notes %}
-                <p class="text-gray-700 mt-4"><span class="font-semibold">Notes:</span> {{ logistics.notes }}</p>
-            {% endif %}
-        </div>
-
-        {# Update Status Form #}
-        {% if current_user.id == logistics.sender_user_id or current_user.id == logistics.receiver_user_id or current_user.role == 'admin' %}
-        <div class="mt-8 pt-4 border-t border-gray-200">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">Update Status</h2>
-            <form method="POST" action="{{ url_for('logistics.update_logistics_status', logistics_id=logistics.id) }}">
-                {{ update_form.hidden_tag() }}
-                
-                <div class="mb-5">
-                    {{ update_form.status.label(class="block text-sm font-medium text-gray-700 mb-1") }}
-                    {{ update_form.status(class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md") }}
-                    {% for error in update_form.status.errors %}
-                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
-                    {% endfor %}
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
-                    <div>
-                        {{ update_form.actual_pickup_date.label(class="block text-sm font-medium text-gray-700 mb-1") }}
-                        {{ update_form.actual_pickup_date(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-base") }}
-                        {% for error in update_form.actual_pickup_date.errors %}
-                            <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
-                        {% endfor %}
-                    </div>
-                    <div>
-                        {{ update_form.actual_delivery_date.label(class="block text-sm font-medium text-gray-700 mb-1") }}
-                        {{ update_form.actual_delivery_date(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-base") }}
-                        {% for error in update_form.actual_delivery_date.errors %}
-                            <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <div class="mb-6">
-                    {{ update_form.notes.label(class="block text-sm font-medium text-gray-700 mb-1") }}
-                    {{ update_form.notes(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-base") }}
-                    {% for error in update_form.notes.errors %}
-                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
-                    {% endfor %}
-                </div>
-
-                <div class="flex justify-center">
-                    {{ update_form.submit(class="inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200") }}
-                </div>
-            </form>
-        </div>
-        {% endif %}
-
-        <div class="mt-8 text-center">
-            <a href="{{ url_for('listings.dashboard') }}"
-               class="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                Back to Dashboard
-            </a>
         </div>
     </div>
 </div>

@@ -1,0 +1,152 @@
+/* app/static/css/custom.css */
+
+/*------------------------------------------------------------------
+[ITCSS Principles]
+
+1. Settings: Global variables, color palettes, etc.
+2. Tools: Mixins and functions.
+3. Generic: Reset and/or normalize styles.
+4. Elements: Bare, un-classed HTML elements.
+5. Objects: Class-based selectors which define undecorated design patterns.
+6. Components: Specific UI components.
+7. Trumps: Overrides and helper classes.
+------------------------------------------------------------------*/
+
+/*------------------------------------*
+    #SETTINGS
+\*------------------------------------*/
+
+:root {
+    --bolt-green: #34D186;
+    --bolt-dark-charcoal: #1A1A1A;
+    --bolt-charcoal: #2E2E2E;
+    --bolt-gray: #8A8A8A;
+    --bolt-light-gray: #F5F5F5;
+    --white: #FFFFFF;
+}
+
+/*------------------------------------*
+    #GENERIC
+\*------------------------------------*/
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--white);
+    color: var(--bolt-charcoal);
+}
+
+/*------------------------------------*
+    #ELEMENTS
+\*------------------------------------*/
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    color: var(--bolt-dark-charcoal);
+}
+
+/*------------------------------------*
+    #COMPONENTS
+\*------------------------------------*/
+
+/* Header */
+.navbar {
+    background-color: var(--white);
+    border-bottom: 1px solid var(--bolt-light-gray);
+}
+
+.navbar-brand {
+    font-weight: 700;
+    color: var(--bolt-dark-charcoal);
+}
+
+.nav-link {
+    color: var(--bolt-charcoal);
+    font-weight: 500;
+}
+
+.nav-link:hover {
+    color: var(--bolt-green);
+}
+
+/* Buttons */
+.btn-primary {
+    background-color: var(--bolt-green);
+    border-color: var(--bolt-green);
+    color: var(--bolt-dark-charcoal);
+    font-weight: 600;
+    border-radius: 50rem; /* Pill-shaped buttons */
+    padding: 0.75rem 1.5rem;
+}
+
+.btn-primary:hover {
+    background-color: #2cc47a; 
+    border-color: #2cc47a;
+    color: var(--bolt-dark-charcoal);
+}
+
+.btn-secondary {
+    background-color: var(--bolt-light-gray);
+    border-color: var(--bolt-light-gray);
+    color: var(--bolt-dark-charcoal);
+    font-weight: 600;
+    border-radius: 50rem;
+    padding: 0.75rem 1.5rem;
+}
+
+.btn-secondary:hover {
+    background-color: #e9e9e9;
+    border-color: #e9e9e9;
+}
+
+/* Forms */
+.form-control {
+    border-radius: 0.5rem;
+    border: 1px solid #e0e0e0;
+}
+
+.form-control:focus {
+    border-color: var(--bolt-green);
+    box-shadow: 0 0 0 0.25rem rgba(52, 209, 134, 0.25);
+}
+
+/* Custom Radio Buttons */
+.form-check-input[type="radio"] + .form-check-label {
+    border: 2px solid #e0e0e0;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    width: 100%;
+    text-align: center;
+    font-weight: 500;
+}
+
+.form-check-input[type="radio"]:checked + .form-check-label {
+    border-color: var(--bolt-green);
+    background-color: #e6f9f0; /* A light green background */
+    color: var(--bolt-dark-charcoal);
+    font-weight: 600;
+}
+
+/* Footer */
+.footer {
+    background-color: var(--bolt-dark-charcoal);
+    color: var(--bolt-gray);
+    padding: 4rem 0;
+}
+
+.footer a {
+    color: var(--white);
+    text-decoration: none;
+    transition: color 0.2s ease-in-out;
+}
+
+.footer a:hover {
+    color: var(--bolt-green);
+}
+
+.footer .footer-heading {
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 1rem;
+}

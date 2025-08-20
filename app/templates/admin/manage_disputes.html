@@ -1,135 +1,73 @@
-{# app/templates/admin/manage_disputes.html #}
 {% extends "_layouts/base.html" %}
 
 {% block title %}Manage Disputes{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-8">Manage Disputes (Admin) 🗂️</h1>
+<div class="container my-5">
+    <div class="text-center mb-5">
+        <h1 class="display-5 fw-bold">Manage Disputes</h1>
+        <p class="lead">Review and resolve user disputes.</p>
+    </div>
 
-    <div class="bg-white p-6 rounded-xl shadow-2xl mb-8">
-        <div class="flex justify-between items-center mb-6 border-b pb-4">
-            <h2 class="text-2xl font-bold text-gray-800">All Disputes</h2>
-            <div class="flex space-x-4">
-                <a href="{{ url_for('disputes.manage_disputes', status='all') }}"
-                   class="px-4 py-2 rounded-lg text-sm font-medium
-                   {% if status_filter == 'all' %}bg-indigo-600 text-white shadow{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}
-                   transition-colors duration-200">
-                    All Statuses
-                </a>
-                <a href="{{ url_for('disputes.manage_disputes', status='open') }}"
-                   class="px-4 py-2 rounded-lg text-sm font-medium
-                   {% if status_filter == 'open' %}bg-red-600 text-white shadow{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}
-                   transition-colors duration-200">
-                    Open
-                </a>
-                <a href="{{ url_for('disputes.manage_disputes', status='under review') }}"
-                   class="px-4 py-2 rounded-lg text-sm font-medium
-                   {% if status_filter == 'under review' %}bg-yellow-600 text-white shadow{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}
-                   transition-colors duration-200">
-                    Under Review
-                </a>
-                <a href="{{ url_for('disputes.manage_disputes', status='resolved') }}"
-                   class="px-4 py-2 rounded-lg text-sm font-medium
-                   {% if status_filter == 'resolved' %}bg-green-600 text-white shadow{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}
-                   transition-colors duration-200">
-                    Resolved
-                </a>
-                <a href="{{ url_for('disputes.manage_disputes', status='closed') }}"
-                   class="px-4 py-2 rounded-lg text-sm font-medium
-                   {% if status_filter == 'closed' %}bg-gray-600 text-white shadow{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}
-                   transition-colors duration-200">
-                    Closed
-                </a>
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white p-3 d-flex justify-content-between align-items-center">
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('disputes.manage_disputes', status='all') }}" class="btn {% if status_filter == 'all' %}btn-primary{% else %}btn-secondary{% endif %}">All</a>
+                <a href="{{ url_for('disputes.manage_disputes', status='open') }}" class="btn {% if status_filter == 'open' %}btn-danger{% else %}btn-secondary{% endif %}">Open</a>
+                <a href="{{ url_for('disputes.manage_disputes', status='under review') }}" class="btn {% if status_filter == 'under review' %}btn-warning{% else %}btn-secondary{% endif %}">Under Review</a>
+                <a href="{{ url_for('disputes.manage_disputes', status='resolved') }}" class="btn {% if status_filter == 'resolved' %}btn-success{% else %}btn-secondary{% endif %}">Resolved</a>
+                <a href="{{ url_for('disputes.manage_disputes', status='closed') }}" class="btn {% if status_filter == 'closed' %}btn-dark{% else %}btn-secondary{% endif %}">Closed</a>
             </div>
         </div>
-
-        {% if disputes %}
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 rounded-lg overflow-hidden shadow-sm">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                ID
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Initiator
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Respondent
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Listing (if applicable)
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Reason Summary
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Status
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Date Raised
-                            </th>
-                            <th scope="col" class="relative px-6 py-3">
-                                <span class="sr-only">Actions</span>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for dispute in disputes %}
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {{ dispute.id }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                <a href="{{ url_for('listings.user_profile', user_id=dispute.initiator.id) }}" class="text-indigo-600 hover:text-indigo-900">
-                                    {{ dispute.initiator.username }}
-                                </a>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                <a href="{{ url_for('listings.user_profile', user_id=dispute.respondent.id) }}" class="text-indigo-600 hover:text-indigo-900">
-                                    {{ dispute.respondent.username }}
-                                </a>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {% if dispute.listing %}
-                                    <a href="{{ url_for('listings.listing_detail', listing_id=dispute.listing.id) }}" class="text-blue-600 hover:text-blue-900">
-                                        {{ dispute.listing.title }}
-                                    </a>
-                                {% else %}
-                                    N/A
-                                {% endif %}
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
-                                {{ dispute.reason[:100] }}...
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                                    {% if dispute.status == 'open' %}bg-red-100 text-red-800
-                                    {% elif dispute.status == 'under review' %}bg-yellow-100 text-yellow-800
-                                    {% elif dispute.status == 'resolved' %}bg-green-100 text-green-800
-                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                    {{ dispute.status|capitalize }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ dispute.date_raised.strftime('%b %d, %Y') }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <a href="{{ url_for('disputes.resolve_dispute', dispute_id=dispute.id) }}" class="text-indigo-600 hover:text-indigo-900 mr-2">
-                                    Manage
-                                </a>
-                                <a href="{{ url_for('disputes.dispute_detail', dispute_id=dispute.id) }}" class="text-blue-600 hover:text-blue-900">
-                                    View
-                                </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Initiator</th>
+                        <th>Respondent</th>
+                        <th>Listing</th>
+                        <th>Reason</th>
+                        <th>Status</th>
+                        <th>Date Raised</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dispute in disputes %}
+                    <tr>
+                        <td>{{ dispute.id }}</td>
+                        <td><a href="{{ url_for('listings.user_profile', user_id=dispute.initiator.id) }}">{{ dispute.initiator.username }}</a></td>
+                        <td><a href="{{ url_for('listings.user_profile', user_id=dispute.respondent.id) }}">{{ dispute.respondent.username }}</a></td>
+                        <td>
+                            {% if dispute.listing %}
+                                <a href="{{ url_for('listings.listing_detail', listing_id=dispute.listing.id) }}">{{ dispute.listing.title }}</a>
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        <td class="text-truncate" style="max-width: 200px;">{{ dispute.reason }}</td>
+                        <td>
+                            <span class="badge 
+                                {% if dispute.status == 'open' %}bg-danger
+                                {% elif dispute.status == 'under review' %}bg-warning text-dark
+                                {% elif dispute.status == 'resolved' %}bg-success
+                                {% else %}bg-dark{% endif %}">{{ dispute.status|capitalize }}</span>
+                        </td>
+                        <td>{{ dispute.date_raised.strftime('%b %d, %Y') }}</td>
+                        <td>
+                            <a href="{{ url_for('disputes.resolve_dispute', dispute_id=dispute.id) }}" class="btn btn-sm btn-primary">Manage</a>
+                            <a href="{{ url_for('disputes.dispute_detail', dispute_id=dispute.id) }}" class="btn btn-sm btn-secondary">View</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if not disputes %}
+            <div class="card-body text-center">
+                <p class="text-muted mb-0">No disputes found.</p>
             </div>
-        {% else %}
-            <p class="text-gray-600 text-center py-4">No disputes found.</p>
         {% endif %}
     </div>
 </div>

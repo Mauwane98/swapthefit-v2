@@ -1,119 +1,56 @@
-{# app/templates/admin/view_reviews.html #}
 {% extends "_layouts/base.html" %}
 
 {% block title %}Manage Reviews{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-8">Manage Reviews (Admin) 📝</h1>
+<div class="container my-5">
+    <div class="text-center mb-5">
+        <h1 class="display-5 fw-bold">Manage Reviews</h1>
+        <p class="lead">Oversee all reviews on the platform.</p>
+    </div>
 
-    <div class="bg-white p-6 rounded-xl shadow-2xl mb-8">
-        <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-3">All Reviews</h2>
-        
-        {# Optional: Add search and filter for reviews if needed (e.g., by reviewer, reviewed user, rating, listing) #}
-        {# Example:
-        <form action="{{ url_for('admin.view_reviews') }}" method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div>
-                <label for="reviewer_search" class="block text-sm font-medium text-gray-700 mb-1">Reviewer Username</label>
-                <input type="text" name="reviewer_search" id="reviewer_search"
-                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                       placeholder="Search by reviewer">
+    <div class="card shadow-sm border-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Reviewer</th>
+                        <th>Reviewed User</th>
+                        <th>Rating</th>
+                        <th>Comment</th>
+                        <th>Transaction ID</th>
+                        <th>Date Posted</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for review in reviews %}
+                    <tr>
+                        <td>{{ review.id }}</td>
+                        <td><a href="{{ url_for('listings.user_profile', user_id=review.reviewer.id) }}">{{ review.reviewer.username }}</a></td>
+                        <td><a href="{{ url_for('listings.user_profile', user_id=review.reviewed_user.id) }}">{{ review.reviewed_user.username }}</a></td>
+                        <td>
+                            <span class="text-warning">{% for _ in range(review.rating) %}★{% endfor %}{% for _ in range(5 - review.rating) %}☆{% endfor %}</span>
+                            <span class="badge {% if review.is_positive %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ 'Positive' if review.is_positive else 'Negative' }}
+                            </span>
+                        </td>
+                        <td class="text-truncate" style="max-width: 200px;">{{ review.comment }}</td>
+                        <td>{{ review.transaction_id }}</td>
+                        <td>{{ review.date_posted.strftime('%b %d, %Y') }}</td>
+                        <td>
+                            <a href="{{ url_for('reviews.user_reviews', user_id=review.reviewed_user.id) }}" class="btn btn-sm btn-primary">View All</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if not reviews %}
+            <div class="card-body text-center">
+                <p class="text-muted mb-0">No reviews found.</p>
             </div>
-            <div>
-                <label for="rating_filter" class="block text-sm font-medium text-gray-700 mb-1">Min Rating</label>
-                <select id="rating_filter" name="rating_filter"
-                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
-                    <option value="">All</option>
-                    <option value="1">1 Star & Up</option>
-                    <option value="2">2 Stars & Up</option>
-                    <option value="3">3 Stars & Up</option>
-                    <option value="4">4 Stars & Up</option>
-                    <option value="5">5 Stars</option>
-                </select>
-            </div>
-            <div class="col-span-full flex justify-end space-x-3 mt-2">
-                <button type="submit" class="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">Apply Filters</button>
-                <a href="{{ url_for('admin.view_reviews') }}" class="inline-flex items-center px-6 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Reset</a>
-            </div>
-        </form>
-        #}
-
-        {% if reviews %}
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 rounded-lg overflow-hidden shadow-sm">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                ID
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Reviewer
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Reviewed User
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Overall Rating
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Comment Summary
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Transaction ID
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Date Posted
-                            </th>
-                            <th scope="col" class="relative px-6 py-3">
-                                <span class="sr-only">Actions</span>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for review in reviews %}
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {{ review.id }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                <a href="{{ url_for('listings.user_profile', user_id=review.reviewer.id) }}" class="text-indigo-600 hover:text-indigo-900">
-                                    {{ review.reviewer.username }}
-                                </a>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                <a href="{{ url_for('listings.user_profile', user_id=review.reviewed_user.id) }}" class="text-indigo-600 hover:text-indigo-900">
-                                    {{ review.reviewed_user.username }}
-                                </a>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                <span class="text-yellow-500">
-                                    {% for _ in range(review.rating) %}⭐{% endfor %}{% for _ in range(5 - review.rating) %}☆{% endfor %}
-                                </span>
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                                    {% if review.is_positive %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
-                                    {{ 'Positive' if review.is_positive else 'Negative' }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
-                                {{ review.comment[:100] }}...
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ review.transaction_id }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ review.date_posted.strftime('%b %d, %Y') }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                {# Admins might need a way to edit/delete reviews - add routes for that if required #}
-                                <a href="{{ url_for('reviews.user_reviews', user_id=review.reviewed_user.id) }}" class="text-blue-600 hover:text-blue-900">View All</a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% else %}
-            <p class="text-gray-600 text-center py-4">No reviews found in the system.</p>
         {% endif %}
     </div>
 </div>

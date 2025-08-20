@@ -1,34 +1,38 @@
-{# app/templates/wishlist/save_search.html #}
 {% extends "_layouts/base.html" %}
 
 {% block title %}Save Search{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8 max-w-lg">
-    <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-8">Save Your Search 🏷️</h1>
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+                    <h1 class="h3 fw-bold text-center mb-4">Save Your Search</h1>
+                    <p class="text-center text-muted mb-4">
+                        You are about to save the following search criteria:
+                        <br>
+                        <code class="d-inline-block p-2 mt-2 rounded bg-light text-break small">
+                            {{ current_query_params or 'No specific filters selected' }}
+                        </code>
+                    </p>
 
-    <div class="bg-white p-8 rounded-xl shadow-2xl">
-        <p class="text-gray-700 mb-6 text-center">
-            You are about to save the following search criteria:
-            <br>
-            <code class="bg-gray-100 text-gray-800 p-2 rounded-md inline-block mt-2 break-all text-sm">
-                {{ current_query_params or 'No specific filters selected' }}
-            </code>
-        </p>
-
-        <form method="POST" action="{{ url_for('wishlist.save_search') }}?{{ current_query_params }}">
-            {{ form.hidden_tag() }}
-            <div class="mb-4">
-                {{ form.name.label(class="block text-sm font-medium text-gray-700 mb-1") }}
-                {{ form.name(class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm") }}
-                {% for error in form.name.errors %}
-                    <span class="text-red-500 text-xs">{{ error }}</span>
-                {% endfor %}
+                    <form method="POST" action="{{ url_for('wishlist.save_search') }}?{{ current_query_params }}">
+                        {{ form.hidden_tag() }}
+                        <div class="mb-3">
+                            {{ form.name.label(class="form-label") }}
+                            {{ form.name(class="form-control form-control-lg") }}
+                            {% for error in form.name.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="d-grid">
+                            {{ form.submit(class="btn btn-primary btn-lg") }}
+                        </div>
+                    </form>
+                </div>
             </div>
-            <div class="flex justify-center">
-                {{ form.submit(class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500") }}
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 {% endblock %}

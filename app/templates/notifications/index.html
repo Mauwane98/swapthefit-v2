@@ -1,106 +1,53 @@
-{# app/templates/notifications/index.html #}
 {% extends "_layouts/base.html" %}
 
-{% block title %}{{ title }}{% endblock %}
+{% block title %}Your Notifications{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-8">Your Notifications 🔔</h1>
+<div class="container my-5">
+    <div class="text-center mb-5">
+        <h1 class="display-5 fw-bold">Notifications</h1>
+        <p class="lead">Here are your latest updates.</p>
+    </div>
 
-    <div class="bg-white p-6 rounded-xl shadow-2xl mb-8">
-        <div class="flex justify-between items-center mb-6 border-b pb-4">
-            <h2 class="text-2xl font-bold text-gray-800">Notification List</h2>
-            <div class="flex space-x-4">
-                <a href="{{ url_for('notifications.index', filter='all') }}"
-                   class="px-4 py-2 rounded-lg text-sm font-medium
-                   {% if filter_status == 'all' %}bg-indigo-600 text-white shadow{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}
-                   transition-colors duration-200">
-                    All Notifications
-                </a>
-                <a href="{{ url_for('notifications.index', filter='unread') }}"
-                   class="px-4 py-2 rounded-lg text-sm font-medium
-                   {% if filter_status == 'unread' %}bg-indigo-600 text-white shadow{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}
-                   transition-colors duration-200">
-                    Unread Only
-                </a>
-                <form action="{{ url_for('notifications.mark_all_read') }}" method="POST" class="inline-block">
-                    <button type="submit"
-                            class="px-4 py-2 rounded-lg text-sm font-medium bg-green-500 text-white hover:bg-green-600 transition-colors duration-200 shadow">
-                        Mark All Read
-                    </button>
-                </form>
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white p-3 d-flex justify-content-between align-items-center">
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('notifications.index', filter='all') }}" class="btn {% if filter_status == 'all' %}btn-primary{% else %}btn-secondary{% endif %}">All</a>
+                <a href="{{ url_for('notifications.index', filter='unread') }}" class="btn {% if filter_status == 'unread' %}btn-primary{% else %}btn-secondary{% endif %}">Unread</a>
             </div>
+            <form action="{{ url_for('notifications.mark_all_read') }}" method="POST">
+                <button type="submit" class="btn btn-light">Mark All as Read</button>
+            </form>
         </div>
-
-        {% if notifications %}
-            <div class="space-y-4">
+        <div class="list-group list-group-flush">
+            {% if notifications %}
                 {% for notification in notifications %}
-                    <div class="p-4 rounded-lg shadow-md flex items-center justify-between
-                                {% if not notification.is_read %}bg-blue-50 border-l-4 border-blue-500{% else %}bg-gray-50{% endif %}">
-                        <div class="flex-grow">
-                            <p class="text-gray-800 text-base font-medium">
-                                {{ notification.message }}
-                            </p>
-                            <p class="text-sm text-gray-600 mt-1">
-                                <span class="font-semibold">Type:</span> {{ notification.notification_type|replace('_', ' ')|title }}
-                                <span class="mx-2 text-gray-400">|</span>
-                                <span class="font-semibold">Time:</span> {{ notification.timestamp.strftime('%b %d, %Y %I:%M %p') }}
-                            </p>
-                            {% if notification.payload %}
-                                <div class="text-xs text-gray-500 mt-1">
-                                    {% if notification.notification_type == 'wishlist_update' %}
-                                        {% set listing_id = notification.payload.listing_id %}
-                                        {% set old_price = notification.payload.old_price %}
-                                        {% set new_price = notification.payload.new_price %}
-                                        {% if listing_id %}
-                                            <p>For listing: <a href="{{ url_for('listings.listing_detail', listing_id=listing_id) }}" class="text-blue-600 hover:underline">#{{ listing_id }}</a></p>
-                                        {% endif %}
-                                        {% if old_price is not none and new_price is not none %}
-                                            <p>Price changed from R{{ "%.2f"|format(old_price) }} to R{{ "%.2f"|format(new_price) }}</p>
-                                        {% elif new_price is not none %}
-                                            <p>New price: R{{ "%.2f"|format(new_price) }}</p>
-                                        {% endif %}
-                                    {% elif notification.notification_type == 'new_message' %}
-                                        {% set sender_id = notification.payload.sender_id %}
-                                        {% if sender_id %}
-                                            <p>From user: <a href="{{ url_for('messaging.inbox', user_id=sender_id) }}" class="text-blue-600 hover:underline">View Message</a></p>
-                                        {% endif %}
-                                    {% elif notification.notification_type == 'saved_search_match' %}
-                                        {% set listing_id = notification.payload.listing_id %}
-                                        {% if listing_id %}
-                                            <p>Matching listing: <a href="{{ url_for('listings.listing_detail', listing_id=listing_id) }}" class="text-blue-600 hover:underline">View Listing</a></p>
-                                        {% endif %}
-                                    {% else %}
-                                        <p>Details: {{ notification.payload }}</p>
-                                    {% endif %}
-                                </div>
-                            {% endif %}
+                    <div class="list-group-item p-3 {% if not notification.is_read %}list-group-item-light{% endif %}">
+                        <div class="d-flex w-100 justify-content-between">
+                            <p class="mb-1">{{ notification.message }}</p>
+                            <small class="text-muted">{{ notification.timestamp.strftime('%b %d') }}</small>
                         </div>
-                        <div class="flex-shrink-0 ml-4 space-x-2">
-                            {% if not notification.is_read %}
-                                <form action="{{ url_for('notifications.mark_read', notification_id=notification.id) }}" method="POST" class="inline-block">
-                                    <button type="submit" title="Mark as Read"
-                                            class="p-2 rounded-full bg-indigo-100 text-indigo-600 hover:bg-indigo-200 transition-colors duration-200">
-                                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
-                                    </button>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">{{ notification.notification_type|replace('_', ' ')|title }}</small>
+                            <div>
+                                {% if not notification.is_read %}
+                                    <form action="{{ url_for('notifications.mark_read', notification_id=notification.id) }}" method="POST" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-success">Mark Read</button>
+                                    </form>
+                                {% endif %}
+                                <form action="{{ url_for('notifications.delete_notification', notification_id=notification.id) }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?');">Delete</button>
                                 </form>
-                            {% endif %}
-                            <form action="{{ url_for('notifications.delete_notification', notification_id=notification.id) }}" method="POST" class="inline-block">
-                                <button type="submit" title="Delete Notification"
-                                        class="p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition-colors duration-200"
-                                        onclick="return confirm('Are you sure you want to delete this notification?');">
-                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1zm1 3a1 1 0 000 2h4a1 1 0 100-2H8z" clip-rule="evenodd"></path></svg>
-                                </button>
-                            </form>
+                            </div>
                         </div>
                     </div>
                 {% endfor %}
-            </div>
-        {% else %}
-            <div class="text-center py-12 bg-gray-50 rounded-xl shadow-inner">
-                <p class="text-xl text-gray-500 mb-4">You have no notifications.</p>
-            </div>
-        {% endif %}
+            {% else %}
+                <div class="list-group-item p-5 text-center">
+                    <p class="text-muted mb-0">You have no notifications.</p>
+                </div>
+            {% endif %}
+        </div>
     </div>
 </div>
 {% endblock %}

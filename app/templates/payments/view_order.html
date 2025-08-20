@@ -1,131 +1,130 @@
-{# app/templates/payments/view_order.html #}
 {% extends "_layouts/base.html" %}
 
 {% block title %}Order Details{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8 max-w-3xl">
-    <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-8">Order Details #{{ order.id }} 🧾</h1>
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+                    <h1 class="h3 fw-bold text-center mb-4">Order Details #{{ order.id }}</h1>
 
-    <div class="bg-white p-8 rounded-xl shadow-2xl">
-        <div class="mb-6 border-b pb-4">
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">Order Overview</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <p class="text-gray-700"><span class="font-semibold">Status:</span> 
-                    <span class="px-2 py-1 inline-flex text-sm leading-5 font-semibold rounded-full
-                        {% if order.status == 'completed' %}bg-green-100 text-green-800
-                        {% elif order.status == 'pending' %}bg-yellow-100 text-yellow-800
-                        {% elif order.status == 'cancelled' or order.status == 'refunded' %}bg-red-100 text-red-800
-                        {% else %}bg-gray-100 text-gray-800{% endif %}">
-                        {{ order.status|capitalize }}
-                    </span>
-                </p>
-                <p class="text-gray-700"><span class="font-semibold">Order Date:</span> {{ order.order_date.strftime('%b %d, %Y %I:%M %p') }}</p>
-                <p class="text-gray-700"><span class="font-semibold">Buyer:</span> 
-                    <a href="{{ url_for('listings.user_profile', user_id=order.buyer.id) }}" class="text-indigo-600 hover:underline">
-                        {{ order.buyer.username }}
-                    </a>
-                </p>
-                <p class="text-gray-700"><span class="font-semibold">Seller:</span> 
-                    <a href="{{ url_for('listings.user_profile', user_id=order.seller.id) }}" class="text-indigo-600 hover:underline">
-                        {{ order.seller.username }}
-                    </a>
-                </p>
-                {% if order.is_premium_listing_purchase %}
-                    <p class="text-gray-700 col-span-full"><span class="font-semibold">Premium Listing:</span> 
-                        {% if order.premium_listing_ref %}
-                            <a href="{{ url_for('listings.listing_detail', listing_id=order.premium_listing_ref.id) }}" class="text-blue-600 hover:underline">
-                                {{ order.premium_listing_ref.title }} (ID: {{ order.premium_listing_id }})
-                            </a>
+                    <div class="mb-4">
+                        <h2 class="h5 fw-bold">Order Overview</h2>
+                        <dl class="row">
+                            <dt class="col-sm-4">Status:</dt>
+                            <dd class="col-sm-8">
+                                <span class="badge 
+                                    {% if order.status == 'completed' %}bg-success
+                                    {% elif order.status == 'pending' %}bg-warning text-dark
+                                    {% elif order.status == 'cancelled' or order.status == 'refunded' %}bg-danger
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ order.status|capitalize }}
+                                </span>
+                            </dd>
+
+                            <dt class="col-sm-4">Order Date:</dt>
+                            <dd class="col-sm-8">{{ order.order_date.strftime('%b %d, %Y %I:%M %p') }}</dd>
+
+                            <dt class="col-sm-4">Buyer:</dt>
+                            <dd class="col-sm-8"><a href="{{ url_for('listings.user_profile', user_id=order.buyer.id) }}">{{ order.buyer.username }}</a></dd>
+
+                            <dt class="col-sm-4">Seller:</dt>
+                            <dd class="col-sm-8"><a href="{{ url_for('listings.user_profile', user_id=order.seller.id) }}">{{ order.seller.username }}</a></dd>
+
+                            {% if order.is_premium_listing_purchase %}
+                            <dt class="col-sm-4">Premium Listing:</dt>
+                            <dd class="col-sm-8">
+                                {% if order.premium_listing_ref %}
+                                    <a href="{{ url_for('listings.listing_detail', listing_id=order.premium_listing_ref.id) }}">{{ order.premium_listing_ref.title }}</a>
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </dd>
+                            <dt class="col-sm-4">Premium Cost:</dt>
+                            <dd class="col-sm-8">R{{ "%.2f"|format(order.amount_paid_total) }}</dd>
+                            {% else %}
+                            <dt class="col-sm-4">Listing Purchased:</dt>
+                            <dd class="col-sm-8"><a href="{{ url_for('listings.listing_detail', listing_id=order.listing.id) }}">{{ order.listing.title }}</a></dd>
+                            <dt class="col-sm-4">Price at Purchase:</dt>
+                            <dd class="col-sm-8">R{{ "%.2f"|format(order.price_at_purchase) }}</dd>
+                            {% endif %}
+                        </dl>
+                    </div>
+
+                    <div class="mb-4">
+                        <h2 class="h5 fw-bold">Payment & Payout Details</h2>
+                        <dl class="row">
+                            <dt class="col-sm-4">Payment Gateway:</dt>
+                            <dd class="col-sm-8">{{ order.payment_gateway or 'N/A' }}</dd>
+
+                            <dt class="col-sm-4">Gateway Transaction ID:</dt>
+                            <dd class="col-sm-8">{{ order.transaction_id_gateway or 'N/A' }}</dd>
+
+                            <dt class="col-sm-4">Total Amount Paid:</dt>
+                            <dd class="col-sm-8">R{{ "%.2f"|format(order.amount_paid_total) }}</dd>
+
+                            <dt class="col-sm-4">Platform Fee:</dt>
+                            <dd class="col-sm-8">R{{ "%.2f"|format(order.platform_fee) }}</dd>
+
+                            <dt class="col-sm-4">Seller Payout Amount:</dt>
+                            <dd class="col-sm-8">R{{ "%.2f"|format(order.seller_payout_amount) }}</dd>
+
+                            <dt class="col-sm-4">Payout Status:</dt>
+                            <dd class="col-sm-8">
+                                <span class="badge 
+                                    {% if order.payout_status == 'paid' %}bg-success
+                                    {% elif order.payout_status == 'pending' %}bg-warning text-dark
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ order.payout_status|capitalize }}
+                                </span>
+                            </dd>
+
+                            {% if order.payout_date %}
+                            <dt class="col-sm-4">Payout Date:</dt>
+                            <dd class="col-sm-8">{{ order.payout_date.strftime('%b %d, %Y %I:%M %p') }}</dd>
+                            {% endif %}
+                        </dl>
+                    </div>
+
+                    {% if not order.is_premium_listing_purchase %}
+                    <div class="mt-4 pt-4 border-top">
+                        <h2 class="h5 fw-bold">Logistics</h2>
+                        {% if order.logistics_record %}
+                            <p class="mb-3">Current Logistics Status: 
+                                <span class="badge 
+                                    {% if order.logistics_record.status == 'delivered' %}bg-success
+                                    {% elif order.logistics_record.status == 'in_transit' %}bg-info
+                                    {% elif order.logistics_record.status == 'pending_pickup' or order.logistics_record.status == 'ready_for_collection' %}bg-warning text-dark
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ order.logistics_record.status|replace('_', ' ')|title }}
+                                </span>
+                            </p>
+                            <a href="{{ url_for('logistics.view_logistics', logistics_id=order.logistics_record.id) }}" class="btn btn-secondary">View Logistics Details</a>
                         {% else %}
-                            N/A (Listing Deleted)
+                            <p class="mb-3">Logistics have not been set up for this order yet.</p>
+                            {% if current_user.id == order.seller_id %}
+                                <a href="{{ url_for('logistics.setup_logistics', transaction_type='sale', transaction_id=order.id) }}" class="btn btn-primary">Setup Logistics</a>
+                            {% else %}
+                                <p class="text-muted small">The seller needs to set up logistics for this order.</p>
+                            {% endif %}
                         {% endif %}
-                    </p>
-                    <p class="text-gray-700"><span class="font-semibold">Premium Cost:</span> R{{ "%.2f"|format(order.amount_paid_total) }}</p>
-                {% else %}
-                    <p class="text-gray-700 col-span-full"><span class="font-semibold">Listing Purchased:</span> 
-                        <a href="{{ url_for('listings.listing_detail', listing_id=order.listing.id) }}" class="text-blue-600 hover:underline">
-                            {{ order.listing.title }} (ID: {{ order.listing_id }})
-                        </a>
-                    </p>
-                    <p class="text-gray-700"><span class="font-semibold">Price at Purchase:</span> R{{ "%.2f"|format(order.price_at_purchase) }}</p>
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="mb-6 border-b pb-4">
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">Payment & Payout Details</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <p class="text-gray-700"><span class="font-semibold">Payment Gateway:</span> {{ order.payment_gateway or 'N/A' }}</p>
-                <p class="text-gray-700"><span class="font-semibold">Gateway Transaction ID:</span> {{ order.transaction_id_gateway or 'N/A' }}</p>
-                <p class="text-gray-700"><span class="font-semibold">Total Amount Paid:</span> R{{ "%.2f"|format(order.amount_paid_total) }}</p>
-                <p class="text-gray-700"><span class="font-semibold">Platform Fee:</span> R{{ "%.2f"|format(order.platform_fee) }}</p>
-                <p class="text-gray-700"><span class="font-semibold">Seller Payout Amount:</span> R{{ "%.2f"|format(order.seller_payout_amount) }}</p>
-                <p class="text-gray-700"><span class="font-semibold">Payout Status:</span> 
-                    <span class="px-2 py-1 inline-flex text-sm leading-5 font-semibold rounded-full
-                        {% if order.payout_status == 'paid' %}bg-green-100 text-green-800
-                        {% elif order.payout_status == 'pending' %}bg-yellow-100 text-yellow-800
-                        {% else %}bg-gray-100 text-gray-800{% endif %}">
-                        {{ order.payout_status|capitalize }}
-                    </span>
-                </p>
-                {% if order.payout_date %}
-                    <p class="text-gray-700 col-span-full"><span class="font-semibold">Payout Date:</span> {{ order.payout_date.strftime('%b %d, %Y %I:%M %p') }}</p>
-                {% endif %}
-            </div>
-        </div>
-
-        {# Logistics Section #}
-        {% if not order.is_premium_listing_purchase %} {# Logistics only for actual item transactions #}
-            <div class="mt-8 pt-4 border-t border-gray-200">
-                <h2 class="text-2xl font-bold text-gray-800 mb-4">Logistics</h2>
-                {% if order.logistics_record %} {# Assuming order.logistics_record is available from route #}
-                    <p class="text-gray-700 mb-4">Current Logistics Status: 
-                        <span class="px-2 py-1 inline-flex text-sm leading-5 font-semibold rounded-full
-                            {% if order.logistics_record.status == 'delivered' %}bg-green-100 text-green-800
-                            {% elif order.logistics_record.status == 'in_transit' %}bg-blue-100 text-blue-800
-                            {% elif order.logistics_record.status == 'pending_pickup' or order.logistics_record.status == 'ready_for_collection' %}bg-yellow-100 text-yellow-800
-                            {% else %}bg-gray-100 text-gray-800{% endif %}">
-                            {{ order.logistics_record.status|replace('_', ' ')|title }}
-                        </span>
-                    </p>
-                    <a href="{{ url_for('logistics.view_logistics', logistics_id=order.logistics_record.id) }}"
-                       class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
-                        View Logistics Details
-                    </a>
-                {% else %}
-                    <p class="text-gray-700 mb-4">Logistics have not been set up for this order yet.</p>
-                    {% if current_user.id == order.seller_id %} {# Only seller can initiate logistics setup #}
-                        <a href="{{ url_for('logistics.setup_logistics', transaction_type='sale', transaction_id=order.id) }}"
-                           class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
-                            Setup Logistics
-                        </a>
-                    {% else %}
-                        <p class="text-sm text-gray-500">The seller needs to set up logistics for this order.</p>
+                    </div>
                     {% endif %}
-                {% endif %}
+
+                    {% if current_user.role == 'admin' %}
+                    <div class="mt-4 pt-4 border-top">
+                        <h2 class="h5 fw-bold">Admin Actions</h2>
+                        <p class="text-muted small">Admin actions would go here (e.g., manual payout, status update).</p>
+                    </div>
+                    {% endif %}
+
+                    <div class="mt-4 text-center">
+                        <a href="{{ url_for('payments.manage_orders') }}" class="btn btn-secondary">Back to Manage Orders</a>
+                    </div>
+                </div>
             </div>
-        {% endif %}
-
-        {# Admin actions if current user is an admin #}
-        {% if current_user.role == 'admin' %}
-        <div class="mt-8 pt-4 border-t border-gray-200">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">Admin Actions</h2>
-            {# Example: Button to manually trigger payout or change order status #}
-            {# <form action="{{ url_for('payments.admin_process_payout', order_id=order.id) }}" method="POST" class="inline-block mr-2">
-                <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-md">Process Payout</button>
-            </form> #}
-            {# <form action="{{ url_for('payments.admin_update_order_status', order_id=order.id) }}" method="POST" class="inline-block">
-                <button type="submit" class="px-6 py-3 bg-orange-600 text-white rounded-md">Update Status</button>
-            </form> #}
-        </div>
-        {% endif %}
-
-        <div class="mt-8 text-center">
-            <a href="{{ url_for('payments.manage_orders') }}"
-               class="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                Back to Manage Orders
-            </a>
         </div>
     </div>
 </div>

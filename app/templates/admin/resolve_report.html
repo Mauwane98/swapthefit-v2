@@ -1,73 +1,74 @@
-{# app/templates/admin/resolve_report.html #}
 {% extends "_layouts/base.html" %}
 
 {% block title %}Resolve Report{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8 max-w-2xl">
-    <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-8">Resolve Report #{{ report.id }} 🛠️</h1>
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+                    <h1 class="h3 fw-bold text-center mb-4">Resolve Report #{{ report.id }}</h1>
+                    
+                    <div class="mb-4">
+                        <h2 class="h5 fw-bold">Report Overview</h2>
+                        <dl class="row">
+                            <dt class="col-sm-3">Reporter:</dt>
+                            <dd class="col-sm-9"><a href="{{ url_for('listings.user_profile', user_id=report.reporter.id) }}">{{ report.reporter.username }}</a></dd>
 
-    <div class="bg-white p-8 rounded-xl shadow-2xl">
-        <div class="mb-6 border-b pb-4">
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">Report Overview</h2>
-            <p class="text-gray-700"><span class="font-semibold">Reporter:</span> 
-                <a href="{{ url_for('listings.user_profile', user_id=report.reporter.id) }}" class="text-indigo-600 hover:underline">
-                    {{ report.reporter.username }}
-                </a>
-            </p>
-            <p class="text-gray-700"><span class="font-semibold">Reported Entity:</span> 
-                {% if report.reported_object %}
-                    {% if report.reported_entity_type == 'listing' %}
-                        <a href="{{ url_for('listings.listing_detail', listing_id=report.reported_object.id) }}" class="text-blue-600 hover:underline">
-                            Listing: {{ report.reported_object.title }} (ID: {{ report.reported_entity_id }})
-                        </a>
-                    {% elif report.reported_entity_type == 'user' %}
-                        <a href="{{ url_for('listings.user_profile', user_id=report.reported_object.id) }}" class="text-indigo-600 hover:underline">
-                            User: {{ report.reported_object.username }} (ID: {{ report.reported_entity_id }})
-                        </a>
-                    {% else %}
-                        N/A
-                    {% endif %}
-                {% else %}
-                    Deleted/Unknown (ID: {{ report.reported_entity_id }})
-                {% endif %}
-            </p>
-            <p class="text-gray-700"><span class="font-semibold">Reason Category:</span> {{ report.reason_category|replace('_', ' ')|title }}</p>
-            <p class="text-gray-700"><span class="font-semibold">Date Reported:</span> {{ report.date_reported.strftime('%b %d, %Y %I:%M %p') }}</p>
+                            <dt class="col-sm-3">Reported Entity:</dt>
+                            <dd class="col-sm-9">
+                                {% if report.reported_object %}
+                                    {% if report.reported_entity_type == 'listing' %}
+                                        <a href="{{ url_for('listings.listing_detail', listing_id=report.reported_object.id) }}">Listing: {{ report.reported_object.title }}</a>
+                                    {% elif report.reported_entity_type == 'user' %}
+                                        <a href="{{ url_for('listings.user_profile', user_id=report.reported_object.id) }}">User: {{ report.reported_object.username }}</a>
+                                    {% endif %}
+                                {% else %}
+                                    Deleted/Unknown
+                                {% endif %}
+                            </dd>
+
+                            <dt class="col-sm-3">Category:</dt>
+                            <dd class="col-sm-9">{{ report.reason_category|replace('_', ' ')|title }}</dd>
+
+                            <dt class="col-sm-3">Date Reported:</dt>
+                            <dd class="col-sm-9">{{ report.date_reported.strftime('%b %d, %Y %I:%M %p') }}</dd>
+                        </dl>
+                    </div>
+
+                    <div class="mb-4">
+                        <h2 class="h5 fw-bold">Description</h2>
+                        <p class="text-muted">{{ report.description }}</p>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('reports.resolve_report', report_id=report.id) }}">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            {{ form.status.label(class="form-label") }}
+                            {{ form.status(class="form-select form-select-lg") }}
+                            {% for error in form.status.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.admin_notes.label(class="form-label") }}
+                            {{ form.admin_notes(class="form-control form-control-lg", rows="5") }}
+                            {% for error in form.admin_notes.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            {{ form.submit(class="btn btn-primary btn-lg") }}
+                            <a href="{{ url_for('reports.manage_reports') }}" class="btn btn-secondary btn-lg">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-
-        <div class="mb-6 border-b pb-4">
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">Detailed Description</h2>
-            <p class="text-gray-700 leading-relaxed whitespace-pre-wrap">{{ report.description }}</p>
-        </div>
-
-        <form method="POST" action="{{ url_for('reports.resolve_report', report_id=report.id) }}">
-            {{ form.hidden_tag() }}
-            
-            <div class="mb-5">
-                {{ form.status.label(class="block text-sm font-medium text-gray-700 mb-1") }}
-                {{ form.status(class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md") }}
-                {% for error in form.status.errors %}
-                    <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
-                {% endfor %}
-            </div>
-
-            <div class="mb-6">
-                {{ form.admin_notes.label(class="block text-sm font-medium text-gray-700 mb-1") }}
-                {{ form.admin_notes(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-base") }}
-                {% for error in form.admin_notes.errors %}
-                    <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
-                {% endfor %}
-            </div>
-
-            <div class="flex justify-center space-x-4">
-                {{ form.submit(class="inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200") }}
-                <a href="{{ url_for('reports.manage_reports') }}"
-                   class="inline-flex items-center px-8 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                    Cancel
-                </a>
-            </div>
-        </form>
     </div>
 </div>
 {% endblock %}

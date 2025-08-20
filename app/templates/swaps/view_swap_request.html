@@ -1,162 +1,137 @@
-{# app/templates/swaps/view_swap_request.html #}
 {% extends "_layouts/base.html" %}
 
 {% block title %}Swap Request Details{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8 max-w-3xl">
-    <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-8">Swap Request Details #{{ swap.id }} 🤝</h1>
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+                    <h1 class="h3 fw-bold text-center mb-4">Swap Request Details #{{ swap.id }}</h1>
 
-    <div class="bg-white p-8 rounded-xl shadow-2xl">
-        <div class="mb-6 border-b pb-4">
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">Request Overview</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <p class="text-gray-700"><span class="font-semibold">Status:</span> 
-                    <span class="px-2 py-1 inline-flex text-sm leading-5 font-semibold rounded-full
-                        {% if swap.status == 'pending' %}bg-yellow-100 text-yellow-800
-                        {% elif swap.status == 'accepted' %}bg-blue-100 text-blue-800
-                        {% elif swap.status == 'completed' %}bg-green-100 text-green-800
-                        {% elif swap.status == 'rejected' or swap.status == 'cancelled' %}bg-red-100 text-red-800
-                        {% else %}bg-gray-100 text-gray-800{% endif %}">
-                        {{ swap.status|capitalize }}
-                    </span>
-                </p>
-                <p class="text-gray-700"><span class="font-semibold">Request Date:</span> {{ swap.request_date.strftime('%b %d, %Y %I:%M %p') }}</p>
-                <p class="text-gray-700"><span class="font-semibold">Initiator:</span> 
-                    <a href="{{ url_for('listings.user_profile', user_id=swap.initiator.id) }}" class="text-indigo-600 hover:underline">
-                        {{ swap.initiator.username }}
-                    </a>
-                </p>
-                <p class="text-gray-700"><span class="font-semibold">Respondent:</span> 
-                    <a href="{{ url_for('listings.user_profile', user_id=swap.respondent.id) }}" class="text-indigo-600 hover:underline">
-                        {{ swap.respondent.username }}
-                    </a>
-                </p>
-                <p class="text-gray-700 col-span-full"><span class="font-semibold">Message:</span> {{ swap.message }}</p>
-            </div>
-        </div>
+                    <div class="mb-4">
+                        <h2 class="h5 fw-bold">Request Overview</h2>
+                        <dl class="row">
+                            <dt class="col-sm-4">Status:</dt>
+                            <dd class="col-sm-8">
+                                <span class="badge 
+                                    {% if swap.status == 'pending' %}bg-warning text-dark
+                                    {% elif swap.status == 'accepted' %}bg-info
+                                    {% elif swap.status == 'completed' %}bg-success
+                                    {% elif swap.status == 'rejected' or swap.status == 'cancelled' %}bg-danger
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ swap.status|capitalize }}
+                                </span>
+                            </dd>
 
-        <div class="mb-6 border-b pb-4">
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">Offered Listing</h2>
-            {% if swap.offered_listing %}
-                <div class="flex items-center space-x-4">
-                    <img src="{{ url_for('static', filename='uploads/' + swap.offered_listing.image_file) }}"
-                         alt="{{ swap.offered_listing.title }}"
-                         class="w-24 h-24 object-cover rounded-lg shadow-md">
-                    <div>
-                        <h3 class="text-xl font-bold text-gray-900">{{ swap.offered_listing.title }}</h3>
-                        <p class="text-gray-700">Condition: {{ swap.offered_listing.condition }}</p>
-                        <p class="text-gray-700">Size: {{ swap.offered_listing.size }}</p>
-                        <a href="{{ url_for('listings.listing_detail', listing_id=swap.offered_listing.id) }}" class="text-blue-600 hover:underline text-sm">View Details</a>
+                            <dt class="col-sm-4">Request Date:</dt>
+                            <dd class="col-sm-8">{{ swap.request_date.strftime('%b %d, %Y %I:%M %p') }}</dd>
+
+                            <dt class="col-sm-4">Initiator:</dt>
+                            <dd class="col-sm-8"><a href="{{ url_for('listings.user_profile', user_id=swap.initiator.id) }}">{{ swap.initiator.username }}</a></dd>
+
+                            <dt class="col-sm-4">Respondent:</dt>
+                            <dd class="col-sm-8"><a href="{{ url_for('listings.user_profile', user_id=swap.respondent.id) }}">{{ swap.respondent.username }}</a></dd>
+
+                            <dt class="col-sm-4">Message:</dt>
+                            <dd class="col-sm-8">{{ swap.message }}</dd>
+                        </dl>
                     </div>
-                </div>
-            {% else %}
-                <p class="text-gray-600">Offered listing not found or deleted.</p>
-            {% endif %}
-        </div>
 
-        <div class="mb-6 border-b pb-4">
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">Requested Listing</h2>
-            {% if swap.requested_listing %}
-                <div class="flex items-center space-x-4">
-                    <img src="{{ url_for('static', filename='uploads/' + swap.requested_listing.image_file) }}"
-                         alt="{{ swap.requested_listing.title }}"
-                         class="w-24 h-24 object-cover rounded-lg shadow-md">
-                    <div>
-                        <h3 class="text-xl font-bold text-gray-900">{{ swap.requested_listing.title }}</h3>
-                        <p class="text-gray-700">Condition: {{ swap.requested_listing.condition }}</p>
-                        <p class="text-gray-700">Size: {{ swap.requested_listing.size }}</p>
-                        <a href="{{ url_for('listings.listing_detail', listing_id=swap.requested_listing.id) }}" class="text-blue-600 hover:underline text-sm">View Details</a>
-                    </div>
-                </div>
-            {% else %}
-                <p class="text-gray-600">Requested listing not found or deleted.</p>
-            {% endif %}
-        </div>
-
-        {# Action Buttons for Swap Request #}
-        <div class="mt-8 flex flex-col sm:flex-row sm:space-x-4 space-y-4 sm:space-y-0">
-            {% if swap.status == 'pending' %}
-                {% if current_user.id == swap.respondent.id %}
-                    <form action="{{ url_for('swaps.accept_swap', swap_id=swap.id) }}" method="POST" class="flex-1">
-                        <button type="submit"
-                                class="w-full text-center bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md">
-                            Accept Swap
-                        </button>
-                    </form>
-                    <form action="{{ url_for('swaps.reject_swap', swap_id=swap.id) }}" method="POST" class="flex-1">
-                        <button type="submit"
-                                class="w-full text-center bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md">
-                            Reject Swap
-                        </button>
-                    </form>
-                {% elif current_user.id == swap.initiator.id %}
-                    <form action="{{ url_for('swaps.cancel_swap', swap_id=swap.id) }}" method="POST" class="flex-1">
-                        <button type="submit"
-                                class="w-full text-center bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md"
-                                onclick="return confirm('Are you sure you want to cancel this swap request?');">
-                            Cancel Request
-                        </button>
-                    </form>
-                {% endif %}
-            {% elif swap.status == 'accepted' %}
-                {# Logistics Section for Accepted Swaps #}
-                <div class="mt-8 pt-4 border-t border-gray-200 w-full">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Logistics</h2>
-                    {% if swap.logistics_record %} {# Assuming swap.logistics_record is available from route #}
-                        <p class="text-gray-700 mb-4">Current Logistics Status: 
-                            <span class="px-2 py-1 inline-flex text-sm leading-5 font-semibold rounded-full
-                                {% if swap.logistics_record.status == 'delivered' %}bg-green-100 text-green-800
-                                {% elif swap.logistics_record.status == 'in_transit' %}bg-blue-100 text-blue-800
-                                {% elif swap.logistics_record.status == 'pending_pickup' or swap.logistics_record.status == 'ready_for_collection' %}bg-yellow-100 text-yellow-800
-                                {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                {{ swap.logistics_record.status|replace('_', ' ')|title }}
-                            </span>
-                        </p>
-                        <a href="{{ url_for('logistics.view_logistics', logistics_id=swap.logistics_record.id) }}"
-                           class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
-                            View Logistics Details
-                        </a>
-                    {% else %}
-                        <p class="text-gray-700 mb-4">Logistics have not been set up for this swap yet.</p>
-                        {% if current_user.id == swap.initiator.id or current_user.id == swap.respondent.id %} {# Either party can initiate logistics setup for a swap #}
-                            <a href="{{ url_for('logistics.setup_logistics', transaction_type='swap', transaction_id=swap.id) }}"
-                               class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
-                                Setup Logistics
-                            </a>
+                    <div class="mb-4">
+                        <h2 class="h5 fw-bold">Offered Listing</h2>
+                        {% if swap.offered_listing %}
+                            <div class="d-flex align-items-center bg-light p-3 rounded">
+                                <img src="{{ url_for('static', filename='uploads/' + swap.offered_listing.image_file) }}"
+                                     alt="{{ swap.offered_listing.title }}"
+                                     class="rounded me-3" style="width: 80px; height: 80px; object-fit: cover;">
+                                <div>
+                                    <h5 class="mb-0">{{ swap.offered_listing.title }}</h5>
+                                    <p class="text-muted mb-0">Condition: {{ swap.offered_listing.condition }} | Size: {{ swap.offered_listing.size }}</p>
+                                    <a href="{{ url_for('listings.listing_detail', listing_id=swap.offered_listing.id) }}" class="btn btn-sm btn-link p-0">View Details</a>
+                                </div>
+                            </div>
+                        {% else %}
+                            <p class="text-muted">Offered listing not found or deleted.</p>
                         {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <h2 class="h5 fw-bold">Requested Listing</h2>
+                        {% if swap.requested_listing %}
+                            <div class="d-flex align-items-center bg-light p-3 rounded">
+                                <img src="{{ url_for('static', filename='uploads/' + swap.requested_listing.image_file) }}"
+                                     alt="{{ swap.requested_listing.title }}"
+                                     class="rounded me-3" style="width: 80px; height: 80px; object-fit: cover;">
+                                <div>
+                                    <h5 class="mb-0">{{ swap.requested_listing.title }}</h5>
+                                    <p class="text-muted mb-0">Condition: {{ swap.requested_listing.condition }} | Size: {{ swap.requested_listing.size }}</p>
+                                    <a href="{{ url_for('listings.listing_detail', listing_id=swap.requested_listing.id) }}" class="btn btn-sm btn-link p-0">View Details</a>
+                                </div>
+                            </div>
+                        {% else %}
+                            <p class="text-muted">Requested listing not found or deleted.</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        {% if swap.status == 'pending' %}
+                            {% if current_user.id == swap.respondent.id %}
+                                <form action="{{ url_for('swaps.accept_swap', swap_id=swap.id) }}" method="POST">
+                                    <button type="submit" class="btn btn-primary btn-lg">Accept Swap</button>
+                                </form>
+                                <form action="{{ url_for('swaps.reject_swap', swap_id=swap.id) }}" method="POST">
+                                    <button type="submit" class="btn btn-danger btn-lg">Reject Swap</button>
+                                </form>
+                            {% elif current_user.id == swap.initiator.id %}
+                                <form action="{{ url_for('swaps.cancel_swap', swap_id=swap.id) }}" method="POST">
+                                    <button type="submit" class="btn btn-secondary btn-lg" onclick="return confirm('Are you sure you want to cancel this swap request?');">Cancel Request</button>
+                                </form>
+                            {% endif %}
+                        {% elif swap.status == 'accepted' %}
+                            <div class="mt-4 pt-4 border-top">
+                                <h2 class="h5 fw-bold">Logistics</h2>
+                                {% if swap.logistics_record %}
+                                    <p class="mb-3">Current Logistics Status: 
+                                        <span class="badge 
+                                            {% if swap.logistics_record.status == 'delivered' %}bg-success
+                                            {% elif swap.logistics_record.status == 'in_transit' %}bg-info
+                                            {% elif swap.logistics_record.status == 'pending_pickup' or swap.logistics_record.status == 'ready_for_collection' %}bg-warning text-dark
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ swap.logistics_record.status|replace('_', ' ')|title }}
+                                        </span>
+                                    </p>
+                                    <a href="{{ url_for('logistics.view_logistics', logistics_id=swap.logistics_record.id) }}" class="btn btn-secondary">View Logistics Details</a>
+                                {% else %}
+                                    <p class="mb-3">Logistics have not been set up for this swap yet.</p>
+                                    {% if current_user.id == swap.initiator.id or current_user.id == swap.respondent.id %}
+                                        <a href="{{ url_for('logistics.setup_logistics', transaction_type='swap', transaction_id=swap.id) }}" class="btn btn-primary">Setup Logistics</a>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                            {% if current_user.id == swap.initiator.id or current_user.id == swap.respondent.id %}
+                                {% if swap.logistics_record and swap.logistics_record.status == 'delivered' %}
+                                    <form action="{{ url_for('swaps.complete_swap', swap_id=swap.id) }}" method="POST" class="mt-3">
+                                        <button type="submit" class="btn btn-success btn-lg">Mark Swap as Completed</button>
+                                    </form>
+                                {% endif %}
+                            {% endif %}
+                        {% endif %}
+                    </div>
+
+                    {% if current_user.role == 'admin' %}
+                    <div class="mt-4 pt-4 border-top">
+                        <h2 class="h5 fw-bold">Admin Actions</h2>
+                        <p class="text-muted small">Admin actions would go here (e.g., manual status update).</p>
+                    </div>
                     {% endif %}
+
+                    <div class="mt-4 text-center">
+                        <a href="{{ url_for('swaps.manage_swaps') }}" class="btn btn-secondary">Back to Manage Swaps</a>
+                    </div>
                 </div>
-                {# Mark as Completed Button (after logistics are delivered) #}
-                {% if current_user.id == swap.initiator.id or current_user.id == swap.respondent.id %}
-                    {% if swap.logistics_record and swap.logistics_record.status == 'delivered' %}
-                        <form action="{{ url_for('swaps.complete_swap', swap_id=swap.id) }}" method="POST" class="flex-1 mt-4">
-                            <button type="submit"
-                                    class="w-full text-center bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md">
-                                Mark Swap as Completed
-                            </button>
-                        </form>
-                    {% endif %}
-                {% endif %}
-            {% endif %}
-        </div>
-
-        {# Admin actions if current user is an admin #}
-        {% if current_user.role == 'admin' %}
-        <div class="mt-8 pt-4 border-t border-gray-200">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">Admin Actions</h2>
-            {# Example: Button to manually change swap status #}
-            {# <form action="{{ url_for('swaps.admin_update_swap_status', swap_id=swap.id) }}" method="POST" class="inline-block">
-                <button type="submit" class="px-6 py-3 bg-orange-600 text-white rounded-md">Update Status</button>
-            </form> #}
-        </div>
-        {% endif %}
-
-        <div class="mt-8 text-center">
-            <a href="{{ url_for('swaps.manage_swaps') }}"
-               class="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                Back to Manage Swaps
-            </a>
+            </div>
         </div>
     </div>
 </div>

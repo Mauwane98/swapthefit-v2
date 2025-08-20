@@ -1,233 +1,153 @@
-{# app/templates/payments/manage_orders.html #}
 {% extends "_layouts/base.html" %}
 
 {% block title %}Manage Orders{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-8">Manage Your Orders 📦</h1>
+<div class="container my-5">
+    <div class="text-center mb-5">
+        <h1 class="display-5 fw-bold">Manage Your Orders</h1>
+        <p class="lead">Track your purchases, sales, and premium listings.</p>
+    </div>
 
-    {# Purchased Orders Section #}
-    <div class="bg-white p-6 rounded-xl shadow-2xl mb-8">
-        <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-3">Your Purchases</h2>
-        {% if purchased_orders %}
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 rounded-lg overflow-hidden shadow-sm">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Order ID
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Item
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Seller
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Price Paid
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Status
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Order Date
-                            </th>
-                            <th scope="col" class="relative px-6 py-3">
-                                <span class="sr-only">View</span>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for order in purchased_orders %}
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {{ order.id }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                <a href="{{ url_for('listings.listing_detail', listing_id=order.listing.id) }}" class="text-blue-600 hover:text-blue-900">
-                                    {{ order.listing.title }}
-                                </a>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                <a href="{{ url_for('listings.user_profile', user_id=order.seller.id) }}" class="text-indigo-600 hover:text-indigo-900">
-                                    {{ order.seller.username }}
-                                </a>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                R{{ "%.2f"|format(order.amount_paid_total) }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                                    {% if order.status == 'completed' %}bg-green-100 text-green-800
-                                    {% elif order.status == 'pending' %}bg-yellow-100 text-yellow-800
-                                    {% elif order.status == 'cancelled' or order.status == 'refunded' %}bg-red-100 text-red-800
-                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                    {{ order.status|capitalize }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ order.order_date.strftime('%b %d, %Y') }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <a href="{{ url_for('payments.view_order', order_id=order.id) }}" class="text-indigo-600 hover:text-indigo-900">View</a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+    <!-- Purchased Orders Section -->
+    <div class="card shadow-sm border-0 mb-5">
+        <div class="card-header bg-white p-3">
+            <h4 class="my-2">Your Purchases</h4>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Item</th>
+                        <th>Seller</th>
+                        <th>Price Paid</th>
+                        <th>Status</th>
+                        <th>Order Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in purchased_orders %}
+                    <tr>
+                        <td>{{ order.id }}</td>
+                        <td><a href="{{ url_for('listings.listing_detail', listing_id=order.listing.id) }}">{{ order.listing.title }}</a></td>
+                        <td><a href="{{ url_for('listings.user_profile', user_id=order.seller.id) }}">{{ order.seller.username }}</a></td>
+                        <td>R{{ "%.2f"|format(order.amount_paid_total) }}</td>
+                        <td>
+                            <span class="badge {% if order.status == 'completed' %}bg-success{% elif order.status == 'pending' %}bg-warning text-dark{% elif order.status == 'cancelled' or order.status == 'refunded' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                {{ order.status|capitalize }}
+                            </span>
+                        </td>
+                        <td>{{ order.order_date.strftime('%b %d, %Y') }}</td>
+                        <td>
+                            <a href="{{ url_for('payments.view_order', order_id=order.id) }}" class="btn btn-sm btn-primary">View</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if not purchased_orders %}
+            <div class="card-body text-center">
+                <p class="text-muted mb-0">You haven't made any purchases yet.</p>
             </div>
-        {% else %}
-            <p class="text-gray-600 text-center py-4">You haven't made any purchases yet.</p>
         {% endif %}
     </div>
 
-    {# Sold Orders Section #}
-    <div class="bg-white p-6 rounded-xl shadow-2xl mb-8">
-        <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-3">Your Sales</h2>
-        {% if sold_orders %}
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 rounded-lg overflow-hidden shadow-sm">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Order ID
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Item
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Buyer
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Net Payout
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Payout Status
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Order Date
-                            </th>
-                            <th scope="col" class="relative px-6 py-3">
-                                <span class="sr-only">View</span>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for order in sold_orders %}
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {{ order.id }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                <a href="{{ url_for('listings.listing_detail', listing_id=order.listing.id) }}" class="text-blue-600 hover:text-blue-900">
-                                    {{ order.listing.title }}
-                                </a>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                <a href="{{ url_for('listings.user_profile', user_id=order.buyer.id) }}" class="text-indigo-600 hover:text-indigo-900">
-                                    {{ order.buyer.username }}
-                                </a>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                R{{ "%.2f"|format(order.seller_payout_amount) }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                                    {% if order.payout_status == 'paid' %}bg-green-100 text-green-800
-                                    {% elif order.payout_status == 'pending' %}bg-yellow-100 text-yellow-800
-                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                    {{ order.payout_status|capitalize }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ order.order_date.strftime('%b %d, %Y') }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <a href="{{ url_for('payments.view_order', order_id=order.id) }}" class="text-indigo-600 hover:text-indigo-900">View</a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+    <!-- Sold Orders Section -->
+    <div class="card shadow-sm border-0 mb-5">
+        <div class="card-header bg-white p-3">
+            <h4 class="my-2">Your Sales</h4>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Item</th>
+                        <th>Buyer</th>
+                        <th>Net Payout</th>
+                        <th>Payout Status</th>
+                        <th>Order Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in sold_orders %}
+                    <tr>
+                        <td>{{ order.id }}</td>
+                        <td><a href="{{ url_for('listings.listing_detail', listing_id=order.listing.id) }}">{{ order.listing.title }}</a></td>
+                        <td><a href="{{ url_for('listings.user_profile', user_id=order.buyer.id) }}">{{ order.buyer.username }}</a></td>
+                        <td>R{{ "%.2f"|format(order.seller_payout_amount) }}</td>
+                        <td>
+                            <span class="badge {% if order.payout_status == 'paid' %}bg-success{% elif order.payout_status == 'pending' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                                {{ order.payout_status|capitalize }}
+                            </span>
+                        </td>
+                        <td>{{ order.order_date.strftime('%b %d, %Y') }}</td>
+                        <td>
+                            <a href="{{ url_for('payments.view_order', order_id=order.id) }}" class="btn btn-sm btn-primary">View</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if not sold_orders %}
+            <div class="card-body text-center">
+                <p class="text-muted mb-0">You haven't sold any items yet.</p>
             </div>
-        {% else %}
-            <p class="text-gray-600 text-center py-4">You haven't sold any items yet.</p>
         {% endif %}
     </div>
 
-    {# Premium Purchases Section #}
-    <div class="bg-white p-6 rounded-xl shadow-2xl">
-        <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-3">Your Premium Purchases</h2>
-        {% if premium_purchases %}
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 rounded-lg overflow-hidden shadow-sm">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Order ID
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Listing Promoted
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Amount Paid
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Order Status
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Order Date
-                            </th>
-                            <th scope="col" class="relative px-6 py-3">
-                                <span class="sr-only">View</span>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for order in premium_purchases %}
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {{ order.id }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {% if order.premium_listing_ref %}
-                                    <a href="{{ url_for('listings.listing_detail', listing_id=order.premium_listing_ref.id) }}" class="text-blue-600 hover:text-blue-900">
-                                        {{ order.premium_listing_ref.title }}
-                                    </a>
-                                {% else %}
-                                    N/A (Listing Deleted)
-                                {% endif %}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                R{{ "%.2f"|format(order.amount_paid_total) }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                                    {% if order.status == 'completed' %}bg-green-100 text-green-800
-                                    {% elif order.status == 'pending' %}bg-yellow-100 text-yellow-800
-                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                    {{ order.status|capitalize }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ order.order_date.strftime('%b %d, %Y') }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <a href="{{ url_for('payments.view_order', order_id=order.id) }}" class="text-indigo-600 hover:text-indigo-900">View</a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% else %}
-            <p class="text-gray-600 text-center py-4">You haven't purchased any premium listings yet.</p>
-            <div class="text-center mt-4">
-                <a href="{{ url_for('payments.purchase_premium_listing') }}"
-                   class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
-                    Go Premium Now!
-                </a>
+    <!-- Premium Purchases Section -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white p-3">
+            <h4 class="my-2">Your Premium Purchases</h4>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Listing Promoted</th>
+                        <th>Amount Paid</th>
+                        <th>Order Status</th>
+                        <th>Order Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in premium_purchases %}
+                    <tr>
+                        <td>{{ order.id }}</td>
+                        <td>
+                            {% if order.premium_listing_ref %}
+                                <a href="{{ url_for('listings.listing_detail', listing_id=order.premium_listing_ref.id) }}">{{ order.premium_listing_ref.title }}</a>
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        <td>R{{ "%.2f"|format(order.amount_paid_total) }}</td>
+                        <td>
+                            <span class="badge {% if order.status == 'completed' %}bg-success{% elif order.status == 'pending' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                                {{ order.status|capitalize }}
+                            </span>
+                        </td>
+                        <td>{{ order.order_date.strftime('%b %d, %Y') }}</td>
+                        <td>
+                            <a href="{{ url_for('payments.view_order', order_id=order.id) }}" class="btn btn-sm btn-primary">View</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if not premium_purchases %}
+            <div class="card-body text-center">
+                <p class="text-muted mb-0">You haven't purchased any premium listings yet.</p>
+                <a href="{{ url_for('payments.purchase_premium') }}" class="btn btn-primary mt-3">Go Premium Now!</a>
             </div>
         {% endif %}
     </div>

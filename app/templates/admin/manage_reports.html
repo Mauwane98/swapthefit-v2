@@ -1,141 +1,79 @@
-{# app/templates/admin/manage_reports.html #}
 {% extends "_layouts/base.html" %}
 
 {% block title %}Manage Reports{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-8">Manage Reports (Admin) 🗂️</h1>
+<div class="container my-5">
+    <div class="text-center mb-5">
+        <h1 class="display-5 fw-bold">Manage Reports</h1>
+        <p class="lead">Review and resolve user reports.</p>
+    </div>
 
-    <div class="bg-white p-6 rounded-xl shadow-2xl mb-8">
-        <div class="flex justify-between items-center mb-6 border-b pb-4">
-            <h2 class="text-2xl font-bold text-gray-800">All Reports</h2>
-            <div class="flex space-x-4">
-                <a href="{{ url_for('reports.manage_reports', status='all') }}"
-                   class="px-4 py-2 rounded-lg text-sm font-medium
-                   {% if status_filter == 'all' %}bg-indigo-600 text-white shadow{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}
-                   transition-colors duration-200">
-                    All Statuses
-                </a>
-                <a href="{{ url_for('reports.manage_reports', status='pending') }}"
-                   class="px-4 py-2 rounded-lg text-sm font-medium
-                   {% if status_filter == 'pending' %}bg-yellow-600 text-white shadow{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}
-                   transition-colors duration-200">
-                    Pending
-                </a>
-                <a href="{{ url_for('reports.manage_reports', status='under review') }}"
-                   class="px-4 py-2 rounded-lg text-sm font-medium
-                   {% if status_filter == 'under review' %}bg-blue-600 text-white shadow{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}
-                   transition-colors duration-200">
-                    Under Review
-                </a>
-                <a href="{{ url_for('reports.manage_reports', status='resolved') }}"
-                   class="px-4 py-2 rounded-lg text-sm font-medium
-                   {% if status_filter == 'resolved' %}bg-green-600 text-white shadow{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}
-                   transition-colors duration-200">
-                    Resolved
-                </a>
-                <a href="{{ url_for('reports.manage_reports', status='dismissed') }}"
-                   class="px-4 py-2 rounded-lg text-sm font-medium
-                   {% if status_filter == 'dismissed' %}bg-gray-600 text-white shadow{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}
-                   transition-colors duration-200">
-                    Dismissed
-                </a>
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white p-3 d-flex justify-content-between align-items-center">
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('reports.manage_reports', status='all') }}" class="btn {% if status_filter == 'all' %}btn-primary{% else %}btn-secondary{% endif %}">All</a>
+                <a href="{{ url_for('reports.manage_reports', status='pending') }}" class="btn {% if status_filter == 'pending' %}btn-warning{% else %}btn-secondary{% endif %}">Pending</a>
+                <a href="{{ url_for('reports.manage_reports', status='under review') }}" class="btn {% if status_filter == 'under review' %}btn-info{% else %}btn-secondary{% endif %}">Under Review</a>
+                <a href="{{ url_for('reports.manage_reports', status='resolved') }}" class="btn {% if status_filter == 'resolved' %}btn-success{% else %}btn-secondary{% endif %}">Resolved</a>
+                <a href="{{ url_for('reports.manage_reports', status='dismissed') }}" class="btn {% if status_filter == 'dismissed' %}btn-dark{% else %}btn-secondary{% endif %}">Dismissed</a>
             </div>
         </div>
-
-        {% if reports %}
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 rounded-lg overflow-hidden shadow-sm">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                ID
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Reporter
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Reported Entity
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Category
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Description Summary
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Status
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Date Reported
-                            </th>
-                            <th scope="col" class="relative px-6 py-3">
-                                <span class="sr-only">Actions</span>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for report in reports %}
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {{ report.id }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                <a href="{{ url_for('listings.user_profile', user_id=report.reporter.id) }}" class="text-indigo-600 hover:text-indigo-900">
-                                    {{ report.reporter.username }}
-                                </a>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {% if report.reported_object %}
-                                    {% if report.reported_entity_type == 'listing' %}
-                                        <a href="{{ url_for('listings.listing_detail', listing_id=report.reported_object.id) }}" class="text-blue-600 hover:text-blue-900">
-                                            Listing: {{ report.reported_object.title }}
-                                        </a>
-                                    {% elif report.reported_entity_type == 'user' %}
-                                        <a href="{{ url_for('listings.user_profile', user_id=report.reported_object.id) }}" class="text-indigo-600 hover:text-indigo-900">
-                                            User: {{ report.reported_object.username }}
-                                        </a>
-                                    {% else %}
-                                        N/A
-                                    {% endif %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Reporter</th>
+                        <th>Reported Entity</th>
+                        <th>Category</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                        <th>Date Reported</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for report in reports %}
+                    <tr>
+                        <td>{{ report.id }}</td>
+                        <td><a href="{{ url_for('listings.user_profile', user_id=report.reporter.id) }}">{{ report.reporter.username }}</a></td>
+                        <td>
+                            {% if report.reported_object %}
+                                {% if report.reported_entity_type == 'listing' %}
+                                    <a href="{{ url_for('listings.listing_detail', listing_id=report.reported_object.id) }}">Listing: {{ report.reported_object.title }}</a>
+                                {% elif report.reported_entity_type == 'user' %}
+                                    <a href="{{ url_for('listings.user_profile', user_id=report.reported_object.id) }}">User: {{ report.reported_object.username }}</a>
                                 {% else %}
-                                    Deleted/Unknown (ID: {{ report.reported_entity_id }})
+                                    N/A
                                 {% endif %}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ report.reason_category|replace('_', ' ')|title }}
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
-                                {{ report.description[:100] }}...
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                                    {% if report.status == 'pending' %}bg-yellow-100 text-yellow-800
-                                    {% elif report.status == 'under review' %}bg-blue-100 text-blue-800
-                                    {% elif report.status == 'resolved' %}bg-green-100 text-green-800
-                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                    {{ report.status|capitalize }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ report.date_reported.strftime('%b %d, %Y') }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <a href="{{ url_for('reports.resolve_report', report_id=report.id) }}" class="text-indigo-600 hover:text-indigo-900 mr-2">
-                                    Manage
-                                </a>
-                                <a href="{{ url_for('reports.report_detail', report_id=report.id) }}" class="text-blue-600 hover:text-blue-900">
-                                    View
-                                </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                            {% else %}
+                                Deleted/Unknown (ID: {{ report.reported_entity_id }})
+                            {% endif %}
+                        </td>
+                        <td>{{ report.reason_category|replace('_', ' ')|title }}</td>
+                        <td class="text-truncate" style="max-width: 200px;">{{ report.description }}</td>
+                        <td>
+                            <span class="badge 
+                                {% if report.status == 'pending' %}bg-warning text-dark
+                                {% elif report.status == 'under review' %}bg-info
+                                {% elif report.status == 'resolved' %}bg-success
+                                {% else %}bg-dark{% endif %}">{{ report.status|capitalize }}</span>
+                        </td>
+                        <td>{{ report.date_reported.strftime('%b %d, %Y') }}</td>
+                        <td>
+                            <a href="{{ url_for('reports.resolve_report', report_id=report.id) }}" class="btn btn-sm btn-primary">Manage</a>
+                            <a href="{{ url_for('reports.report_detail', report_id=report.id) }}" class="btn btn-sm btn-secondary">View</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if not reports %}
+            <div class="card-body text-center">
+                <p class="text-muted mb-0">No reports found.</p>
             </div>
-        {% else %}
-            <p class="text-gray-600 text-center py-4">No reports found.</p>
         {% endif %}
     </div>
 </div>

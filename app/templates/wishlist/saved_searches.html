@@ -1,47 +1,40 @@
-{# app/templates/wishlist/saved_searches.html #}
 {% extends "_layouts/base.html" %}
 
 {% block title %}My Saved Searches{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-8">My Saved Searches 💾</h1>
+<div class="container my-5">
+    <div class="text-center mb-5">
+        <h1 class="display-5 fw-bold">My Saved Searches</h1>
+        <p class="lead">Manage your saved search criteria.</p>
+    </div>
 
     {% if saved_searches %}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
         {% for search in saved_searches %}
-            <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300 flex flex-col justify-between">
-                <div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-2">{{ search.name }}</h3>
-                    <p class="text-sm text-gray-600 mb-4">
-                        Saved On: {{ search.date_saved.strftime('%b %d, %Y at %I:%M %p') }}
-                    </p>
-                    <p class="text-sm text-gray-700 break-all">
-                        <span class="font-semibold">Query:</span> {{ search.search_query_params or 'No specific filters' }}
-                    </p>
-                </div>
-                <div class="mt-5 flex space-x-3">
-                    <a href="{{ url_for('listings.marketplace') }}?{{ search.search_query_params }}"
-                       class="flex-1 text-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">
-                        Run Search
-                    </a>
-                    <form action="{{ url_for('wishlist.delete_saved_search', search_id=search.id) }}" method="POST" class="flex-1">
-                        <button type="submit"
-                                class="w-full text-center bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">
-                            Delete
-                        </button>
-                    </form>
+            <div class="col">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-body">
+                        <h5 class="card-title fw-bold">{{ search.name }}</h5>
+                        <p class="card-text small text-muted">Saved On: {{ search.date_saved.strftime('%b %d, %Y at %I:%M %p') }}</p>
+                        <p class="card-text small text-break">
+                            <span class="fw-bold">Query:</span> {{ search.search_query_params or 'No specific filters' }}
+                        </p>
+                    </div>
+                    <div class="card-footer bg-transparent border-0 p-3 d-flex justify-content-between">
+                        <a href="{{ url_for('listings.marketplace') }}?{{ search.search_query_params }}" class="btn btn-sm btn-primary">Run Search</a>
+                        <form action="{{ url_for('wishlist.delete_saved_search', search_id=search.id) }}" method="POST">
+                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                        </form>
+                    </div>
                 </div>
             </div>
         {% endfor %}
     </div>
     {% else %}
-        <div class="text-center py-12 bg-gray-50 rounded-xl shadow-inner">
-            <p class="text-xl text-gray-500 mb-4">You haven't saved any searches yet.</p>
-            <a href="{{ url_for('listings.marketplace') }}"
-               class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                Go to Marketplace & Save a Search
-            </a>
+        <div class="alert alert-info text-center" role="alert">
+            <p class="mb-3">You haven't saved any searches yet.</p>
+            <a href="{{ url_for('listings.marketplace') }}" class="btn btn-primary">Go to Marketplace & Save a Search</a>
         </div>
     {% endif %}
 </div>

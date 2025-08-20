@@ -3,81 +3,60 @@
 {% block title %}Login to Your Account{% endblock %}
 
 {% block content %}
-<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-xl border border-gray-200">
-        <div class="text-center">
-            <h2 class="mt-2 text-3xl font-extrabold text-gray-900">
-                Welcome Back
-            </h2>
-            <p class="mt-2 text-base text-gray-600">
-                Sign in to continue to SwapTheFit
-            </p>
-        </div>
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-5">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+                    <h1 class="h3 fw-bold text-center mb-4">Sign in to your account</h1>
+                    
+                    <form method="POST" action="{{ url_for('auth.login') }}">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            {{ form.email.label(class="form-label") }}
+                            {{ form.email(class="form-control form-control-lg", placeholder="Enter your email address") }}
+                            {% for error in form.email.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
 
-        <form class="space-y-6" method="POST" action="{{ url_for('auth.login') }}">
-            {{ form.hidden_tag() }}
-            <div>
-                {{ form.email.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
-                <div class="mt-1">
-                    {{ form.email(class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-accent focus:border-accent sm:text-sm", placeholder="Enter your email address") }}
-                    {% for error in form.email.errors %}
-                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
-                    {% endfor %}
+                        <div class="mb-3">
+                            {{ form.password.label(class="form-label") }}
+                            {{ form.password(class="form-control form-control-lg", placeholder="Enter your password") }}
+                            {% for error in form.password.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-3 d-flex justify-content-between align-items-center">
+                            <div class="form-check">
+                                {{ form.remember(class="form-check-input") }}
+                                {{ form.remember.label(class="form-check-label") }}
+                            </div>
+                            <div>
+                                <a href="{{ url_for('auth.reset_request') }}" class="text-decoration-none">Forgot password?</a>
+                            </div>
+                        </div>
+
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-primary btn-lg">Sign In</button>
+                        </div>
+
+                        <div class="d-grid">
+                            <a href="{{ url_for('google_login') }}" class="btn btn-secondary btn-lg">
+                                <img src="https://www.svgrepo.com/show/355037/google.svg" alt="Google logo" style="height: 1.2em;" class="me-2"> 
+                                Sign in with Google
+                            </a>
+                        </div>
+                    </form>
+
+                    <p class="mt-4 text-center">
+                        Don't have an account? <a href="{{ url_for('auth.register') }}" class="text-decoration-none fw-bold">Sign up</a>
+                    </p>
                 </div>
-            </div>
-
-            <div>
-                {{ form.password.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
-                <div class="mt-1">
-                    {{ form.password(class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-accent focus:border-accent sm:text-sm", placeholder="Enter your password") }}
-                    {% for error in form.password.errors %}
-                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                    {{ form.remember(class="h-4 w-4 text-accent focus:ring-accent border-gray-300 rounded") }}
-                    {{ form.remember.label(class="ml-2 block text-sm text-gray-900") }}
-                </div>
-
-                <div class="text-sm">
-                    <a href="{{ url_for('auth.reset_request') }}" class="font-medium text-accent hover:text-green-700 transition-colors duration-200">
-                        Forgot your password?
-                    </a>
-                </div>
-            </div>
-
-            <div>
-                <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-[var(--color-accent)] hover:bg-[#2F9C6E] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-accent)] transition-all duration-300 shadow-md">
-                    Sign In
-                </button>
-            </div>
-        </form>
-
-        <div class="relative py-4">
-            <div class="absolute inset-0 flex items-center">
-                <div class="w-full border-t border-gray-300"></div>
-            </div>
-            <div class="relative flex justify-center text-sm">
-                <span class="px-2 bg-white text-gray-500">Or continue with</span>
             </div>
         </div>
-
-        <div>
-            <a href="{{ url_for('google_login') }}" class="w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200">
-                <img class="h-5 w-5 mr-2" src="https://www.svgrepo.com/show/355037/google.svg" alt="Google logo">
-                Sign in with Google
-            </a>
-        </div>
-
-        <p class="mt-4 text-center text-sm text-gray-600">
-            Don't have an account?
-            <a href="{{ url_for('auth.register') }}" class="font-medium text-accent hover:text-green-700 transition-colors duration-200">
-                Register Now
-            </a>
-        </p>
     </div>
 </div>
 {% endblock %}

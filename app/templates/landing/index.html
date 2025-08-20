@@ -3,195 +3,97 @@
 {% block title %}SwapTheFit - School Uniforms Made Easy{% endblock %}
 
 {% block content %}
-<style>
-    /* Gradient text effect */
-    .gradient-text {
-        background: -webkit-linear-gradient(45deg, #4f46e5, #7c3aed);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-    
-    /* General animation */
-    .gsap-reveal {
-        opacity: 0;
-        transform: translateY(30px);
-        visibility: hidden;
-    }
-
-    /* Styles for new sections */
-    .comparison-list li {
-        display: flex;
-        align-items: flex-start; /* Align items to the top */
-        font-size: 1.05rem; /* Slightly smaller for better fit */
-        line-height: 1.6;
-    }
-    .comparison-list svg {
-        flex-shrink: 0; /* Prevent icon from shrinking */
-        margin-top: 5px;
-    }
-    .nav-pills .nav-link {
-        transition: background-color 0.3s ease, color 0.3s ease;
-    }
-    .nav-pills .nav-link.active {
-        background-color: #4f46e5;
-        color: white;
-        box-shadow: 0 4px 14px 0 rgba(79, 70, 229, 0.39);
-    }
-    .nav-pills .nav-link:not(.active) {
-        color: #4f46e5;
-    }
-    .item-card {
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-    .item-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 15px -3px rgba(0,0,0,.07),0 4px 6px -2px rgba(0,0,0,.05);
-    }
-</style>
 
 <!-- Hero Section -->
 <div class="bg-white">
-    <div class="container mx-auto px-6 py-24 md:py-32 text-center">
-        <h1 class="text-4xl md:text-6xl font-extrabold text-gray-900 leading-tight mb-4 gsap-reveal">The <span class="gradient-text">Smart Way</span> to Handle School Uniforms.</h1>
-        <p class="text-lg md:text-xl text-gray-600 mb-10 max-w-3xl mx-auto gsap-reveal" data-gsap-delay="0.2">Join thousands of parents swapping, buying, and donating gently used school gear. Save money, reduce waste, and support your community.</p>
-        <div class="gsap-reveal" data-gsap-delay="0.4">
-            <a href="{{ url_for('auth.register') }}" class="bg-indigo-600 text-white font-bold py-4 px-10 rounded-full hover:bg-indigo-700 transition-transform transform hover:scale-105 text-lg shadow-lg">Join for Free</a>
+    <div class="container px-4 py-5 text-center">
+        <h1 class="display-4 fw-bold text-body-emphasis">The <span style="color: var(--bolt-green);">Smart Way</span> to Handle School Uniforms.</h1>
+        <div class="col-lg-8 mx-auto">
+            <p class="lead mb-4">Join thousands of parents swapping, buying, and donating gently used school gear. Save money, reduce waste, and support your community.</p>
+            <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+                <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg px-4 gap-3">Join for Free</a>
+            </div>
         </div>
     </div>
 </div>
 
 <!-- The Problem & Solution Section -->
-<div class="container mx-auto py-5 my-5 px-6">
-  <div class="flex flex-wrap items-center -mx-4">
-    <!-- The Problem -->
-    <div class="w-full lg:w-1/2 px-4 gsap-reveal">
-      <div class="text-left mb-4">
-        <h2 class="font-bold text-3xl md:text-4xl text-gray-800">The Yearly Uniform Headache.</h2>
-      </div>
-      <p class="text-gray-600 mb-6">Every year, parents face the same problems with school uniforms. It's time for a better way.</p>
-      <ul class="list-unstyled comparison-list space-y-4">
-        <li class="flex items-start"><svg class="w-6 h-6 text-red-500 mr-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg><span><strong>It's Expensive:</strong> Buying new uniforms every year costs a lot of money.</span></li>
-        <li class="flex items-start"><svg class="w-6 h-6 text-red-500 mr-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg><span><strong>It's Wasteful:</strong> Good uniforms that kids outgrow often end up in the trash.</span></li>
-        <li class="flex items-start"><svg class="w-6 h-6 text-red-500 mr-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg><span><strong>It's Hard:</strong> Finding the right size and school item on other sites is frustrating.</span></li>
-      </ul>
-    </div>
-    <!-- The Solution -->
-    <div class="w-full lg:w-1/2 px-4 mt-12 lg:mt-0 gsap-reveal" data-gsap-delay="0.2">
-      <div class="bg-indigo-600 text-white shadow-lg rounded-2xl">
-        <div class="p-8 md:p-12">
-          <h3 class="font-bold text-white text-3xl mb-4">SwapTheFit is the Simple Fix.</h3>
-          <p class="text-indigo-200 mb-6">We connect parents in the same school community to make things easy.</p>
-          <ul class="list-unstyled comparison-list space-y-4">
-            <li class="flex items-start"><svg class="w-6 h-6 text-white mr-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg><span><strong>Save Money:</strong> Get affordable uniforms from other parents at your school.</span></li>
-            <li class="flex items-start"><svg class="w-6 h-6 text-white mr-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg><span><strong>Help The Planet:</strong> Give perfectly good uniforms a new life and reduce waste.</span></li>
-            <li class="flex items-start"><svg class="w-6 h-6 text-white mr-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg><span><strong>Find Easily:</strong> Search by school, size, and item to get exactly what you need.</span></li>
-          </ul>
+<div class="container py-5">
+    <div class="row align-items-center">
+        <!-- The Problem -->
+        <div class="col-lg-6">
+            <h2 class="display-5 fw-bold mb-3">The Yearly Uniform Headache.</h2>
+            <p class="lead mb-4">Every year, parents face the same problems with school uniforms. It's time for a better way.</p>
+            <ul class="list-unstyled">
+                <li class="d-flex align-items-start mb-3"><span class="text-danger me-2">&#10007;</span><strong>It's Expensive:</strong> Buying new uniforms every year costs a lot of money.</li>
+                <li class="d-flex align-items-start mb-3"><span class="text-danger me-2">&#10007;</span><strong>It's Wasteful:</strong> Good uniforms that kids outgrow often end up in the trash.</li>
+                <li class="d-flex align-items-start mb-3"><span class="text-danger me-2">&#10007;</span><strong>It's Hard:</strong> Finding the right size and school item on other sites is frustrating.</li>
+            </ul>
         </div>
-      </div>
+        <!-- The Solution -->
+        <div class="col-lg-6 mt-4 mt-lg-0">
+            <div class="bg-light p-5 rounded-3">
+                <h3 class="fw-bold h2 mb-3">SwapTheFit is the Simple Fix.</h3>
+                <p class="mb-4">We connect parents in the same school community to make things easy.</p>
+                <ul class="list-unstyled">
+                    <li class="d-flex align-items-start mb-3"><span class="text-success me-2">&#10003;</span><strong>Save Money:</strong> Get affordable uniforms from other parents at your school.</li>
+                    <li class="d-flex align-items-start mb-3"><span class="text-success me-2">&#10003;</span><strong>Help The Planet:</strong> Give perfectly good uniforms a new life and reduce waste.</li>
+                    <li class="d-flex align-items-start mb-3"><span class="text-success me-2">&#10003;</span><strong>Find Easily:</strong> Search by school, size, and item to get exactly what you need.</li>
+                </ul>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
 
 <!-- Features for Target Users Section -->
-<div class="py-5 my-16 bg-gray-50">
-  <div class="container mx-auto px-6">
-    <div class="text-center mb-12 gsap-reveal">
-      <h2 class="font-bold text-indigo-600 text-4xl">Simple for Everyone</h2>
-      <p class="text-lg text-gray-600 mt-2">Tools designed to help our whole community.</p>
-    </div>
-    <!-- Tabs Navigation -->
-    <ul class="flex justify-center mb-8 gsap-reveal bg-white p-2 rounded-full shadow-sm w-full max-w-md mx-auto" data-gsap-delay="0.2" id="userTab" role="tablist">
-      <li class="w-1/2 text-center"><button class="nav-link active w-full rounded-full px-6 py-2 font-semibold" data-tab-target="#parents-tab-pane">For Parents</button></li>
-      <li class="w-1/2 text-center"><button class="nav-link w-full rounded-full px-6 py-2 font-semibold" data-tab-target="#partners-tab-pane">For Schools & Charities</button></li>
-    </ul>
-    <!-- Tabs Content -->
-    <div class="pt-4">
-      <div class="tab-pane active" id="parents-tab-pane">
-        <div class="flex flex-wrap items-center -mx-4">
-          <div class="w-full lg:w-1/2 px-4 gsap-reveal"><img src="https://placehold.co/800x500/e0e7ff/3730a3?text=Happy+Parents" class="w-full rounded-2xl shadow-lg" alt="Parents"></div>
-          <div class="w-full lg:w-1/2 px-4 mt-8 lg:mt-0 gsap-reveal" data-gsap-delay="0.2">
-            <h3 class="font-bold text-gray-900 text-3xl">Clear out closets. Save money.</h3>
-            <p class="text-gray-600 my-4 text-lg">List items your kids have outgrown in just a few seconds. Find the right size for next year and pay a fraction of the price. It's that easy.</p>
-            <a href="#" class="bg-indigo-600 text-white font-bold py-3 px-8 rounded-full hover:bg-indigo-700 transition-transform transform hover:scale-105 shadow-md inline-block">Start Swapping</a>
-          </div>
+<div class="py-5 bg-light">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="display-5 fw-bold" style="color: var(--bolt-green);">Simple for Everyone</h2>
+            <p class="lead">Tools designed to help our whole community.</p>
         </div>
-      </div>
-      <div class="tab-pane" id="partners-tab-pane" style="display: none;">
-        <div class="flex flex-wrap items-center -mx-4">
-          <div class="w-full lg:w-1/2 px-4 gsap-reveal"><img src="https://placehold.co/800x500/d1fae5/065f46?text=Partnerships" class="w-full rounded-2xl shadow-lg" alt="NGOs and Schools"></div>
-          <div class="w-full lg:w-1/2 px-4 mt-8 lg:mt-0 gsap-reveal" data-gsap-delay="0.2">
-            <h3 class="font-bold text-gray-900 text-3xl">Get the donations you really need.</h3>
-            <p class="text-gray-600 my-4 text-lg">Verified schools and charities can post a "wish list" for specific items and sizes. Receive quality gear from local parents who want to help.</p>
-            <a href="#" class="bg-indigo-600 text-white font-bold py-3 px-8 rounded-full hover:bg-indigo-700 transition-transform transform hover:scale-105 shadow-md inline-block">Learn About Partnering</a>
-          </div>
+        <!-- Tabs Navigation -->
+        <ul class="nav nav-pills justify-content-center mb-4" id="userTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="parents-tab" data-bs-toggle="tab" data-bs-target="#parents-tab-pane" type="button" role="tab" aria-controls="parents-tab-pane" aria-selected="true">For Parents</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="partners-tab" data-bs-toggle="tab" data-bs-target="#partners-tab-pane" type="button" role="tab" aria-controls="partners-tab-pane" aria-selected="false">For Schools & Charities</button>
+            </li>
+        </ul>
+        <!-- Tabs Content -->
+        <div class="tab-content pt-4">
+            <div class="tab-pane fade show active" id="parents-tab-pane" role="tabpanel" aria-labelledby="parents-tab">
+                <div class="row align-items-center">
+                    <div class="col-lg-6"><img src="https://placehold.co/800x500/E0E7FF/3730A3?text=Happy+Parents" class="img-fluid rounded-3 shadow-lg" alt="Parents"></div>
+                    <div class="col-lg-6 mt-4 mt-lg-0">
+                        <h3 class="fw-bold h1">Clear out closets. Save money.</h3>
+                        <p class="lead my-4">List items your kids have outgrown in just a few seconds. Find the right size for next year and pay a fraction of the price. It's that easy.</p>
+                        <a href="#" class="btn btn-primary btn-lg">Start Swapping</a>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="partners-tab-pane" role="tabpanel" aria-labelledby="partners-tab">
+                <div class="row align-items-center">
+                    <div class="col-lg-6"><img src="https://placehold.co/800x500/D1FAE5/065F46?text=Partnerships" class="img-fluid rounded-3 shadow-lg" alt="NGOs and Schools"></div>
+                    <div class="col-lg-6 mt-4 mt-lg-0">
+                        <h3 class="fw-bold h1">Get the donations you really need.</h3>
+                        <p class="lead my-4">Verified schools and charities can post a "wish list" for specific items and sizes. Receive quality gear from local parents who want to help.</p>
+                        <a href="#" class="btn btn-primary btn-lg">Learn About Partnering</a>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
 </div>
 
 <!-- Final CTA Section -->
 <div class="bg-white">
-    <div class="container mx-auto px-6 py-20 text-center">
-        <h2 class="text-4xl font-bold text-gray-800 mb-4 gsap-reveal">Ready to Get Started?</h2>
-        <p class="text-gray-600 mb-8 max-w-xl mx-auto gsap-reveal" data-gsap-delay="0.2">It's free to join and only takes a minute. Become part of a smart and caring community today.</p>
-        <a href="{{ url_for('auth.register') }}" class="bg-indigo-600 text-white font-bold py-4 px-10 rounded-full hover:bg-indigo-700 transition-transform transform hover:scale-105 text-lg shadow-lg gsap-reveal" data-gsap-delay="0.4">Create Your Free Account</a>
+    <div class="container text-center py-5">
+        <h2 class="display-5 fw-bold">Ready to Get Started?</h2>
+        <p class="lead col-lg-8 mx-auto mb-4">It's free to join and only takes a minute. Become part of a smart and caring community today.</p>
+        <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg">Create Your Free Account</a>
     </div>
 </div>
 
-<!-- Footer -->
-<footer class="bg-gray-800 text-gray-400 py-6">
-    <div class="container mx-auto px-6 text-center text-sm">
-        <p>&copy; 2025 SwapTheFit. All Rights Reserved.</p>
-    </div>
-</footer>
-
-<!-- CDN for Animation library -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/ScrollTrigger.min.js"></script>
-
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    // --- GSAP Animations ---
-    gsap.registerPlugin(ScrollTrigger);
-
-    gsap.utils.toArray('.gsap-reveal').forEach(el => {
-        gsap.fromTo(el, 
-            { autoAlpha: 0, y: 30 }, 
-            { 
-                autoAlpha: 1, 
-                y: 0, 
-                duration: 0.8,
-                delay: el.dataset.gsapDelay || 0,
-                ease: 'power3.out',
-                scrollTrigger: {
-                    trigger: el,
-                    start: 'top 90%',
-                    toggleActions: 'play none none none'
-                }
-            }
-        );
-    });
-
-    // --- Tabs Functionality ---
-    const tabs = document.querySelectorAll('[data-tab-target]');
-    const tabContents = document.querySelectorAll('.tab-pane');
-
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            const target = document.querySelector(tab.dataset.tabTarget);
-            
-            tabContents.forEach(tabContent => {
-                tabContent.classList.remove('active');
-                tabContent.style.display = 'none';
-            });
-            tabs.forEach(t => t.classList.remove('active'));
-
-            tab.classList.add('active');
-            target.classList.add('active');
-            target.style.display = 'block';
-        });
-    });
-});
-</script>
 {% endblock %}

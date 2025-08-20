@@ -1,118 +1,70 @@
-{# app/templates/admin/view_swap_requests.html #}
 {% extends "_layouts/base.html" %}
 
 {% block title %}Manage Swap Requests{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-8">Manage Swap Requests (Admin) 🔄</h1>
+<div class="container my-5">
+    <div class="text-center mb-5">
+        <h1 class="display-5 fw-bold">Manage Swap Requests</h1>
+        <p class="lead">Oversee all swap requests on the platform.</p>
+    </div>
 
-    <div class="bg-white p-6 rounded-xl shadow-2xl mb-8">
-        <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-3">All Swap Requests</h2>
-        
-        {# Optional: Add search and filter for swap requests if needed (e.g., by status, initiator, listing) #}
-        {# Example:
-        <form action="{{ url_for('admin.view_swap_requests') }}" method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div>
-                <label for="status_filter" class="block text-sm font-medium text-gray-700 mb-1">Filter by Status</label>
-                <select id="status_filter" name="status_filter"
-                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
-                    <option value="">All</option>
-                    <option value="pending">Pending</option>
-                    <option value="accepted">Accepted</option>
-                    <option value="rejected">Rejected</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
-                </select>
+    <div class="card shadow-sm border-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Initiator</th>
+                        <th>Offered Listing</th>
+                        <th>Requested Listing</th>
+                        <th>Status</th>
+                        <th>Request Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for request in swap_requests %}
+                    <tr>
+                        <td>{{ request.id }}</td>
+                        <td><a href="{{ url_for('listings.user_profile', user_id=request.initiator.id) }}">{{ request.initiator.username }}</a></td>
+                        <td>
+                            {% if request.offered_listing %}
+                                <a href="{{ url_for('listings.listing_detail', listing_id=request.offered_listing.id) }}">{{ request.offered_listing.title }}</a>
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if request.requested_listing %}
+                                <a href="{{ url_for('listings.listing_detail', listing_id=request.requested_listing.id) }}">{{ request.requested_listing.title }}</a>
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge 
+                                {% if request.status == 'pending' %}bg-warning text-dark
+                                {% elif request.status == 'accepted' %}bg-info
+                                {% elif request.status == 'completed' %}bg-success
+                                {% elif request.status == 'rejected' or request.status == 'cancelled' %}bg-danger
+                                {% else %}bg-secondary{% endif %}">
+                                {{ request.status|capitalize }}
+                            </span>
+                        </td>
+                        <td>{{ request.request_date.strftime('%b %d, %Y') }}</td>
+                        <td>
+                            <a href="{{ url_for('swaps.view_swap_request', swap_id=request.id) }}" class="btn btn-sm btn-primary">View</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if not swap_requests %}
+            <div class="card-body text-center">
+                <p class="text-muted mb-0">No swap requests found.</p>
             </div>
-            <div class="col-span-full flex justify-end space-x-3 mt-2">
-                <button type="submit" class="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">Apply Filters</button>
-                <a href="{{ url_for('admin.view_swap_requests') }}" class="inline-flex items-center px-6 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Reset</a>
-            </div>
-        </form>
-        #}
-
-        {% if swap_requests %}
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 rounded-lg overflow-hidden shadow-sm">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                ID
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Initiator
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Offered Listing
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Requested Listing
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Status
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Request Date
-                            </th>
-                            <th scope="col" class="relative px-6 py-3">
-                                <span class="sr-only">View</span>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for request in swap_requests %}
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {{ request.id }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                <a href="{{ url_for('listings.user_profile', user_id=request.initiator.id) }}" class="text-indigo-600 hover:text-indigo-900">
-                                    {{ request.initiator.username }}
-                                </a>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {% if request.offered_listing %}
-                                    <a href="{{ url_for('listings.listing_detail', listing_id=request.offered_listing.id) }}" class="text-blue-600 hover:text-blue-900">
-                                        {{ request.offered_listing.title }}
-                                    </a>
-                                {% else %}
-                                    N/A
-                                {% endif %}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {% if request.requested_listing %}
-                                    <a href="{{ url_for('listings.listing_detail', listing_id=request.requested_listing.id) }}" class="text-blue-600 hover:text-blue-900">
-                                        {{ request.requested_listing.title }}
-                                    </a>
-                                {% else %}
-                                    N/A
-                                {% endif %}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                                    {% if request.status == 'pending' %}bg-yellow-100 text-yellow-800
-                                    {% elif request.status == 'accepted' %}bg-blue-100 text-blue-800
-                                    {% elif request.status == 'completed' %}bg-green-100 text-green-800
-                                    {% elif request.status == 'rejected' or request.status == 'cancelled' %}bg-red-100 text-red-800
-                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                    {{ request.status|capitalize }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ request.request_date.strftime('%b %d, %Y') }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                {# Admins might need a way to manage/update swap requests - add routes for that if required #}
-                                <a href="{{ url_for('swaps.view_swap_request', swap_id=request.id) }}" class="text-indigo-600 hover:text-indigo-900">View</a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% else %}
-            <p class="text-gray-600 text-center py-4">No swap requests found in the system.</p>
         {% endif %}
     </div>
 </div>

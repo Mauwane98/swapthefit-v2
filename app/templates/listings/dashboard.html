@@ -3,183 +3,153 @@
 {% block title %}Your Dashboard{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8 md:py-12">
-    <h1 class="text-4xl font-extrabold text-gray-900 text-center mb-8 md:mb-12">Welcome, {{ current_user.username }}!</h1>
+<div class="container my-5">
+    <div class="text-center mb-5">
+        <h1 class="display-5 fw-bold">Dashboard</h1>
+        <p class="lead">Welcome back, {{ current_user.username }}!</p>
+    </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Quick Actions / Overview -->
-        <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-xl border border-gray-200 h-fit">
-            <h2 class="text-2xl font-bold text-gray-900 mb-4">Quick Actions</h2>
-            <ul class="space-y-3">
-                <li>
-                    <a href="{{ url_for('listings.create_listing') }}" class="flex items-center p-3 rounded-md bg-[var(--color-accent)] text-white hover:bg-[#2F9C6E] transition-colors duration-200 shadow-md">
-                        <i class="fas fa-plus-circle mr-3 text-lg"></i>
-                        <span class="font-semibold">Create New Listing</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ url_for('listings.marketplace') }}" class="flex items-center p-3 rounded-md bg-gray-100 text-gray-800 hover:bg-gray-200 transition-colors duration-200">
-                        <i class="fas fa-store mr-3 text-lg"></i>
-                        <span class="font-semibold">Browse Marketplace</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ url_for('messaging.inbox') }}" class="flex items-center p-3 rounded-md bg-gray-100 text-gray-800 hover:bg-gray-200 transition-colors duration-200">
-                        <i class="fas fa-envelope mr-3 text-lg"></i>
-                        <span class="font-semibold">Your Inbox</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ url_for('notifications.index') }}" class="flex items-center p-3 rounded-md bg-gray-100 text-gray-800 hover:bg-gray-200 transition-colors duration-200">
-                        <i class="fas fa-bell mr-3 text-lg"></i>
-                        <span class="font-semibold">Notifications</span>
-                        {% if unread_notifications > 0 %}
-                            <span class="ml-auto inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-500 rounded-full">{{ unread_notifications }}</span>
-                        {% endif %}
-                    </a>
-                </li>
-                 <li>
-                    <a href="{{ url_for('profile.user_profile', user_id=current_user.id) }}" class="flex items-center p-3 rounded-md bg-gray-100 text-gray-800 hover:bg-gray-200 transition-colors duration-200">
-                        <i class="fas fa-user-circle mr-3 text-lg"></i>
-                        <span class="font-semibold">View Your Profile</span>
-                    </a>
-                </li>
-            </ul>
+    <div class="row">
+        <!-- Quick Actions Sidebar -->
+        <div class="col-lg-3">
+            <div class="d-grid gap-2">
+                <a href="{{ url_for('listings.create_listing') }}" class="btn btn-primary btn-lg">Create New Listing</a>
+                <a href="{{ url_for('listings.marketplace') }}" class="btn btn-secondary btn-lg">Browse Marketplace</a>
+            </div>
+            <hr class="my-4">
+            <div class="list-group">
+                <a href="{{ url_for('messaging.inbox') }}" class="list-group-item list-group-item-action">Your Inbox</a>
+                <a href="{{ url_for('notifications.index') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    Notifications
+                    {% if unread_notifications > 0 %}
+                        <span class="badge bg-danger rounded-pill">{{ unread_notifications }}</span>
+                    {% endif %}
+                </a>
+                <a href="{{ url_for('profile.profile') }}" class="list-group-item list-group-item-action">Your Profile</a>
+            </div>
         </div>
 
         <!-- Main Content Area -->
-        <div class="lg:col-span-2 space-y-8">
+        <div class="col-lg-9">
             <!-- Your Listings Section -->
-            <div class="bg-white p-6 rounded-lg shadow-xl border border-gray-200">
-                <h2 class="text-2xl font-bold text-gray-900 mb-4 flex items-center justify-between">
-                    Your Listings
-                    <a href="{{ url_for('listings.create_listing') }}" class="text-[var(--color-accent)] hover:underline text-sm font-medium">View All & Create</a>
-                </h2>
-                {% if user_listings %}
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {% for listing in user_listings[:3] %} {# Show top 3 recent listings #}
-                            <div class="bg-gray-50 rounded-lg shadow-sm overflow-hidden border border-gray-100">
-                                <a href="{{ url_for('listings.listing_detail', listing_id=listing.id) }}">
-                                    <img src="{{ listing.images[0] if listing.images else 'https://placehold.co/300x200/E0E0E0/888888?text=No+Image' }}" 
-                                         alt="{{ listing.title }}" 
-                                         class="w-full h-32 object-cover">
-                                </a>
-                                <div class="p-3">
-                                    <h3 class="text-md font-semibold text-gray-900 truncate mb-1">{{ listing.title }}</h3>
-                                    <p class="text-xs text-gray-600 mb-2">{{ listing.category }} | Size: {{ listing.size }}</p>
-                                    <div class="flex justify-between items-center text-xs text-gray-500">
-                                        <span>Status: <span class="font-medium capitalize">{{ listing.status }}</span></span>
-                                        <span>{{ listing.created_at.strftime('%b %d') }}</span>
-                                    </div>
-                                    <div class="mt-3 flex space-x-2">
-                                        <a href="{{ url_for('listings.edit_listing', listing_id=listing.id) }}" class="flex-1 text-center text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors">Edit</a>
-                                        <form action="{{ url_for('listings.delete_listing', listing_id=listing.id) }}" method="POST" class="flex-1">
-                                            {{ csrf_token() }}
-                                            <button type="submit" onclick="return confirm('Are you sure you want to delete this listing?');" class="w-full text-center text-xs px-2 py-1 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors">Delete</button>
-                                        </form>
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h3 class="fw-bold mb-3">Your Listings</h3>
+                    {% if user_listings %}
+                        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                            {% for listing in user_listings[:3] %}
+                                <div class="col">
+                                    <div class="card h-100 border-0 shadow-sm">
+                                        <a href="{{ url_for('listings.listing_detail', listing_id=listing.id) }}">
+                                            <img src="{{ listing.images[0] if listing.images else 'https://placehold.co/300x200/E0E0E0/888888?text=No+Image' }}" alt="{{ listing.title }}" class="card-img-top" style="height: 150px; object-fit: cover;">
+                                        </a>
+                                        <div class="card-body">
+                                            <h5 class="card-title small fw-bold">{{ listing.title }}</h5>
+                                            <p class="card-text small text-muted">{{ listing.category }} | Size: {{ listing.size }}</p>
+                                        </div>
+                                        <div class="card-footer bg-transparent border-0 p-2 d-flex">
+                                            <a href="{{ url_for('listings.edit_listing', listing_id=listing.id) }}" class="btn btn-sm btn-outline-secondary w-100 me-1">Edit</a>
+                                            <form action="{{ url_for('listings.delete_listing', listing_id=listing.id) }}" method="POST" class="w-100 ms-1">
+                                                {{ csrf_token() }}
+                                                <button type="submit" onclick="return confirm('Are you sure?');" class="btn btn-sm btn-outline-danger w-100">Delete</button>
+                                            </form>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                    {% if user_listings|length > 3 %}
-                    <div class="text-center mt-6">
-                        <a href="{{ url_for('listings.dashboard') }}#your-listings" class="text-[var(--color-accent)] hover:underline font-medium">View All Your Listings &rarr;</a>
-                    </div>
+                            {% endfor %}
+                        </div>
+                        {% if user_listings|length > 3 %}
+                        <div class="text-center mt-4">
+                            <a href="#">View All Your Listings &rarr;</a>
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center py-4">
+                            <p>You haven't created any listings yet.</p>
+                            <a href="{{ url_for('listings.create_listing') }}" class="btn btn-primary mt-2">Create Your First Listing</a>
+                        </div>
                     {% endif %}
-                {% else %}
-                    <p class="text-center text-gray-600">You haven't created any listings yet.</p>
-                    <div class="text-center mt-4">
-                        <a href="{{ url_for('listings.create_listing') }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[var(--color-accent)] hover:bg-[#2F9C6E] shadow-sm">
-                            <i class="fas fa-plus mr-2"></i> Create Your First Listing
-                        </a>
-                    </div>
-                {% endif %}
+                </div>
             </div>
 
-            <!-- Incoming Swap Requests -->
-            <div class="bg-white p-6 rounded-lg shadow-xl border border-gray-200">
-                <h2 class="text-2xl font-bold text-gray-900 mb-4">Incoming Swap Requests</h2>
-                {% if incoming_swap_requests %}
-                    <div class="space-y-4">
-                        {% for request in incoming_swap_requests %}
-                            <div class="border border-gray-200 p-4 rounded-lg bg-gray-50">
-                                <p class="text-sm text-gray-700">
-                                    <span class="font-semibold">{{ request.proposer.username }}</span> wants to swap their 
-                                    <a href="{{ url_for('listings.listing_detail', listing_id=request.offered_listing.id) }}" class="text-[var(--color-accent)] hover:underline font-medium">{{ request.offered_listing.title }}</a> 
-                                    for your 
-                                    <a href="{{ url_for('listings.listing_detail', listing_id=request.requested_listing.id) }}" class="text-[var(--color-accent)] hover:underline font-medium">{{ request.requested_listing.title }}</a>.
-                                </p>
-                                <p class="text-xs text-gray-500 mt-1">Proposed on: {{ request.date_proposed.strftime('%b %d, %Y') }}</p>
-                                <div class="mt-3 flex space-x-2">
-                                    <a href="{{ url_for('swaps.view_swap_request', request_id=request.id) }}" class="flex-1 text-center text-sm px-3 py-1.5 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors">View Request</a>
-                                    <!-- Accept/Reject buttons would typically be on the view_swap_request page -->
+            <!-- Swap Requests -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h3 class="fw-bold mb-3">Swap Requests</h3>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Incoming</h5>
+                            {% if incoming_swap_requests %}
+                                <div class="list-group">
+                                    {% for request in incoming_swap_requests %}
+                                        <a href="{{ url_for('swaps.view_swap_request', request_id=request.id) }}" class="list-group-item list-group-item-action">
+                                            <div class="d-flex w-100 justify-content-between">
+                                                <h6 class="mb-1">From: {{ request.proposer.username }}</h6>
+                                                <small>{{ request.date_proposed.strftime('%b %d') }}</small>
+                                            </div>
+                                            <p class="mb-1 small">Their "{{ request.offered_listing.title }}" for your "{{ request.requested_listing.title }}".</p>
+                                        </a>
+                                    {% endfor %}
                                 </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <p class="text-center text-gray-600">No incoming swap requests at the moment.</p>
-                {% endif %}
-            </div>
-
-            <!-- Outgoing Swap Requests -->
-            <div class="bg-white p-6 rounded-lg shadow-xl border border-gray-200">
-                <h2 class="text-2xl font-bold text-gray-900 mb-4">Your Proposed Swaps</h2>
-                {% if outgoing_swap_requests %}
-                    <div class="space-y-4">
-                        {% for request in outgoing_swap_requests %}
-                            <div class="border border-gray-200 p-4 rounded-lg bg-gray-50">
-                                <p class="text-sm text-gray-700">
-                                    You proposed to swap your 
-                                    <a href="{{ url_for('listings.listing_detail', listing_id=request.offered_listing.id) }}" class="text-[var(--color-accent)] hover:underline font-medium">{{ request.offered_listing.title }}</a> 
-                                    for 
-                                    <a href="{{ url_for('listings.listing_detail', listing_id=request.requested_listing.id) }}" class="text-[var(--color-accent)] hover:underline font-medium">{{ request.requested_listing.title }}</a> 
-                                    from <span class="font-semibold">{{ request.recipient.username }}</span>.
-                                </p>
-                                <p class="text-xs text-gray-500 mt-1">Status: <span class="font-medium capitalize">{{ request.status }}</span> | Proposed on: {{ request.date_proposed.strftime('%b %d, %Y') }}</p>
-                                <div class="mt-3 flex space-x-2">
-                                    <a href="{{ url_for('swaps.view_swap_request', request_id=request.id) }}" class="flex-1 text-center text-sm px-3 py-1.5 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors">View Details</a>
+                            {% else %}
+                                <p class="text-muted small">No incoming swap requests.</p>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Outgoing</h5>
+                            {% if outgoing_swap_requests %}
+                                <div class="list-group">
+                                    {% for request in outgoing_swap_requests %}
+                                        <a href="{{ url_for('swaps.view_swap_request', request_id=request.id) }}" class="list-group-item list-group-item-action">
+                                            <div class="d-flex w-100 justify-content-between">
+                                                <h6 class="mb-1">To: {{ request.recipient.username }}</h6>
+                                                <small><span class="badge bg-light text-dark">{{ request.status }}</span></small>
+                                            </div>
+                                            <p class="mb-1 small">Your "{{ request.offered_listing.title }}" for their "{{ request.requested_listing.title }}".</p>
+                                        </a>
+                                    {% endfor %}
                                 </div>
-                            </div>
-                        {% endfor %}
+                            {% else %}
+                                <p class="text-muted small">No outgoing swap requests.</p>
+                            {% endif %}
+                        </div>
                     </div>
-                {% else %}
-                    <p class="text-center text-gray-600">You haven't proposed any swaps yet.</p>
-                {% endif %}
+                </div>
             </div>
 
-            <!-- Your Wishlist - Only for Parents -->
+            <!-- Wishlist -->
             {% if current_user.has_role('parent') %}
-            <div class="bg-white p-6 rounded-lg shadow-xl border border-gray-200">
-                <h2 class="text-2xl font-bold text-gray-900 mb-4">Your Wishlist</h2>
-                {% if wishlist_items %}
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {% for item in wishlist_items %}
-                            <div class="bg-gray-50 rounded-lg shadow-sm overflow-hidden border border-gray-100">
-                                <a href="{{ url_for('listings.listing_detail', listing_id=item.listing.id) }}">
-                                    <img src="{{ item.listing.images[0] if item.listing.images else 'https://placehold.co/300x200/E0E0E0/888888?text=No+Image' }}" 
-                                         alt="{{ item.listing.title }}" 
-                                         class="w-full h-32 object-cover">
-                                </a>
-                                <div class="p-3">
-                                    <h3 class="text-md font-semibold text-gray-900 truncate mb-1">{{ item.listing.title }}</h3>
-                                    <p class="text-xs text-gray-600 mb-2">Added: {{ item.added_at.strftime('%b %d, %Y') }}</p>
-                                    <div class="mt-3">
-                                        <form action="{{ url_for('listings.remove_from_wishlist', listing_id=item.listing.id) }}" method="POST">
-                                            {{ csrf_token() }}
-                                            <button type="submit" class="w-full text-center text-xs px-2 py-1 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors">
-                                                Remove
-                                            </button>
-                                        </form>
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h3 class="fw-bold mb-3">Your Wishlist</h3>
+                    {% if wishlist_items %}
+                        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                            {% for item in wishlist_items %}
+                                <div class="col">
+                                    <div class="card h-100 border-0 shadow-sm">
+                                        <a href="{{ url_for('listings.listing_detail', listing_id=item.listing.id) }}">
+                                            <img src="{{ item.listing.images[0] if item.listing.images else 'https://placehold.co/300x200/E0E0E0/888888?text=No+Image' }}" alt="{{ item.listing.title }}" class="card-img-top" style="height: 150px; object-fit: cover;">
+                                        </a>
+                                        <div class="card-body">
+                                            <h5 class="card-title small fw-bold">{{ item.listing.title }}</h5>
+                                        </div>
+                                        <div class="card-footer bg-transparent border-0 p-2">
+                                            <form action="{{ url_for('listings.remove_from_wishlist', listing_id=item.listing.id) }}" method="POST">
+                                                {{ csrf_token() }}
+                                                <button type="submit" class="btn btn-sm btn-outline-danger w-100">Remove</button>
+                                            </form>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <p class="text-center text-gray-600">Your wishlist is empty. Start browsing the <a href="{{ url_for('listings.marketplace') }}" class="text-[var(--color-accent)] hover:underline">marketplace</a> to add items!</p>
-                {% endif %}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <p>Your wishlist is empty.</p>
+                            <a href="{{ url_for('listings.marketplace') }}" class="btn btn-secondary mt-2">Browse Marketplace</a>
+                        </div>
+                    {% endif %}
+                </div>
             </div>
             {% endif %}
         </div>

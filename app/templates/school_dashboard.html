@@ -1,196 +1,110 @@
-{# app/templates/school_dashboard.html #}
 {% extends "_layouts/base.html" %}
 
 {% block title %}School Dashboard{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-8">School Dashboard 🏫</h1>
+<div class="container my-5">
+    <div class="text-center mb-5">
+        <h1 class="display-5 fw-bold">School Dashboard</h1>
+        <p class="lead">Manage your school's profile, donations, and listings.</p>
+    </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- School Overview / Impact Section -->
-        <div class="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
-            <h2 class="text-2xl font-semibold text-gray-700 mb-4 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c1.657 0 3 .895 3 2s-1.343 2-3 2-3-.895-3-2 1.343-2 3-2zM21 12c0 7.732-7.89 12-9 12s-9-4.268-9-12c0-2.42 1.166-4.63 3-6 1.834-1.37 4.166-2 6-2s4.166.63 6 2c1.834 1.37 3 3.58 3 6z" />
-                </svg>
-                School Overview
-            </h2>
-            <p class="text-gray-600 mb-4">Track donations received and manage your school's profile.</p>
-            <ul class="mt-4 space-y-2 text-gray-600">
-                <li class="flex items-center justify-between">
-                    <span class="font-medium">Total Donations Received:</span>
-                    <span class="text-green-600 font-bold">{{ total_donations_received_count }} items</span>
-                </li>
-                <li class="flex items-center justify-between">
-                    <span class="font-medium">Estimated Value of Donations:</span>
-                    <span class="text-green-600 font-bold">R{{ "%.2f"|format(total_donations_value) }}</span>
-                </li>
-                <li class="flex items-center justify-between">
-                    <span class="font-medium">Families Supported (YTD):</span>
-                    <span class="text-purple-600 font-bold">{{ total_families_supported_ytd }}</span>
-                </li>
-                <li class="flex items-center justify-between">
-                    <span class="font-medium">Items Distributed:</span>
-                    <span class="text-yellow-600 font-bold">{{ total_distributed_items }}</span>
-                </li>
-                <li class="flex items-center justify-between">
-                    <span class="font-medium">Pending Donations:</span>
-                    <span class="text-red-600 font-bold">{{ pending_donations_count }}</span>
-                </li>
-            </ul>
-            <a href="{{ url_for('donations.manage_donations') }}" class="mt-4 inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
-                Manage Donations
-            </a>
+    <div class="row">
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <h4 class="card-title fw-bold">School Overview</h4>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">Total Donations: <span class="badge bg-success rounded-pill">{{ total_donations_received_count }}</span></li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">Estimated Value: <span class="badge bg-success rounded-pill">R{{ "%.2f"|format(total_donations_value) }}</span></li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">Families Supported: <span class="badge bg-info rounded-pill">{{ total_families_supported_ytd }}</span></li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">Items Distributed: <span class="badge bg-warning text-dark rounded-pill">{{ total_distributed_items }}</span></li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">Pending Donations: <span class="badge bg-danger rounded-pill">{{ pending_donations_count }}</span></li>
+                    </ul>
+                    <a href="{{ url_for('donations.manage_donations') }}" class="btn btn-primary mt-3">Manage Donations</a>
+                </div>
+            </div>
         </div>
 
-        <!-- Listings from Your School (renamed from "Students") -->
-        <div class="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
-            <h2 class="text-2xl font-semibold text-gray-700 mb-4 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5s3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18s-3.332.477-4.5 1.253" />
-                </svg>
-                Listings from Your School
-            </h2>
-            <p class="text-gray-600 mb-4">Monitor listings associated with your school.</p>
-            {% if school_listings %}
-                <ul class="mt-4 space-y-2">
-                    {% for listing in school_listings|slice(':3') %} {# Show first 3 listings #}
-                        <li class="flex items-center bg-gray-50 p-3 rounded-md shadow-sm">
-                            <img src="{{ url_for('static', filename='uploads/' + listing.image_file) }}" alt="{{ listing.title }}" class="h-10 w-10 object-cover rounded-md mr-3">
-                            <div>
-                                <a href="{{ url_for('listings.listing_detail', listing_id=listing.id) }}" class="text-indigo-600 hover:underline font-medium">{{ listing.title }}</a>
-                                <p class="text-sm text-gray-500">By: {{ listing.user.username }} - {{ listing.status|replace('_', ' ')|capitalize }}</p>
-                            </div>
-                        </li>
-                    {% endfor %}
-                    {% if school_listings|length > 3 %}
-                        <li class="text-center mt-3">
-                            <a href="{{ url_for('listings.marketplace', school_name=current_user.username) }}" class="text-indigo-500 hover:underline text-sm">View All School Listings &rarr;</a>
-                        </li>
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <h4 class="card-title fw-bold">Listings from Your School</h4>
+                    {% if school_listings %}
+                        <ul class="list-group list-group-flush">
+                            {% for listing in school_listings[:3] %}
+                                <li class="list-group-item d-flex align-items-center">
+                                    <img src="{{ url_for('static', filename='uploads/' + listing.image_file) }}" alt="{{ listing.title }}" class="rounded me-3" style="width: 40px; height: 40px; object-fit: cover;">
+                                    <div>
+                                        <a href="{{ url_for('listings.listing_detail', listing_id=listing.id) }}" class="text-decoration-none">{{ listing.title }}</a>
+                                        <small class="d-block text-muted">By: {{ listing.user.username }}</small>
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                        {% if school_listings|length > 3 %}
+                            <a href="{{ url_for('listings.marketplace', school_name=current_user.username) }}" class="btn btn-secondary btn-sm mt-3">View All</a>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-muted">No listings from your school yet.</p>
                     {% endif %}
-                </ul>
-            {% else %}
-                <p class="text-gray-500 text-sm">No listings currently associated with your school.</p>
-            {% endif %}
+                </div>
+            </div>
         </div>
 
-        <!-- My Account Section -->
-        <div class="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
-            <h2 class="text-2xl font-semibold text-gray-700 mb-4 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                My Account
-            </h2>
-            <p class="text-gray-600 mb-4">Manage your school's profile and contact information.</p>
-            <a href="{{ url_for('profile.profile') }}" class="inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
-                View Profile
-            </a>
-            <ul class="mt-4 space-y-2 text-gray-600">
-                <li class="flex items-center">
-                    <span class="font-medium mr-2">Contact Person:</span> <span class="text-gray-800 font-bold">{{ current_user.contact_person or 'N/A' }}</span>
-                </li>
-                <li class="flex items-center">
-                    <span class="font-medium mr-2">Email:</span> <span class="text-gray-800 font-bold">{{ current_user.email }}</span>
-                </li>
-            </ul>
-        </div>
-
-        <!-- Donations & Distributions Section (Moved to its own column for better layout) -->
-        <div class="bg-white p-6 rounded-lg shadow-lg border border-gray-200 col-span-full md:col-span-1">
-            <h2 class="text-2xl font-semibold text-gray-700 mb-4 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-                Recent Donations Received
-            </h2>
-            <p class="text-gray-600 mb-4">Monitor recent donations received by your school.</p>
-            {% if received_donations_school %}
-                <ul class="mt-4 space-y-2">
-                    {% for donation in received_donations_school|slice(':3') %}
-                        <li class="flex items-center bg-gray-50 p-3 rounded-md shadow-sm">
-                            <img src="{{ url_for('static', filename='uploads/' + donation.donated_listing_obj.image_file) }}" alt="{{ donation.donated_listing_obj.title }}" class="h-10 w-10 object-cover rounded-md mr-3">
-                            <div>
-                                <a href="{{ url_for('donations.view_donation_request', donation_id=donation.id) }}" class="text-blue-600 hover:underline font-medium">{{ donation.donated_listing_obj.title }}</a>
-                                <p class="text-sm text-gray-500">From: {{ donation.donor.username }} - Status: {{ donation.status|replace('_', ' ')|capitalize }}</p>
-                            </div>
-                        </li>
-                    {% endfor %}
-                    {% if received_donations_school|length > 3 %}
-                        <li class="text-center mt-3">
-                            <a href="{{ url_for('donations.manage_donations') }}" class="text-blue-500 hover:underline text-sm">View All Donations &rarr;</a>
-                        </li>
-                    {% endif %}
-                </ul>
-            {% else %}
-                <p class="text-gray-500 text-sm">No donations have been received by your school yet.</p>
-            {% endif %}
-            <a href="{{ url_for('donations.manage_donations') }}" class="mt-4 inline-block bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
-                Manage All Donations
-            </a>
-        </div>
-
-        <!-- Received Swap Requests Section -->
-        <div class="bg-white p-6 rounded-lg shadow-lg border border-gray-200 col-span-full md:col-span-2">
-            <h2 class="text-2xl font-semibold text-gray-700 mb-4 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                </svg>
-                Received Swap Requests
-            </h2>
-            <p class="text-gray-600 mb-4">Track swap requests made by parents for your school's listings.</p>
-            <a href="{{ url_for('swaps.manage_swaps') }}" class="inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
-                Manage Swap Requests
-            </a>
-            <ul class="mt-4 space-y-2 text-gray-600">
-                <li class="flex items-center">
-                    <span class="font-medium mr-2">Pending Swap Requests:</span> <span class="text-yellow-600 font-bold">{{ school_received_swap_requests|selectattr('status', '==', 'pending')|list|length }}</span>
-                </li>
-                <li class="flex items-center">
-                    <span class="font-medium mr-2">Accepted Swap Requests:</span> <span class="text-blue-600 font-bold">{{ school_received_swap_requests|selectattr('status', '==', 'accepted')|list|length }}</span>
-                </li>
-                <li class="flex items-center">
-                    <span class="font-medium mr-2">Completed Swaps:</span> <span class="text-green-600 font-bold">{{ school_received_swap_requests|selectattr('status', '==', 'completed')|list|length }}</span>
-                </li>
-            </ul>
-            {% if school_received_swap_requests %}
-                <ul class="mt-4 space-y-2">
-                    {% for swap_req in school_received_swap_requests|slice(':3') %}
-                        <li class="flex items-center bg-gray-50 p-3 rounded-md shadow-sm">
-                            <img src="{{ url_for('static', filename='uploads/' + swap_req.offered_listing_obj.image_file) }}" alt="{{ swap_req.offered_listing_obj.title }}" class="h-10 w-10 object-cover rounded-md mr-3">
-                            <div>
-                                <a href="{{ url_for('swaps.view_swap_request', swap_id=swap_req.id) }}" class="text-indigo-600 hover:underline font-medium">Swap from: {{ swap_req.initiator.username }} for {{ swap_req.offered_listing_obj.title }}</a>
-                                <p class="text-sm text-gray-500">Status: {{ swap_req.status|capitalize }}</p>
-                            </div>
-                        </li>
-                    {% endfor %}
-                    {% if school_received_swap_requests|length > 3 %}
-                        <li class="text-center mt-3">
-                            <a href="{{ url_for('swaps.manage_swaps') }}" class="text-indigo-500 hover:underline text-sm">View All Swap Requests &rarr;</a>
-                        </li>
-                    {% endif %}
-                </ul>
-            {% else %}
-                <p class="text-gray-500 text-sm">No swap requests received by your school yet.</p>
-            {% endif %}
-            <h3 class="text-xl font-semibold text-gray-700 mt-6 mb-3">Logistics Status Overview (Swaps)</h3>
-            <ul class="space-y-2 text-gray-600">
-                {% for swap in school_received_swap_requests %}
-                    {% if swap.logistics_record and swap.logistics_record.status not in ['delivered', 'failed', 'cancelled'] %}
-                        <li class="flex items-center justify-between bg-gray-100 p-2 rounded-md">
-                            <span class="text-sm">Swap for "{{ swap.offered_listing_obj.title }}"</span>
-                            <a href="{{ url_for('logistics.view_logistics', logistics_id=swap.logistics_record.id) }}" class="text-blue-500 hover:underline text-sm">
-                                Status: {{ swap.logistics_record.status|replace('_', ' ')|capitalize }} &rarr;
-                            </a>
-                        </li>
-                    {% endif %}
-                {% endfor %}
-                {% if not school_received_swap_requests %}
-                    <li class="text-gray-500 text-sm">No active logistics for swaps.</li>
-                {% endif %}
-            </ul>
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <h4 class="card-title fw-bold">My Account</h4>
+                    <p><strong>Contact:</strong> {{ current_user.contact_person or 'N/A' }}</p>
+                    <p><strong>Email:</strong> {{ current_user.email }}</p>
+                    <a href="{{ url_for('profile.profile') }}" class="btn btn-secondary mt-2">View Profile</a>
+                </div>
+            </div>
         </div>
     </div>
+
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <h4 class="card-title fw-bold">Recent Donations</h4>
+                    {% if received_donations_school %}
+                        <ul class="list-group list-group-flush">
+                            {% for donation in received_donations_school[:3] %}
+                                <li class="list-group-item d-flex align-items-center">
+                                    <img src="{{ url_for('static', filename='uploads/' + donation.donated_listing_obj.image_file) }}" alt="{{ donation.donated_listing_obj.title }}" class="rounded me-3" style="width: 40px; height: 40px; object-fit: cover;">
+                                    <div>
+                                        <a href="{{ url_for('donations.view_donation_request', donation_id=donation.id) }}" class="text-decoration-none">{{ donation.donated_listing_obj.title }}</a>
+                                        <small class="d-block text-muted">From: {{ donation.donor.username }}</small>
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                        {% if received_donations_school|length > 3 %}
+                            <a href="{{ url_for('donations.manage_donations') }}" class="btn btn-secondary btn-sm mt-3">View All</a>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-muted">No recent donations.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <h4 class="card-title fw-bold">Swap Requests</h4>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">Pending: <span class="badge bg-warning text-dark rounded-pill">{{ school_received_swap_requests|selectattr('status', '==', 'pending')|list|length }}</span></li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">Accepted: <span class="badge bg-info rounded-pill">{{ school_received_swap_requests|selectattr('status', '==', 'accepted')|list|length }}</span></li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">Completed: <span class="badge bg-success rounded-pill">{{ school_received_swap_requests|selectattr('status', '==', 'completed')|list|length }}</span></li>
+                    </ul>
+                    <a href="{{ url_for('swaps.manage_swaps') }}" class="btn btn-secondary mt-3">Manage Swaps</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 {% endblock %}

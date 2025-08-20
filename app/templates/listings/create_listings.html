@@ -3,93 +3,82 @@
 {% block title %}Create New Listing{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8 md:py-12">
-    <div class="max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-xl border border-gray-200">
-        <div class="text-center mb-8">
-            <h1 class="text-3xl font-extrabold text-gray-900">Create Your New Listing</h1>
-            <p class="mt-2 text-base text-gray-600">Fill out the details below to list your item for swap, sale, or donation.</p>
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <h1 class="h2 fw-bold">Create a New Listing</h1>
+                        <p class="text-muted">Fill out the details below to list your item.</p>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('listings.create_listing') }}" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+
+                        <div class="mb-3">
+                            {{ form.title.label(class="form-label") }}
+                            {{ form.title(class="form-control form-control-lg") }}
+                            {% for error in form.title.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.description.label(class="form-label") }}
+                            {{ form.description(class="form-control form-control-lg", rows="5") }}
+                            {% for error in form.description.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6 mb-3">
+                                {{ form.uniform_type.label(class="form-label") }}
+                                {{ form.uniform_type(class="form-select form-select-lg") }}
+                                {% for error in form.uniform_type.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.size.label(class="form-label") }}
+                                {{ form.size(class="form-control form-control-lg") }}
+                                {% for error in form.size.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.condition.label(class="form-label") }}
+                                {{ form.condition(class="form-select form-select-lg") }}
+                                {% for error in form.condition.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.school_name.label(class="form-label") }}
+                                {{ form.school_name(class="form-control form-control-lg") }}
+                                {% for error in form.school_name.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.image.label(class="form-label") }}
+                            {{ form.image(class="form-control form-control-lg") }}
+                            <div class="form-text">Upload up to 5 photos. Max file size: 2MB per image. Formats: JPG, PNG, JPEG.</div>
+                            {% for error in form.image.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">Create Listing</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-
-        <form method="POST" action="{{ url_for('listings.create_listing') }}" enctype="multipart/form-data" class="space-y-6">
-            {{ form.hidden_tag() }}
-
-            <!-- Listing Title -->
-            <div>
-                {{ form.title.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
-                {{ form.title(class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-accent focus:border-accent sm:text-sm") }}
-                {% for error in form.title.errors %}
-                    <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
-                {% endfor %}
-            </div>
-
-            <!-- Description -->
-            <div>
-                {{ form.description.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
-                {{ form.description(class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-accent focus:border-accent sm:text-sm h-32 resize-y") }}
-                {% for error in form.description.errors %}
-                    <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
-                {% endfor %}
-            </div>
-
-            <!-- Category, Size, Condition in a grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    {{ form.category.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
-                    {{ form.category(class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-accent focus:border-accent sm:text-sm rounded-md") }}
-                    {% for error in form.category.errors %}
-                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
-                    {% endfor %}
-                </div>
-                <div>
-                    {{ form.size.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
-                    {{ form.size(class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-accent focus:border-accent sm:text-sm") }}
-                    {% for error in form.size.errors %}
-                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
-                    {% endfor %}
-                </div>
-                <div>
-                    {{ form.condition.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
-                    {{ form.condition(class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-accent focus:border-accent sm:text-sm rounded-md") }}
-                    {% for error in form.condition.errors %}
-                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
-                    {% endfor %}
-                </div>
-                <div>
-                    {{ form.school_name.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
-                    {{ form.school_name(class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-accent focus:border-accent sm:text-sm") }}
-                    {% for error in form.school_name.errors %}
-                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <!-- Desired Swap Items -->
-            <div>
-                {{ form.desired_swap_items.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
-                {{ form.desired_swap_items(class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-accent focus:border-accent sm:text-sm h-24 resize-y") }}
-                {% for error in form.desired_swap_items.errors %}
-                    <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
-                {% endfor %}
-            </div>
-
-            <!-- Photos Upload -->
-            <div>
-                {{ form.photos.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
-                <input type="file" name="{{ form.photos.name }}" id="{{ form.photos.id }}" multiple 
-                       class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-accent file:text-white hover:file:bg-[#2F9C6E]">
-                <p class="mt-1 text-xs text-gray-500">Upload up to 5 photos. Max file size: 2MB per image. Formats: JPG, PNG, JPEG.</p>
-                {% for error in form.photos.errors %}
-                    <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
-                {% endfor %}
-            </div>
-
-            <!-- Submit Button -->
-            <div>
-                <button type="submit" class="group relative w-full flex justify-center py-2.5 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-[var(--color-accent)] hover:bg-[#2F9C6E] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-accent)] transition-all duration-300 shadow-md">
-                    <i class="fas fa-plus-circle mr-2"></i> Create Listing
-                </button>
-            </div>
-        </form>
     </div>
 </div>
 {% endblock %}

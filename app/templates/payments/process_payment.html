@@ -1,66 +1,70 @@
-{# app/templates/payments/process_payment.html #}
 {% extends "_layouts/base.html" %}
 
 {% block title %}Process Payment{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8 max-w-xl">
-    <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-8">Complete Your Purchase 💳</h1>
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+                    <h1 class="h3 fw-bold text-center mb-4">Complete Your Purchase</h1>
+                    <p class="text-center text-muted mb-4">
+                        You are about to purchase: <span class="fw-bold">{{ listing.title }}</span>
+                        for <span class="fw-bold">R{{ "%.2f"|format(listing.price) }}</span>.
+                    </p>
 
-    <div class="bg-white p-8 rounded-xl shadow-2xl">
-        <p class="text-gray-700 mb-6 text-center">
-            You are about to purchase: <span class="font-semibold text-indigo-600">{{ listing.title }}</span>
-            for <span class="font-bold text-green-700">R{{ "%.2f"|format(listing.price) }}</span>.
-        </p>
+                    <form method="POST" action="{{ url_for('payments.process_payment', listing_id=listing.id) }}">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            {{ form.card_number.label(class="form-label") }}
+                            {{ form.card_number(class="form-control form-control-lg") }}
+                            {% for error in form.card_number.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
 
-        <form method="POST" action="{{ url_for('payments.process_payment', listing_id=listing.id) }}">
-            {{ form.hidden_tag() }}
-            
-            <div class="mb-5">
-                {{ form.card_number.label(class="block text-sm font-medium text-gray-700 mb-1") }}
-                {{ form.card_number(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-base") }}
-                {% for error in form.card_number.errors %}
-                    <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
-                {% endfor %}
-            </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.expiry_date.label(class="form-label") }}
+                                {{ form.expiry_date(class="form-control form-control-lg") }}
+                                {% for error in form.expiry_date.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.cvv.label(class="form-label") }}
+                                {{ form.cvv(class="form-control form-control-lg") }}
+                                {% for error in form.cvv.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
 
-            <div class="grid grid-cols-2 gap-4 mb-5">
-                <div>
-                    {{ form.expiry_date.label(class="block text-sm font-medium text-gray-700 mb-1") }}
-                    {{ form.expiry_date(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-base") }}
-                    {% for error in form.expiry_date.errors %}
-                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
-                    {% endfor %}
+                        <div class="mb-3">
+                            {{ form.card_holder_name.label(class="form-label") }}
+                            {{ form.card_holder_name(class="form-control form-control-lg") }}
+                            {% for error in form.card_holder_name.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.payment_gateway.label(class="form-label") }}
+                            {{ form.payment_gateway(class="form-select form-select-lg") }}
+                            {% for error in form.payment_gateway.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">Process Payment</button>
+                        </div>
+                    </form>
                 </div>
-                <div>
-                    {{ form.cvv.label(class="block text-sm font-medium text-gray-700 mb-1") }}
-                    {{ form.cvv(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-base") }}
-                    {% for error in form.cvv.errors %}
-                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
-                    {% endfor %}
-                </div>
             </div>
-
-            <div class="mb-5">
-                {{ form.card_holder_name.label(class="block text-sm font-medium text-gray-700 mb-1") }}
-                {{ form.card_holder_name(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-base") }}
-                {% for error in form.card_holder_name.errors %}
-                    <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
-                {% endfor %}
-            </div>
-
-            <div class="mb-6">
-                {{ form.payment_gateway.label(class="block text-sm font-medium text-gray-700 mb-1") }}
-                {{ form.payment_gateway(class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md") }}
-                {% for error in form.payment_gateway.errors %}
-                    <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
-                {% endfor %}
-            </div>
-
-            <div class="flex justify-center">
-                {{ form.submit(class="inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200") }}
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 {% endblock %}

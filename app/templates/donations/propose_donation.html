@@ -1,40 +1,56 @@
-{% extends '_layouts/base.html' %}
+{% extends "_layouts/base.html" %}
 {% import 'macros.html' as macros %}
 
+{% block title %}Propose Donation{% endblock %}
+
 {% block content %}
-<div class="container mx-auto px-4 py-8 max-w-lg">
-    <div class="bg-white p-8 rounded-lg shadow-xl border border-gray-200">
-        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Propose Donation</h1>
-        <p class="text-gray-600 mb-6 text-center">You are proposing to donate: <span class="font-semibold text-indigo-700">{{ listing.title }}</span></p>
-        
-        <div class="mb-6 border-b pb-4">
-            <h2 class="text-xl font-semibold text-gray-700 mb-3">Item Details:</h2>
-            <div class="flex items-center space-x-4">
-                <img src="{{ listing.images[0] }}" alt="{{ listing.title }}" class="w-24 h-24 object-cover rounded-md shadow-md">
-                <div>
-                    <p class="text-lg font-medium text-gray-800">{{ listing.title }}</p>
-                    <p class="text-sm text-gray-600">Size: {{ listing.size }} | Condition: {{ listing.condition }}</p>
-                    <p class="text-sm text-gray-600">Category: {{ listing.category }}</p>
-                    {% if listing.school_name %}<p class="text-sm text-gray-600">School: {{ listing.school_name }}</p>{% endif %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+                    <h1 class="h3 fw-bold text-center mb-4">Propose Donation</h1>
+                    <p class="text-center text-muted mb-4">You are proposing to donate: <span class="fw-bold">{{ listing.title }}</span></p>
+                    
+                    <div class="mb-4">
+                        <h2 class="h5 fw-bold">Item Details:</h2>
+                        <div class="d-flex align-items-center mb-3">
+                            <img src="{{ url_for('static', filename='uploads/' + listing.image_file) }}" alt="{{ listing.title }}" class="rounded me-3" style="width: 80px; height: 80px; object-fit: cover;">
+                            <div>
+                                <h5 class="mb-0">{{ listing.title }}</h5>
+                                <p class="text-muted mb-0">Size: {{ listing.size }} | Condition: {{ listing.condition }}</p>
+                                <p class="text-muted mb-0">Category: {{ listing.category }}</p>
+                                {% if listing.school_name %}<p class="text-muted mb-0">School: {{ listing.school_name }}</p>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('donations.propose_donation', listing_id=listing.id) }}">
+                        {{ form.csrf_token }}
+
+                        <div class="mb-3">
+                            {{ form.recipient_id.label(class="form-label") }}
+                            {{ form.recipient_id(class="form-control form-control-lg") }}
+                            {% for error in form.recipient_id.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.message.label(class="form-label") }}
+                            {{ form.message(class="form-control form-control-lg", rows="5") }}
+                            {% for error in form.message.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="d-grid">
+                            {{ form.submit(class="btn btn-primary btn-lg") }}
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
-
-        <form method="POST" action="{{ url_for('donations.propose_donation', listing_id=listing.id) }}" class="space-y-6">
-            {{ form.csrf_token }}
-
-            <div>
-                {{ macros.render_field(form.recipient_id, class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm") }}
-            </div>
-
-            <div>
-                {{ macros.render_field(form.message, class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm") }}
-            </div>
-
-            <div>
-                {{ form.submit(class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500") }}
-            </div>
-        </form>
     </div>
 </div>
 {% endblock %}

@@ -3,181 +3,135 @@
 {% block title %}Create an Account{% endblock %}
 
 {% block content %}
-<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-xl border border-gray-200">
-        <div class="text-center">
-            <h2 class="mt-2 text-3xl font-extrabold text-gray-900">
-                Create your free account
-            </h2>
-            <p class="mt-2 text-base text-gray-600">
-                Join our community and start swapping!
-            </p>
-        </div>
-        
-        <form class="space-y-6" method="POST" action="{{ url_for('auth.register') }}">
-            {{ form.hidden_tag() }}
-            
-            <!-- Role Selection -->
-            <div>
-                {{ form.role.label(class="block text-sm font-semibold text-gray-700 mb-2") }}
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    {% for subfield in form.role %}
-                    <div class="relative">
-                        {{ subfield(class="sr-only role-radio-input", id=subfield.id) }}
-                        <label for="{{ subfield.id }}" class="role-radio-label cursor-pointer block text-center py-3 px-4 border-2 border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-all duration-200">
-                            <span class="text-sm">{{ subfield.label.text }}</span>
-                        </label>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% for error in form.role.errors %}
-                    <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
-                {% endfor %}
-            </div>
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+                    <h1 class="h3 fw-bold text-center mb-4">Create your free account</h1>
+                    
+                    <form method="POST" action="{{ url_for('auth.register') }}">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-4">
+                            <label class="form-label">{{ form.role.label }}</label>
+                            <div class="row g-2">
+                                {% for subfield in form.role %}
+                                <div class="col-4">
+                                    <div class="form-check">
+                                        {{ subfield(class="form-check-input d-none", id=subfield.id) }}
+                                        <label class="form-check-label" for="{{ subfield.id }}">{{ subfield.label.text }}</label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% for error in form.role.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
 
-            <!-- Username Field (changes label based on role) -->
-            <div>
-                {{ form.username.label(id="username-label", class="block text-sm font-semibold text-gray-700 mb-1") }}
-                <div class="mt-1">
-                    {{ form.username(class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-accent focus:border-accent sm:text-sm") }}
-                    {% for error in form.username.errors %}
-                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
-                    {% endfor %}
-                </div>
-            </div>
-            
-            <!-- Contact Person Field (conditionally hidden/shown) -->
-            <div id="contact-person-field" class="hidden">
-                {{ form.contact_person.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
-                <div class="mt-1">
-                    {{ form.contact_person(class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-accent focus:border-accent sm:text-sm", placeholder="e.g., Jane Doe, Main Contact") }}
-                    {% for error in form.contact_person.errors %}
-                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
-                    {% endfor %}
-                </div>
-            </div>
-            
-            <!-- Email Field -->
-            <div>
-                {{ form.email.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
-                <div class="mt-1">
-                    {{ form.email(class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-accent focus:border-accent sm:text-sm", placeholder="you@example.com") }}
-                    {% for error in form.email.errors %}
-                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
-                    {% endfor %}
-                </div>
-            </div>
+                        <div class="mb-3">
+                            {{ form.username.label(id="username-label", class="form-label") }}
+                            {{ form.username(class="form-control form-control-lg") }}
+                            {% for error in form.username.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div id="contact-person-field" class="mb-3 d-none">
+                            {{ form.contact_person.label(class="form-label") }}
+                            {{ form.contact_person(class="form-control form-control-lg", placeholder="e.g., Jane Doe, Main Contact") }}
+                            {% for error in form.contact_person.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.email.label(class="form-label") }}
+                            {{ form.email(class="form-control form-control-lg", placeholder="you@example.com") }}
+                            {% for error in form.email.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
 
-            <!-- Password Field -->
-            <div>
-                {{ form.password.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
-                <div class="mt-1">
-                    {{ form.password(class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-accent focus:border-accent sm:text-sm", placeholder="Create a strong password") }}
-                    {% for error in form.password.errors %}
-                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
-                    {% endfor %}
-                </div>
-            </div>
-            
-            <!-- Confirm Password Field -->
-            <div>
-                {{ form.confirm_password.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
-                <div class="mt-1">
-                    {{ form.confirm_password(class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-accent focus:border-accent sm:text-sm", placeholder="Confirm your password") }}
-                    {% for error in form.confirm_password.errors %}
-                        <span class="text-red-500 text-xs mt-1 block">{{ error }}</span>
-                    {% endfor %}
-                </div>
-            </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.password.label(class="form-label") }}
+                                {{ form.password(class="form-control form-control-lg", placeholder="Create a password") }}
+                                {% for error in form.password.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.confirm_password.label(class="form-label") }}
+                                {{ form.confirm_password(class="form-control form-control-lg", placeholder="Confirm password") }}
+                                {% for error in form.confirm_password.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
 
-            <div>
-                <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-[var(--color-accent)] hover:bg-[#2F9C6E] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-accent)] transition-all duration-300 shadow-md">
-                    Create Account
-                </button>
-            </div>
-        </form>
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-primary btn-lg">Create Account</button>
+                        </div>
 
-        <div class="relative py-4">
-            <div class="absolute inset-0 flex items-center">
-                <div class="w-full border-t border-gray-300"></div>
-            </div>
-            <div class="relative flex justify-center text-sm">
-                <span class="px-2 bg-white text-gray-500">Or register with</span>
+                        <div class="d-grid">
+                            <a href="{{ url_for('google_login') }}" class="btn btn-secondary btn-lg">
+                                <img src="https://www.svgrepo.com/show/355037/google.svg" alt="Google logo" style="height: 1.2em;" class="me-2">
+                                Sign up with Google
+                            </a>
+                        </div>
+                    </form>
+
+                    <p class="mt-4 text-center">
+                        Already have an account? <a href="{{ url_for('auth.login') }}" class="text-decoration-none fw-bold">Sign in</a>
+                    </p>
+                </div>
             </div>
         </div>
-
-        <div>
-            <a href="{{ url_for('google_login') }}" class="w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200">
-                <img class="h-5 w-5 mr-2" src="https://www.svgrepo.com/show/355037/google.svg" alt="Google logo">
-                Sign up with Google
-            </a>
-        </div>
-
-        <p class="mt-4 text-center text-sm text-gray-600">
-            Already have an account?
-            <a href="{{ url_for('auth.login') }}" class="font-medium text-accent hover:text-green-700 transition-colors duration-200">
-                Sign in
-            </a>
-        </p>
     </div>
 </div>
+{% endblock %}
 
-<style>
-    /* Additional styles for radio buttons specific to this page */
-    .role-radio-input:checked + label {
-        border-color: var(--color-accent) !important;
-        background-color: rgba(54, 179, 126, 0.1) !important; /* Light accent background */
-        color: var(--color-accent) !important;
-    }
-</style>
-
+{% block scripts %}
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // Form elements
-        const roleRadios = document.querySelectorAll('input[name="role"]');
-        const usernameLabel = document.getElementById('username-label');
-        const usernameInput = document.querySelector('[name="username"]'); // Use name attribute for consistency
-        const contactPersonField = document.getElementById('contact-person-field');
-        const contactPersonInput = document.getElementById('contact-person-input');
+document.addEventListener('DOMContentLoaded', () => {
+    const roleRadios = document.querySelectorAll('input[name="role"]');
+    const usernameLabel = document.getElementById('username-label');
+    const usernameInput = document.querySelector('[name="username"]');
+    const contactPersonField = document.getElementById('contact-person-field');
+    const contactPersonInput = document.getElementById('contact_person');
 
-        // Function to update fields based on user role
-        const updateFormFields = (role) => {
-            if (usernameLabel && usernameInput && contactPersonField) {
-                if (role === 'school' || role === 'ngo') {
-                    usernameLabel.textContent = 'Organization Name';
-                    usernameInput.placeholder = 'e.g., Springfield High School or Green NGO';
-                    contactPersonField.classList.remove('hidden');
-                    if (contactPersonInput) contactPersonInput.setAttribute('required', 'true');
-                } else {
-                    usernameLabel.textContent = 'Your Username';
-                    usernameInput.placeholder = 'e.g., john_doe';
-                    contactPersonField.classList.add('hidden');
-                    if (contactPersonInput) contactPersonInput.removeAttribute('required');
-                }
-            }
-        };
-
-        // Event listeners for role selection
-        if (roleRadios) {
-            roleRadios.forEach(radio => {
-                radio.addEventListener('change', () => {
-                    updateFormFields(radio.value);
-                });
-            });
+    const updateFormFields = (role) => {
+        if (role === 'school' || role === 'ngo') {
+            usernameLabel.textContent = 'Organization Name';
+            usernameInput.placeholder = 'e.g., Springfield High School or Green NGO';
+            contactPersonField.classList.remove('d-none');
+            if (contactPersonInput) contactPersonInput.setAttribute('required', 'true');
+        } else {
+            usernameLabel.textContent = 'Your Username';
+            usernameInput.placeholder = 'e.g., john_doe';
+            contactPersonField.classList.add('d-none');
+            if (contactPersonInput) contactPersonInput.removeAttribute('required');
         }
+    };
 
-        // Set initial state based on default or pre-selected role
-        const selectedRole = document.querySelector('input[name="role"]:checked');
-        if (selectedRole) {
-            updateFormFields(selectedRole.value);
-        } else if (roleRadios.length > 0) {
-            // If no role is checked, check the default 'parent' and update fields
-            const defaultParentRadio = document.querySelector('input[name="role"][value="parent"]');
-            if (defaultParentRadio) {
-                defaultParentRadio.checked = true;
-                updateFormFields('parent');
-            }
-        }
+    roleRadios.forEach(radio => {
+        radio.addEventListener('change', () => {
+            updateFormFields(radio.value);
+        });
     });
+
+    const selectedRole = document.querySelector('input[name="role"]:checked');
+    if (selectedRole) {
+        updateFormFields(selectedRole.value);
+    } else {
+        const defaultParentRadio = document.querySelector('input[name="role"][value="parent"]');
+        if (defaultParentRadio) {
+            defaultParentRadio.checked = true;
+            updateFormFields('parent');
+        }
+    }
+});
 </script>
 {% endblock %}
