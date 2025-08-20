@@ -293,31 +293,6 @@ def view_donations():
     # You might want to add filters here (e.g., by status, recipient)
     return render_template('admin/view_donations.html', title='Manage Donations', donations=donations)
 
-@admin_bp.route("/listing/<string:listing_id>/moderate", methods=['GET', 'POST'])
-@login_required
-@roles_required('admin')
-def moderate_listing(listing_id):
-    """
-    Admin route to moderate a specific listing (e.g., change status, remove).
-    """
-    listing = Listing.objects(id=listing_id).first_or_404()
-    form = ListingModerationForm(obj=listing) # Populate form with listing data
-
-    if form.validate_on_submit():
-        listing.status = form.status.data
-        listing.is_available = form.is_available.data # Update availability
-        listing.is_premium = form.is_premium.data # Allow setting premium status
-        listing.save()
-        flash(f'Listing "{listing.title}" updated successfully!', 'success')
-        return redirect(url_for('admin.manage_listings'))
-    
-    elif request.method == 'GET':
-        form.status.data = listing.status
-        form.is_available.data = listing.is_available
-        form.is_premium.data = listing.is_premium
-
-    return render_template('admin/moderate_listing.html', title='Moderate Listing', form=form, listing=listing)
-
 @admin_bp.route("/listing/<string:listing_id>/remove", methods=['POST'])
 @login_required
 @roles_required('admin')
@@ -328,13 +303,15 @@ def remove_listing(listing_id):
     listing_to_remove = Listing.objects(id=listing_id).first_or_404()
     
     # Optionally, delete associated image file
-    if listing_to_remove.image_file and listing_to_remove.image_file != 'default.jpg':
-        try:
-            image_path = os.path.join(current_app.root_path, 'static/uploads', listing_to_remove.image_file)
-            if os.path.exists(image_path):
-                os.remove(image_path)
-        except Exception as e:
-            current_app.logger.error(f"Error deleting image file {listing_to_remove.image_file}: {e}")
+    if listing_to_remove.image_files:
+        for image_file in listing_to_remove.image_files:
+            if image_file and image_file != 'default.jpg':
+                try:
+                    image_path = os.path.join(current_app.root_path, 'static/uploads', image_file)
+                    if os.path.exists(image_path):
+                        os.remove(image_path)
+                except Exception as e:
+                    current_app.logger.error(f"Error deleting image file {image_file}: {e}")
 
     listing_to_remove.delete()
     flash(f'Listing "{listing_to_remove.title}" permanently removed.', 'success')
@@ -345,7 +322,9 @@ def remove_listing(listing_id):
 @login_required
 @roles_required('admin')
 def view_notifications():
-    """Admin view for all notifications (can be filtered)."""
+    """
+    Admin view for all notifications (can be filtered).
+    """
     # Re-use the notifications blueprint's index, but potentially with admin filters
     return redirect(url_for('notifications.index', filter='all')) # Admins can see all notifications for themselves
 
@@ -371,7 +350,8 @@ def view_swap_requests():
 @login_required
 @roles_required('admin')
 def view_donations():
-    """Admin view for all donation records."""
+    """
+    Admin view for all donation records."""
     donations = Donation.objects.order_by('-donation_date')
     # You might want to add filters here (e.g., by status, recipient)
     return render_template('admin/view_donations.html', title='Manage Donations', donations=donations)
