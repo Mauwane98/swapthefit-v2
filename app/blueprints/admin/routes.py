@@ -137,6 +137,29 @@ def delete_user(user_id):
     flash(f'User {user_to_delete.username} deleted successfully!', 'success')
     return redirect(url_for('admin.manage_users'))
 
+@admin_bp.route("/user/<string:user_id>/suspend", methods=['POST'])
+@login_required
+@roles_required('admin')
+def suspend_user(user_id):
+    """
+    Admin route to suspend a user (set active status to False).
+    """
+    user_to_suspend = User.objects(id=user_id).first_or_404()
+
+    # Prevent admin from suspending themselves
+    if user_to_suspend.id == current_user.id:
+        flash('You cannot suspend your own admin account.', 'danger')
+        return redirect(url_for('admin.manage_users'))
+    
+    if not user_to_suspend.active:
+        flash(f'User {user_to_suspend.username} is already suspended.', 'info')
+        return redirect(url_for('admin.manage_users'))
+
+    user_to_suspend.active = False
+    user_to_suspend.save()
+    flash(f'User {user_to_suspend.username} has been suspended.', 'success')
+    return redirect(url_for('admin.manage_users'))
+
 # --- Listing Moderation ---
 @admin_bp.route("/manage_listings")
 @login_required
@@ -178,6 +201,97 @@ def manage_listings():
                            listing_type_filter=listing_type_filter,
                            listing_statuses=listing_statuses,
                            listing_types=listing_types)
+
+@admin_bp.route("/listing/<string:listing_id>/moderate", methods=['GET', 'POST'])
+@login_required
+@roles_required('admin')
+def moderate_listing(listing_id):
+    """
+    Admin route to moderate a specific listing (e.g., change status, remove).
+    """
+    listing = Listing.objects(id=listing_id).first_or_404()
+    form = ListingModerationForm(obj=listing) # Populate form with listing data
+
+    if form.validate_on_submit():
+        listing.status = form.status.data
+        listing.is_available = form.is_available.data # Update availability
+        listing.is_premium = form.is_premium.data # Allow setting premium status
+        listing.save()
+        flash(f'Listing "{listing.title}" updated successfully!', 'success')
+        return redirect(url_for('admin.manage_listings'))
+    
+    elif request.method == 'GET':
+        form.status.data = listing.status
+        form.is_available.data = listing.is_available
+        form.is_premium.data = listing.is_premium
+
+    return render_template('admin/moderate_listing.html', title='Moderate Listing', form=form, listing=listing)
+
+@admin_bp.route("/listing/<string:listing_id>/remove", methods=['POST'])
+@login_required
+@roles_required('admin')
+def remove_listing(listing_id):
+    """
+    Admin route to permanently remove a listing.
+    """
+    listing_to_remove = Listing.objects(id=listing_id).first_or_404()
+    
+    # Optionally, delete associated image file
+    if listing_to_remove.image_files:
+        for image_file in listing_to_remove.image_files:
+            if image_file and image_file != 'default.jpg':
+                try:
+                    image_path = os.path.join(current_app.root_path, 'static/uploads', image_file)
+                    if os.path.exists(image_path):
+                        os.remove(image_path)
+                except Exception as e:
+                    current_app.logger.error(f"Error deleting image file {image_file}: {e}")
+
+    listing_to_remove.delete()
+    flash(f'Listing "{listing_to_remove.title}" permanently removed.', 'success')
+    return redirect(url_for('admin.manage_listings'))
+
+# --- Admin views for other features (already implemented in other blueprints but linked here for admin access) ---
+@admin_bp.route("/view_notifications")
+@login_required
+@roles_required('admin')
+def view_notifications():
+    """
+    Admin view for all notifications (can be filtered).
+    """
+    # Re-use the notifications blueprint's index, but potentially with admin filters
+    return redirect(url_for('notifications.index', filter='all')) # Admins can see all notifications for themselves
+
+@admin_bp.route("/view_reviews")
+@login_required
+@roles_required('admin')
+def view_reviews():
+    """
+    Admin view for all reviews (can be filtered).
+    """
+    reviews = Review.objects.order_by('-date_posted')
+    # You might want to add filters here (e.g., by user, by rating)
+    return render_template('admin/view_reviews.html', title='Manage Reviews', reviews=reviews)
+
+@admin_bp.route("/view_swap_requests")
+@login_required
+@roles_required('admin')
+def view_swap_requests():
+    """
+    Admin view for all swap requests."""
+    swap_requests = SwapRequest.objects.order_by('-request_date')
+    # You might want to add filters here (e.g., by status)
+    return render_template('admin/view_swap_requests.html', title='Manage Swap Requests', swap_requests=swap_requests)
+
+@admin_bp.route("/view_donations")
+@login_required
+@roles_required('admin')
+def view_donations():
+    """
+    Admin view for all donation records."""
+    donations = Donation.objects.order_by('-donation_date')
+    # You might want to add filters here (e.g., by status, recipient)
+    return render_template('admin/view_donations.html', title='Manage Donations', donations=donations)
 
 @admin_bp.route("/listing/<string:listing_id>/moderate", methods=['GET', 'POST'])
 @login_required
