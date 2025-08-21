@@ -13,67 +13,173 @@
                         <p class="text-muted">Fill out the details below to list your item.</p>
                     </div>
 
-                    <form method="POST" action="{{ url_for('listings.create_listing') }}" enctype="multipart/form-data">
+                    <form method="POST" action="{{ url_for('listings.create_listing', step=current_step) }}" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
 
-                        <div class="mb-3">
-                            {{ form.title.label(class="form-label") }}
-                            {{ form.title(class="form-control form-control-lg") }}
-                            {% for error in form.title.errors %}
-                                <div class="invalid-feedback d-block">{{ error }}</div>
-                            {% endfor %}
-                        </div>
+                        {# Display general form errors #}
+                        {% if form.errors %}
+                            <div class="alert alert-danger" role="alert">
+                                <strong>Please correct the following errors:</strong>
+                                <ul>
+                                    {% for field, errors in form.errors.items() %}
+                                        {% if field == 'csrf_token' %}{# Skip CSRF token error #}
+                                        {% elif field == 'images' %}{# Images errors are handled inline #}
+                                        {% else %}
+                                            <li>{{ field.replace('_', ' ').title() }}: {{ errors|join(', ') }}</li>
+                                        {% endif %}
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
 
-                        <div class="mb-3">
-                            {{ form.description.label(class="form-label") }}
-                            {{ form.description(class="form-control form-control-lg", rows="5") }}
-                            {% for error in form.description.errors %}
-                                <div class="invalid-feedback d-block">{{ error }}</div>
-                            {% endfor %}
+                        <div class="progress mb-4" style="height: 10px;">
+                            <div class="progress-bar" role="progressbar" style="width: {{ (current_step / 3) * 100 }}%;" aria-valuenow="{{ (current_step / 3) * 100 }}" aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
+                        <p class="text-center text-muted mb-4">Step {{ current_step }} of 3</p>
 
-                        <div class="row g-3">
-                            <div class="col-md-6 mb-3">
-                                {{ form.uniform_type.label(class="form-label") }}
-                                {{ form.uniform_type(class="form-select form-select-lg") }}
-                                {% for error in form.uniform_type.errors %}
+                        {# Step 1: Basic Details #}
+                        {% if current_step == 1 %}
+                            <h3 class="mb-3">Basic Details</h3>
+                            <div class="mb-3">
+                                {{ form.title.label(class="form-label") }}
+                                {{ form.title(class="form-control form-control-lg", placeholder="e.g., Blue School Blazer") }}
+                                {% for error in form.title.errors %}
                                     <div class="invalid-feedback d-block">{{ error }}</div>
                                 {% endfor %}
                             </div>
-                            <div class="col-md-6 mb-3">
-                                {{ form.size.label(class="form-label") }}
-                                {{ form.size(class="form-control form-control-lg") }}
-                                {% for error in form.size.errors %}
+
+                            <div class="mb-3">
+                                {{ form.description.label(class="form-label") }}
+                                {{ form.description(class="form-control form-control-lg", rows="5", placeholder="Describe the item, its features, and any imperfections.") }}
+                                {% for error in form.description.errors %}
                                     <div class="invalid-feedback d-block">{{ error }}</div>
                                 {% endfor %}
                             </div>
-                            <div class="col-md-6 mb-3">
-                                {{ form.condition.label(class="form-label") }}
-                                {{ form.condition(class="form-select form-select-lg") }}
-                                {% for error in form.condition.errors %}
-                                    <div class="invalid-feedback d-block">{{ error }}</div>
-                                {% endfor %}
+
+                            <div class="row g-3">
+                                <div class="col-md-6 mb-3">
+                                    {{ form.uniform_type.label(class="form-label") }}
+                                    {{ form.uniform_type(render_kw={"class": "form-select form-select-lg"}) }}
+                                    {% for error in form.uniform_type.errors %}
+                                        <div class="invalid-feedback d-block">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.size.label(class="form-label") }}
+                                    {{ form.size(render_kw={"class": "form-select form-select-lg"}) }}
+                                    {% for error in form.size.errors %}
+                                        <div class="invalid-feedback d-block">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.condition.label(class="form-label") }}
+                                    {{ form.condition(render_kw={"class": "form-select form-select-lg"}) }}
+                                    {% for error in form.condition.errors %}
+                                        <div class="invalid-feedback d-block">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.gender.label(class="form-label") }}
+                                    {{ form.gender(render_kw={"class": "form-select form-select-lg"}) }}
+                                    {% for error in form.gender.errors %}
+                                        <div class="invalid-feedback d-block">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="mb-3">
                                 {{ form.school_name.label(class="form-label") }}
-                                {{ form.school_name(class="form-control form-control-lg") }}
+                                {{ form.school_name(class="form-control form-control-lg", placeholder="e.g., Springfield Elementary (Optional)") }}
                                 {% for error in form.school_name.errors %}
                                     <div class="invalid-feedback d-block">{{ error }}</div>
                                 {% endfor %}
                             </div>
-                        </div>
+                            <div class="mb-3">
+                                {{ form.location.label(class="form-label") }}
+                                {{ form.location(class="form-control form-control-lg", placeholder="e.g., Cape Town, Gardens") }}
+                                {% for error in form.location.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
 
-                        <div class="mb-3">
-                            {{ form.image.label(class="form-label") }}
-                            {{ form.image(class="form-control form-control-lg") }}
-                            <div class="form-text">Upload up to 5 photos. Max file size: 2MB per image. Formats: JPG, PNG, JPEG.</div>
-                            {% for error in form.image.errors %}
-                                <div class="invalid-feedback d-block">{{ error }}</div>
-                            {% endfor %}
-                        </div>
+                        {# Step 2: Images #}
+                        {% if current_step == 2 %}
+                            <h3 class="mb-3">Upload Images</h3>
+                            <div class="mb-3">
+                                {{ form.images.label(class="form-label") }}
+                                {{ form.images(class="form-control form-control-lg", multiple=True) }}
+                                <div class="form-text">Upload up to 5 photos. Max file size: 2MB per image. Formats: JPG, PNG, JPEG.</div>
+                                {% for error in form.images.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            {# Display previously uploaded images if any #}
+                            {% if form.images.data and form.images.data|length > 0 %}
+                                <div class="mb-3">
+                                    <p class="form-label">Previously Uploaded Images:</p>
+                                    <div class="row">
+                                        {% for image_file in form.images.data %}
+                                            <div class="col-4 mb-2">
+                                                <img src="{{ url_for('static', filename='uploads/' + image_file) }}" class="img-fluid rounded" alt="Uploaded Image">
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endif %}
 
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary btn-lg">Create Listing</button>
+                        {# Step 3: Pricing & Type #}
+                        {% if current_step == 3 %}
+                            <h3 class="mb-3">Pricing & Type</h3>
+                            <div class="mb-3">
+                                {{ form.listing_type.label(class="form-label") }}
+                                {{ form.listing_type(render_kw={"class": "form-select form-select-lg"}) }}
+                                {% for error in form.listing_type.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="mb-3">
+                                {{ form.price.label(class="form-label") }}
+                                {{ form.price(class="form-control form-control-lg") }}
+                                {% for error in form.price.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="mb-3">
+                                {{ form.brand.label(class="form-label") }}
+                                {{ form.brand(class="form-control form-control-lg", placeholder="e.g., Nike (Optional)") }}
+                                {% for error in form.brand.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="mb-3">
+                                {{ form.color.label(class="form-label") }}
+                                {{ form.color(class="form-control form-control-lg", placeholder="e.g., Red (Optional)") }}
+                                {% for error in form.color.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="mb-3 form-check">
+                                {{ form.is_premium(class="form-check-input") }}
+                                {{ form.is_premium.label(class="form-check-label") }}
+                                {% for error in form.is_premium.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <div class="d-flex justify-content-between mt-4">
+                            {% if current_step > 1 %}
+                                <a href="{{ url_for('listings.create_listing', step=current_step - 1) }}" class="btn btn-secondary btn-lg">Previous</a>
+                            {% else %}
+                                <div></div> {# Placeholder to maintain spacing #}
+                            {% endif %}
+
+                            {% if current_step < 3 %}
+                                {{ form.submit(class="btn btn-primary btn-lg") }} {# This is the 'Next' button #}
+                            {% else %}
+                                {{ form.post_listing_submit(class="btn btn-success btn-lg") }} {# This is the 'Post Listing' button #}
+                            {% endif %}
                         </div>
                     </form>
                 </div>
