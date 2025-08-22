@@ -85,7 +85,8 @@ class Donation(db.Document):
             'recipient_username': self.recipient.username if self.recipient else None,
             'status': self.status,
             'quantity': self.quantity,
-            'estimated_value': self.estimated_value,
+            
+'estimated_value': self.estimated_value,
             'families_supported': self.families_supported,
             'donation_date': self.donation_date.isoformat() + 'Z',
             'updated_date': self.updated_date.isoformat() + 'Z',

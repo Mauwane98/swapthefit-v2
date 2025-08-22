@@ -1,14 +1,13 @@
 # app/__init__.py
 import os
 import logging
-from logging.handlers import RotatingFileHandler
 from logging import StreamHandler
 import sys
 import traceback
 from flask import Flask, render_template, current_app, redirect, url_for, flash, request
 from flask_login import current_user, login_user
 from app.config import Config
-from app.extensions import db, login_manager, bcrypt, mail, socketio, csrf, init_app as init_extensions
+from app.extensions import login_manager, bcrypt, socketio, init_app as init_extensions
 from oauthlib.oauth2 import WebApplicationClient
 import requests
 import json

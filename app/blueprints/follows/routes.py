@@ -2,7 +2,6 @@ from flask import Blueprint, flash, redirect, url_for
 from flask_login import login_required, current_user
 from app.models.users import User
 from app.models.follows import Follow
-from app.extensions import db
 from mongoengine.errors import NotUniqueError
 
 follows_bp = Blueprint('follows', __name__)

@@ -133,8 +133,15 @@
                             <h3 class="mb-3">Pricing & Type</h3>
                             <div class="mb-3">
                                 {{ form.listing_type.label(class="form-label") }}
-                                {{ form.listing_type(render_kw={"class": "form-select form-select-lg"}) }}
+                                {{ form.listing_type(id="listing_type", render_kw={"class": "form-select form-select-lg"}) }}
                                 {% for error in form.listing_type.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div id="donation_recipient_type_div" class="mb-3" style="display: none;">
+                                {{ form.donation_recipient_type.label(class="form-label") }}
+                                {{ form.donation_recipient_type(id="donation_recipient_type", render_kw={"class": "form-select form-select-lg"}) }}
+                                {% for error in form.donation_recipient_type.errors %}
                                     <div class="invalid-feedback d-block">{{ error }}</div>
                                 {% endfor %}
                             </div>
@@ -187,4 +194,28 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var listingType = document.getElementById('listing_type');
+        var donationRecipientTypeDiv = document.getElementById('donation_recipient_type_div');
+
+        function toggleDonationRecipientType() {
+            if (listingType.value === 'donation') {
+                donationRecipientTypeDiv.style.display = 'block';
+            } else {
+                donationRecipientTypeDiv.style.display = 'none';
+            }
+        }
+
+        // Initial check
+        toggleDonationRecipientType();
+
+        // Listen for changes
+        listingType.addEventListener('change', toggleDonationRecipientType);
+    });
+</script>
 {% endblock %}

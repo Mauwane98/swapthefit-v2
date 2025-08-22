@@ -98,6 +98,26 @@
                     </form>
                 </div>
             </div>
+
+            {% if current_user.has_role('school') or current_user.has_role('ngo') %}
+            <div class="card shadow-sm border-0 mt-4">
+                <div class="card-body p-5">
+                    <h3 class="fw-bold mb-4">Payout Details</h3>
+                    <p class="text-muted">Manage your bank account details for receiving payouts from sales.</p>
+                    <a href="{{ url_for('profile.payout_details') }}" class="btn btn-info btn-lg">Edit Payout Details</a>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if current_user.has_role('school') or current_user.has_role('ngo') %}
+            <div class="card shadow-sm border-0 mt-4">
+                <div class="card-body p-5">
+                    <h3 class="fw-bold mb-4">Payout Details</h3>
+                    <p class="text-muted">Manage your bank account details for receiving payouts from sales.</p>
+                    <a href="{{ url_for('profile.payout_details') }}" class="btn btn-info btn-lg">Edit Payout Details</a>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>

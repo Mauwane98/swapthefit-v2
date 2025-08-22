@@ -80,8 +80,8 @@ def propose_donation(listing_id):
             room=str(recipient_user.id)
         )
 
-        flash('Donation proposed successfully! The recipient has been notified.', 'success')
-        return redirect(url_for('listings.listing_detail', listing_id=listing_id))
+        flash('Donation proposed successfully! Now, please set up the logistics for the donation.', 'success')
+        return redirect(url_for('logistics.setup_logistics', transaction_type='donation', transaction_id=str(donation.id)))
     
     return render_template('donations/propose_donation.html', form=form, listing=listing_to_donate)
 

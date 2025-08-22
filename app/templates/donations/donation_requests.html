@@ -1,0 +1,33 @@
+{% extends "_layouts/base.html" %}
+
+{% block title %}Donation Requests for {{ listing.title }}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1 class="mb-4">Donation Requests for "{{ listing.title }}"</h1>
+
+    {% if requests %}
+        <div class="list-group">
+            {% for req in requests %}
+                <div class="list-group-item list-group-item-action flex-column align-items-start">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1">{{ req.requester.username }}</h5>
+                        <small>{{ req.request_date.strftime('%Y-%m-%d %H:%M') }}</small>
+                    </div>
+                    <p class="mb-1">Role: {{ req.requester.role }}</p>
+                    <div class="mt-3">
+                        {% if req.status == 'pending' %}
+                            <a href="{{ url_for('donations.handle_donation_request', request_id=req.id, action='accept') }}" class="btn btn-success">Accept</a>
+                            <a href="{{ url_for('donations.handle_donation_request', request_id=req.id, action='reject') }}" class="btn btn-danger">Reject</a>
+                        {% else %}
+                            <span class="badge bg-{{ 'success' if req.status == 'accepted' else 'danger' }}">{{ req.status.title() }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>There are no donation requests for this item yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

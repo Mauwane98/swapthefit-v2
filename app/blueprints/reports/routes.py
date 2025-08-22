@@ -109,7 +109,7 @@ def my_reports():
                            title='My Reports', 
                            submitted_reports=submitted_reports)
 
-@reports_bp.route("/reports/<int:report_id>")
+@reports_bp.route("/reports/<string:report_id>")
 @login_required
 def report_detail(report_id):
     """
@@ -164,7 +164,7 @@ def manage_reports():
                            reports=reports, 
                            status_filter=status_filter)
 
-@reports_bp.route("/admin/reports/<int:report_id>/resolve", methods=['GET', 'POST'])
+@reports_bp.route("/admin/reports/<string:report_id>/resolve", methods=['GET', 'POST'])
 @login_required
 def resolve_report(report_id):
     """
@@ -199,7 +199,7 @@ def resolve_report(report_id):
 
         # Notify the reporter about the report status change
         add_notification(
-            user_id=report.reporter_id,
+            user_id=report.reporter.id,
             message=f"Your report (ID: {report.id}) regarding {report.reported_entity_type} '{report.reported_object.username if report.reported_object and report.reported_entity_type == 'user' else report.reported_object.title if report.reported_object and report.reported_entity_type == 'listing' else 'an entity'}' has been updated to '{report.status}'.",
             notification_type='report_update',
             payload={'report_id': report.id, 'status': report.status, 'entity_type': report.reported_entity_type, 'entity_id': report.reported_entity_id}

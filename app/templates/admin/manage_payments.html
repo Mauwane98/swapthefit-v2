@@ -1,78 +1,60 @@
 {% extends "_layouts/base.html" %}
 
-{% block title %}Manage Payments{% endblock %}
-
 {% block content %}
-<div class="container my-5">
-    <div class="text-center mb-5">
-        <h1 class="display-5 fw-bold">Manage Payments</h1>
-        <p class="lead">Oversee all orders and premium purchases.</p>
-    </div>
+<div class="container mt-4">
+    <h2 class="mb-4">{{ title }}</h2>
 
-    <div class="card shadow-sm border-0">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead>
-                    <tr>
-                        <th>Order ID</th>
-                        <th>Type</th>
-                        <th>Buyer</th>
-                        <th>Seller/Listing</th>
-                        <th>Total Paid</th>
-                        <th>Platform Fee</th>
-                        <th>Payout Status</th>
-                        <th>Order Status</th>
-                        <th>Date</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for order in orders %}
-                    <tr>
-                        <td>{{ order.id }}</td>
-                        <td>
-                            <span class="badge {% if order.is_premium_listing_purchase %}bg-info{% else %}bg-primary{% endif %}">
-                                {{ 'Premium' if order.is_premium_listing_purchase else 'Sale' }}
-                            </span>
-                        </td>
-                        <td><a href="{{ url_for('listings.user_profile', user_id=order.buyer.id) }}">{{ order.buyer.username }}</a></td>
-                        <td>
-                            {% if order.is_premium_listing_purchase %}
-                                {% if order.premium_listing_ref %}
-                                    <a href="{{ url_for('listings.listing_detail', listing_id=order.premium_listing_ref.id) }}">{{ order.premium_listing_ref.title }}</a>
-                                {% else %}
-                                    N/A
-                                {% endif %}
-                            {% else %}
-                                <a href="{{ url_for('listings.user_profile', user_id=order.seller.id) }}">{{ order.seller.username }}</a>
-                            {% endif %}
-                        </td>
-                        <td>R{{ "%.2f"|format(order.amount_paid_total) }}</td>
-                        <td>R{{ "%.2f"|format(order.platform_fee) }}</td>
-                        <td>
-                            <span class="badge {% if order.payout_status == 'paid' %}bg-success{% elif order.payout_status == 'pending' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
-                                {{ order.payout_status|capitalize }}
-                            </span>
-                        </td>
-                        <td>
-                            <span class="badge {% if order.status == 'completed' %}bg-success{% elif order.status == 'pending' %}bg-warning text-dark{% elif order.status == 'cancelled' or order.status == 'refunded' %}bg-danger{% else %}bg-secondary{% endif %}">
-                                {{ order.status|capitalize }}
-                            </span>
-                        </td>
-                        <td>{{ order.order_date.strftime('%b %d, %Y') }}</td>
-                        <td>
-                            <a href="{{ url_for('payments.view_order', order_id=order.id) }}" class="btn btn-sm btn-primary">View</a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">All Payment Records</h5>
         </div>
-        {% if not orders %}
-            <div class="card-body text-center">
-                <p class="text-muted mb-0">No payment records found.</p>
+        <div class="card-body">
+            {% if orders %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Buyer</th>
+                            <th>Seller</th>
+                            <th>Listing</th>
+                            <th>Amount Paid</th>
+                            <th>Status</th>
+                            <th>Payment Gateway</th>
+                            <th>Order Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td>{{ order.id }}</td>
+                            <td>{{ order.buyer.username }}</td>
+                            <td>{{ order.seller.username }}</td>
+                            <td>
+                                {% if order.listing %}
+                                    <a href="{{ url_for('listings.listing_detail', listing_id=order.listing.id) }}">{{ order.listing.title }}</a>
+                                {% else %}
+                                    N/A (e.g., Credit Top-up)
+                                {% endif %}
+                            </td>
+                            <td>R{{ "%.2f"|format(order.amount_paid_total) }}</td>
+                            <td>{{ order.status }}</td>
+                            <td>{{ order.payment_gateway }}</td>
+                            <td>{{ order.order_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                <a href="{{ url_for('payments.view_order', order_id=order.id) }}" class="btn btn-info btn-sm">View Details</a>
+                                <!-- Add more actions here if needed, e.g., refund, mark as paid -->
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-        {% endif %}
+            {% else %}
+            <p>No payment records found.</p>
+            {% endif %}
+        </div>
     </div>
 </div>
 {% endblock %}

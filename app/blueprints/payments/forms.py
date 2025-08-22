@@ -7,80 +7,52 @@ from datetime import datetime
 class ProcessPaymentForm(FlaskForm):
     """
     Form for processing a payment for a listing.
-    Includes fields for credit card details (simulated) and payment gateway selection.
+    Now integrates with Paystack by redirecting to their secure payment page.
     """
-    card_number = StringField('Card Number', validators=[DataRequired(), Length(min=16, max=16, message="Card number must be 16 digits.")],
-                              render_kw={"placeholder": "e.g., 4111222233334444"})
-    expiry_date = StringField('Expiry Date (MM/YY)', validators=[DataRequired(), Length(min=5, max=5, message="Format: MM/YY")],
-                              render_kw={"placeholder": "e.g., 12/25"})
-    cvv = StringField('CVV', validators=[DataRequired(), Length(min=3, max=4, message="CVV must be 3 or 4 digits.")],
-                      render_kw={"placeholder": "e.g., 123"})
-    card_holder_name = StringField('Card Holder Name', validators=[DataRequired(), Length(min=3, max=100)])
+    # No direct card details collected here for PCI compliance.
+    # Paystack handles secure collection on their hosted page.
     
-    # Simulate payment gateway selection (in a real app, this might be dynamic or hidden)
-    payment_gateway = SelectField('Payment Gateway', choices=[
-        ('PayFast', 'PayFast (Simulated)'),
-        ('PayPal', 'PayPal (Simulated)'),
-        ('Stripe', 'Stripe (Simulated)')
+    payment_gateway = SelectField('Payment Method', choices=[
+        ('Paystack', 'Paystack (Card, EFT, Mobile Wallet)'),
+        ('Platform_Credits', 'Platform Credits (if available)') # Placeholder for future
     ], validators=[DataRequired()])
 
-    submit = SubmitField('Pay Now')
+    delivery_method = SelectField('Delivery Method', choices=[
+        ('pickup', 'Pickup'),
+        ('courier', 'Courier')
+    ], validators=[DataRequired()])
 
-    def validate_expiry_date(self, field):
-        """Custom validator for expiry date format and future date."""
-        try:
-            month, year = map(int, field.data.split('/'))
-            current_year = datetime.now().year % 100 # Get last two digits of current year
-            current_month = datetime.now().month
-
-            if not (1 <= month <= 12):
-                raise ValidationError('Invalid month.')
-            if year < current_year or (year == current_year and month < current_month):
-                raise ValidationError('Card has expired.')
-        except ValueError:
-            raise ValidationError('Invalid date format. Use MM/YY.')
+    submit = SubmitField('Proceed to Payment')
 
 class PremiumListingPurchaseForm(FlaskForm):
     """
     Form for a user to purchase premium visibility for one of their listings.
+    Now integrates with Paystack by redirecting to their secure payment page.
     """
-    listing_id = IntegerField('Select Listing to Make Premium', validators=[DataRequired(), NumberRange(min=1)],
+    listing_id = StringField('Select Listing to Make Premium', validators=[DataRequired()],
                               render_kw={"placeholder": "Enter the ID of your listing"})
     
-    # Options for premium duration/cost (can be dynamic from config)
     premium_package = SelectField('Premium Package', choices=[
         ('7_days_50', '7 Days - R50'),
         ('14_days_90', '14 Days - R90'),
         ('30_days_150', '30 Days - R150')
     ], validators=[DataRequired()])
 
-    # Re-use payment fields from ProcessPaymentForm
-    card_number = StringField('Card Number', validators=[DataRequired(), Length(min=16, max=16, message="Card number must be 16 digits.")],
-                              render_kw={"placeholder": "e.g., 4111222233334444"})
-    expiry_date = StringField('Expiry Date (MM/YY)', validators=[DataRequired(), Length(min=5, max=5, message="Format: MM/YY")],
-                              render_kw={"placeholder": "e.g., 12/25"})
-    cvv = StringField('CVV', validators=[DataRequired(), Length(min=3, max=4, message="CVV must be 3 or 4 digits.")],
-                      render_kw={"placeholder": "e.g., 123"})
-    card_holder_name = StringField('Card Holder Name', validators=[DataRequired(), Length(min=3, max=100)])
-    payment_gateway = SelectField('Payment Gateway', choices=[
-        ('PayFast', 'PayFast (Simulated)'),
-        ('PayPal', 'PayPal (Simulated)'),
-        ('Stripe', 'Stripe (Simulated)')
+    payment_gateway = SelectField('Payment Method', choices=[
+        ('Paystack', 'Paystack (Card, EFT, Mobile Wallet)'),
+        ('Platform_Credits', 'Platform Credits (if available)') # Placeholder for future
     ], validators=[DataRequired()])
 
-    submit = SubmitField('Purchase Premium')
+    submit = SubmitField('Proceed to Payment')
 
-    def validate_expiry_date(self, field):
-        """Custom validator for expiry date format and future date."""
-        try:
-            month, year = map(int, field.data.split('/'))
-            current_year = datetime.now().year % 100 # Get last two digits of current year
-            current_month = datetime.now().month
-
-            if not (1 <= month <= 12):
-                raise ValidationError('Invalid month.')
-            if year < current_year or (year == current_year and month < current_month):
-                raise ValidationError('Card has expired.')
-        except ValueError:
-            raise ValidationError('Invalid date format. Use MM/YY.')
+class TopUpCreditsForm(FlaskForm):
+    """
+    Form for users to top up their platform credit balance.
+    """
+    amount = FloatField(
+        'Amount to Top Up (ZAR)',
+        validators=[DataRequired(), NumberRange(min=10.0, message="Minimum top-up amount is R10.00.")],
+        render_kw={"placeholder": "e.g., 50.00, 100.00", "class": "block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"}
+    )
+    submit = SubmitField('Top Up Credits', render_kw={"class": "w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"})
 

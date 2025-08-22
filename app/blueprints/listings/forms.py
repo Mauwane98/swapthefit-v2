@@ -1,8 +1,8 @@
 # app/blueprints/listings/forms.py
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed, MultipleFileField
-from wtforms import StringField, TextAreaField, FloatField, SelectField, BooleanField, SubmitField, HiddenField
-from wtforms.validators import DataRequired, Length, NumberRange, Optional, ValidationError
+from wtforms import StringField, TextAreaField, FloatField, SelectField, BooleanField, SubmitField
+from wtforms.validators import DataRequired, Length, NumberRange, Optional
 
 class ListingForm(FlaskForm):
     """

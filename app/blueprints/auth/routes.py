@@ -4,7 +4,6 @@ from app.blueprints.auth.forms import RegistrationForm, LoginForm, RequestResetF
 from wtforms.validators import ValidationError
 from app.models.users import User
 from app.utils.emails import send_password_reset_email, send_welcome_email
-from app.extensions import bcrypt # Import bcrypt from extensions
 import datetime
 # Import the roles_required decorator from app.utils.security
  

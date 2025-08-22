@@ -62,6 +62,23 @@ def setup_logistics(transaction_type, transaction_id):
             flash('Logistics for this swap have already been set up. You can view or update them.', 'info')
             return redirect(url_for('logistics.view_logistics', logistics_id=existing_logistics.id))
 
+    elif transaction_type == 'donation':
+        from app.models.donations import Donation # Import Donation model
+        transaction = Donation.objects(id=transaction_id).first_or_404()
+        if current_user.id != transaction.donor.id:
+            flash('You are not authorized to set up logistics for this donation.', 'danger')
+            return redirect(url_for('donations.view_donation_request', donation_id=transaction_id))
+        
+        sender_id = transaction.donor.id
+        receiver_id = transaction.recipient.id
+        listing_title = transaction.donated_listing.title if transaction.donated_listing else "donated item"
+
+        # Check if logistics already exist for this transaction
+        existing_logistics = Logistics.objects(transaction_id=transaction_id, transaction_type='donation').first()
+        if existing_logistics:
+            flash('Logistics for this donation have already been set up. You can view or update them.', 'info')
+            return redirect(url_for('logistics.view_logistics', logistics_id=existing_logistics.id))
+
     else:
         flash('Invalid transaction type.', 'danger')
         return redirect(url_for('landing_bp.index'))

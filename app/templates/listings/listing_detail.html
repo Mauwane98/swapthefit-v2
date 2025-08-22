@@ -75,11 +75,51 @@
             <hr class="my-4">
 
             <div class="d-grid gap-2">
-                {% if listing.user != current_user %}
-                    <a href="{{ url_for('messaging.inbox', user_id=listing.user.id) }}" class="btn btn-primary btn-lg">Contact Seller</a>
-                    <a href="#" class="btn btn-secondary btn-lg">Add to Wishlist</a>
+                {% if not is_owner %}
+                    {% if current_user.is_authenticated %}
+                        {% if listing.listing_type == 'sale' %}
+                            <form method="POST" action="{{ url_for('payments.create_checkout_session', listing_id=listing.id) }}">
+                                {{ process_payment_form.hidden_tag() }}
+                                <div class="mb-3">
+                                    {{ process_payment_form.payment_gateway.label(class="form-label") }}
+                                    {{ process_payment_form.payment_gateway(class="form-select") }}
+                                    {% if process_payment_form.payment_gateway.errors %}
+                                        {% for error in process_payment_form.payment_gateway.errors %}
+                                            <div class="text-danger">{{ error }}</div>
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
+                                <div class="mb-3">
+                                    {{ process_payment_form.delivery_method.label(class="form-label") }}
+                                    {{ process_payment_form.delivery_method(class="form-select") }}
+                                    {% if process_payment_form.delivery_method.errors %}
+                                        {% for error in process_payment_form.delivery_method.errors %}
+                                            <div class="text-danger">{{ error }}</div>
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
+                                <button type="submit" class="btn btn-success btn-lg w-100">Buy Now</button>
+                            </form>
+                        {% elif listing.listing_type == 'swap' %}
+                            <a href="{{ url_for('swaps.request_swap', listing_id=listing.id) }}" class="btn btn-info btn-lg">Request Swap</a>
+                        {% elif listing.listing_type == 'donation' %}
+                            <form action="{{ url_for('donations.request_donation', listing_id=listing.id) }}" method="POST">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-success btn-lg">Request Donation</button>
+                                </div>
+                            </form>
+                        {% endif %}
+                        <a href="{{ url_for('messaging.inbox', user_id=listing.user.id) }}" class="btn btn-primary btn-lg">Contact Seller</a>
+                        <a href="{{ url_for('wishlist.add_to_wishlist', listing_id=listing.id) }}" class="btn btn-secondary btn-lg">Add to Wishlist</a>
+                    {% else %}
+                        <a href="{{ url_for('auth.login') }}" class="btn btn-success btn-lg">Login to Buy/Swap/Donate</a>
+                    {% endif %}
                 {% else %}
                     <a href="{{ url_for('listings.edit_listing', listing_id=listing.id) }}" class="btn btn-secondary btn-lg">Edit Listing</a>
+                    {% if listing.listing_type == 'donation' %}
+                        <a href="{{ url_for('donations.view_donation_requests', listing_id=listing.id) }}" class="btn btn-info btn-lg">View Donation Requests</a>
+                    {% endif %}
                     <form action="{{ url_for('listings.delete_listing', listing_id=listing.id) }}" method="POST">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="d-grid">

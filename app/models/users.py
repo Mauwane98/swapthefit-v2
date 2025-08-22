@@ -59,6 +59,9 @@ class User(db.Document, UserMixin):
     total_donations_value = db.FloatField(required=True, default=0.0) # Total estimated value of items
     total_families_supported_ytd = db.IntField(required=True, default=0) # Total families supported (Year-To-Date)
 
+    # New field for platform credits
+    credit_balance = db.FloatField(required=True, default=0.0) # User's platform credit balance
+
     # Field for contact person for school/NGO roles
     contact_person = db.StringField(max_length=100, required=False)
 
@@ -73,6 +76,12 @@ class User(db.Document, UserMixin):
     receive_email_notifications = db.BooleanField(default=True)
     receive_sms_notifications = db.BooleanField(default=True)
 
+
+    # Payout details for sellers
+    bank_name = db.StringField(max_length=100, required=False)
+    account_number = db.StringField(max_length=50, required=False)
+    account_name = db.StringField(max_length=100, required=False)
+    paystack_recipient_code = db.StringField(max_length=50, required=False)
 
     # Relationships to other models
     # saved_searches = db.relationship('SavedSearch', backref='user_saver', lazy=True)
@@ -173,34 +182,109 @@ class User(db.Document, UserMixin):
         """
         return f"User('{self.username}', '{self.email}', '{self.image_file}', '{self.role}')"
 
-    def to_dict(self):
+    # Payout details for sellers
+    bank_name = db.StringField(max_length=100, required=False)
+    account_number = db.StringField(max_length=50, required=False)
+    account_name = db.StringField(max_length=100, required=False)
+    paystack_recipient_code = db.StringField(max_length=50, required=False)
+
+    # Relationships to other models
+    # saved_searches = db.relationship('SavedSearch', backref='user_saver', lazy=True)
+    # wishlist_items = db.relationship('WishlistItem', backref='user_wisher', lazy=True)
+
+
+    def get_reset_token(self, expires_sec=1800):
         """
-        Converts the User object to a dictionary, useful for JSON serialization.
+        Generates a signed token for password reset functionality.
+        The token expires after a specified number of seconds.
         """
-        return {
-            'id': self.id,
-            'username': self.username,
-            'email': self.email,
-            'image_file': self.image_file,
-            'date_joined': self.date_joined.isoformat() + 'Z',
-            'role': self.role,
-            'trust_score': self.trust_score,
-            'total_transactions': self.total_transactions,
-            'positive_reviews_count': self.positive_reviews_count,
-            'negative_reviews_count': self.negative_reviews_count,
-            'resolved_disputes_count': self.resolved_disputes_count,
-            'fault_disputes_count': self.fault_disputes_count,
-            'blocked_users': self.get_blocked_users(), # Include blocked users in dict representation
-            'total_donations_received_count': self.total_donations_received_count,
-            'total_donations_value': self.total_donations_value,
-            'total_families_supported_ytd': self.total_families_supported_ytd,
-            'is_banned': self.is_banned,
-            'ban_reason': self.ban_reason,
-            'phone_number': self.phone_number,
-            'receive_email_notifications': self.receive_email_notifications,
-            'receive_sms_notifications': self.receive_sms_notifications,
-            'show_my_listings_on_dashboard': self.show_my_listings_on_dashboard,
-            'show_swap_activity_on_dashboard': self.show_swap_activity_on_dashboard,
-            'show_account_summary_on_dashboard': self.show_account_summary_on_dashboard,
-            'show_activity_feed_on_dashboard': self.show_activity_feed_on_dashboard
-        }
+        s = Serializer(current_app.config['SECRET_KEY'])
+        return s.dumps({'user_id': self.id}, expires_in=expires_sec).decode('utf-8')
+
+    @staticmethod
+    def verify_reset_token(token):
+        """
+        Verifies a password reset token and returns the user if valid.
+        """
+        s = Serializer(current_app.config['SECRET_KEY'])
+        try:
+            user_id = s.loads(token)['user_id']
+            return User.objects.get(id=user_id)
+        except (
+            BadSignature, 
+            SignatureExpired, 
+            KeyError, 
+            User.DoesNotExist # Catch if user_id from token doesn't exist
+        ) as e:
+            current_app.logger.warning(f"Password reset token verification failed: {e}")
+            return None
+
+    def get_blocked_users(self):
+        """
+        Retrieves the list of user IDs blocked by this user.
+        """
+        try:
+            return json.loads(self.blocked_users_json)
+        except json.JSONDecodeError:
+            return []
+
+    def add_blocked_user(self, user_id_to_block):
+        """
+        Adds a user ID to the list of blocked users.
+        """
+        blocked_users = self.get_blocked_users()
+        if user_id_to_block not in blocked_users:
+            blocked_users.append(user_id_to_block)
+            self.blocked_users_json = json.dumps(blocked_users)
+
+    def remove_blocked_user(self, user_id_to_unblock):
+        """
+        Removes a user ID from the list of blocked users.
+        """
+        blocked_users = self.get_blocked_users()
+        if user_id_to_unblock in blocked_users:
+            blocked_users.remove(user_id_to_unblock)
+            self.blocked_users_json = json.dumps(blocked_users)
+
+    def is_blocking(self, user_id_to_check):
+        """
+        Checks if this user is blocking a given user ID.
+        """
+        return user_id_to_check in self.get_blocked_users()
+
+    def is_blocked_by(self, user_id_checking):
+        """
+        Checks if this user is blocked by another user.
+        Requires querying the other user's blocked list.
+        """
+        other_user = User.objects(id=user_id_checking).first()
+        if other_user:
+            return self.id in other_user.get_blocked_users()
+        return False
+
+
+    def set_password(self, password):
+        """
+        Hashes the given password using bcrypt and stores it.
+        """
+        self.password = bcrypt.generate_password_hash(password).decode('utf-8')
+
+    def check_password(self, password):
+        """
+        Checks if the given password matches the stored hashed password.
+        """
+        return bcrypt.check_password_hash(self.password, password)
+
+    def has_role(self, role_name):
+        """
+        Checks if the user has the specified role.
+        """
+        return self.role == role_name
+
+    def __repr__(self):
+        """
+        String representation of the User object.
+        """
+        return f"User('{self.username}', '{self.email}', '{self.image_file}', '{self.role}')"
+
+    

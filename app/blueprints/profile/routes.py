@@ -1,36 +1,7 @@
-# app/blueprints/profile/routes.py
 from flask import Blueprint, render_template, url_for, flash, redirect, request, current_app
 from flask_login import login_required, current_user
 from app.models.users import User
-from app.blueprints.profile.forms import EditProfileForm
-from app.blueprints.auth.forms import RequestResetForm, ResetPasswordForm
-from app.extensions import db, bcrypt, mail # Import bcrypt and mail for password reset
-from flask_mail import Message # For sending emails
-import secrets
-import os
-import json # For handling blocked_users_json
-
-profile_bp = Blueprint('profile', __name__)
-
-def save_picture(form_picture):
-    """
-    Saves the uploaded profile picture to the static/profile_pics directory.
-    Generates a random filename to prevent collisions.
-    """
-    random_hex = secrets.token_hex(8)
-    _, f_ext = os.path.splitext(form_picture.filename)
-    picture_fn = random_hex + f_ext
-    picture_path = os.path.join(current_app.root_path, 'static/profile_pics', picture_fn)
-
-    # Resize image if necessary (Pillow/PIL could be used here)
-    # For now, just save it directly
-    form_picture.save(picture_path)
-    return picture_fn
-
-from flask import Blueprint, render_template, url_for, flash, redirect, request, current_app
-from flask_login import login_required, current_user
-from app.models.users import User
-from app.blueprints.profile.forms import EditProfileForm, DashboardSettingsForm, UnblockUserForm # Import DashboardSettingsForm and UnblockUserForm
+from app.blueprints.profile.forms import EditProfileForm, DashboardSettingsForm, UnblockUserForm, PayoutDetailsForm # Import PayoutDetailsForm
 from app.blueprints.auth.forms import RequestResetForm, ResetPasswordForm
 from app.extensions import db, bcrypt, mail # Import bcrypt and mail for password reset
 from flask_mail import Message # For sending emails
@@ -103,6 +74,34 @@ def profile():
         edit_form=edit_form, # Renamed to edit_form
         dashboard_settings_form=dashboard_settings_form # Pass new form
     )
+
+@profile_bp.route("/profile/payout_details", methods=['GET', 'POST'])
+@login_required
+def payout_details():
+    """
+    Allows sellers (users with role 'school' or 'ngo') to enter and update their bank details for payouts.
+    """
+    if not (current_user.has_role('school') or current_user.has_role('ngo')):
+        flash('You do not have permission to access this page.', 'danger')
+        return redirect(url_for('profile.profile'))
+
+    form = PayoutDetailsForm(obj=current_user)
+
+    if form.validate_on_submit():
+        current_user.bank_name = form.bank_name.data
+        current_user.account_number = form.account_number.data
+        current_user.account_name = form.account_name.data
+        # paystack_recipient_code will be set when creating recipient via Paystack API
+        current_user.save()
+        flash('Your payout details have been updated!', 'success')
+        return redirect(url_for('profile.profile'))
+
+    elif request.method == 'GET':
+        form.bank_name.data = current_user.bank_name
+        form.account_number.data = current_user.account_number
+        form.account_name.data = current_user.account_name
+
+    return render_template('profile/payout_details.html', title='Payout Details', form=form)
 
 # --- User Blocking Feature Routes ---
 @profile_bp.route("/user/<string:user_id>/block", methods=['POST'])

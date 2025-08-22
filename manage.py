@@ -1,12 +1,20 @@
-print("Starting manage.py script...")
+import click
+from flask.cli import FlaskGroup
 from app import create_app
+from scripts.process_payouts import process_payouts
 
 # Create an application instance
-app = create_app()
+# app = create_app() # No longer needed here, FlaskGroup handles it
+
+@click.group(cls=FlaskGroup, create_app=create_app)
+def cli():
+    """
+    Main entry point for Flask CLI commands.
+    """
+    pass
+
+# Register commands
+cli.add_command(process_payouts, name='process-payouts')
 
 if __name__ == '__main__':
-    # Run the app using Flask's built-in development server.
-    # This is for debugging purposes to isolate logging issues.
-    # debug=True enables the reloader and debugger.
-    print("Attempting to run Flask development server...")
-    app.run(debug=True, use_reloader=False, use_debugger=False) 
+    cli() 

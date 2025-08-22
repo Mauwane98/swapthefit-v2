@@ -19,48 +19,70 @@
                         <div class="mb-3">
                             {{ form.title.label(class="form-label") }}
                             {{ form.title(class="form-control form-control-lg") }}
-                            {% for error in form.title.errors %}
-                                <div class="invalid-feedback d-block">{{ error }}</div>
-                            {% endfor %}
                         </div>
 
                         <div class="mb-3">
                             {{ form.description.label(class="form-label") }}
                             {{ form.description(class="form-control form-control-lg", rows="5") }}
-                            {% for error in form.description.errors %}
-                                <div class="invalid-feedback d-block">{{ error }}</div>
-                            {% endfor %}
                         </div>
 
                         <div class="row g-3">
                             <div class="col-md-6 mb-3">
                                 {{ form.uniform_type.label(class="form-label") }}
                                 {{ form.uniform_type(class="form-select form-select-lg") }}
-                                {% for error in form.uniform_type.errors %}
-                                    <div class="invalid-feedback d-block">{{ error }}</div>
-                                {% endfor %}
                             </div>
                             <div class="col-md-6 mb-3">
                                 {{ form.size.label(class="form-label") }}
                                 {{ form.size(class="form-control form-control-lg") }}
-                                {% for error in form.size.errors %}
-                                    <div class="invalid-feedback d-block">{{ error }}</div>
-                                {% endfor %}
                             </div>
                             <div class="col-md-6 mb-3">
                                 {{ form.condition.label(class="form-label") }}
                                 {{ form.condition(class="form-select form-select-lg") }}
-                                {% for error in form.condition.errors %}
-                                    <div class="invalid-feedback d-block">{{ error }}</div>
-                                {% endfor %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.gender.label(class="form-label") }}
+                                {{ form.gender(class="form-select form-select-lg") }}
                             </div>
                             <div class="col-md-6 mb-3">
                                 {{ form.school_name.label(class="form-label") }}
                                 {{ form.school_name(class="form-control form-control-lg") }}
-                                {% for error in form.school_name.errors %}
-                                    <div class="invalid-feedback d-block">{{ error }}</div>
-                                {% endfor %}
                             </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.location.label(class="form-label") }}
+                                {{ form.location(class="form-control form-control-lg") }}
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6 mb-3">
+                                {{ form.listing_type.label(class="form-label") }}
+                                {{ form.listing_type(id="listing_type", class="form-select form-select-lg") }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.price.label(class="form-label") }}
+                                {{ form.price(class="form-control form-control-lg") }}
+                            </div>
+                        </div>
+
+                        <div id="donation_recipient_type_div" class="mb-3" style="display: none;">
+                            {{ form.donation_recipient_type.label(class="form-label") }}
+                            {{ form.donation_recipient_type(id="donation_recipient_type", class="form-select form-select-lg") }}
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6 mb-3">
+                                {{ form.brand.label(class="form-label") }}
+                                {{ form.brand(class="form-control form-control-lg") }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.color.label(class="form-label") }}
+                                {{ form.color(class="form-control form-control-lg") }}
+                            </div>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            {{ form.is_premium(class="form-check-input") }}
+                            {{ form.is_premium.label(class="form-check-label") }}
                         </div>
 
                         {% if listing.image_files %}
@@ -86,11 +108,18 @@
                             {{ form.images.label(class="form-label") }}
                             {{ form.images(class="form-control form-control-lg", multiple=True) }}
                             <div class="form-text">Upload up to 5 additional photos. Max file size: 2MB per image. Formats: JPG, PNG, JPEG.</div>
-                            {% for error in form.images.errors %}
-                                <div class="invalid-feedback d-block">{{ error }}</div>
-                            {% endfor %}
-
                         </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">Update Listing</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
 
 {% block scripts %}
 {{ super() }}
@@ -123,17 +152,23 @@
 
         // Initial update of the hidden field on page load
         updateHiddenField();
+
+        var listingType = document.getElementById('listing_type');
+        var donationRecipientTypeDiv = document.getElementById('donation_recipient_type_div');
+
+        function toggleDonationRecipientType() {
+            if (listingType.value === 'donation') {
+                donationRecipientTypeDiv.style.display = 'block';
+            } else {
+                donationRecipientTypeDiv.style.display = 'none';
+            }
+        }
+
+        // Initial check
+        toggleDonationRecipientType();
+
+        // Listen for changes
+        listingType.addEventListener('change', toggleDonationRecipientType);
     });
 </script>
-{% endblock %}
-
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary btn-lg">Update Listing</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}

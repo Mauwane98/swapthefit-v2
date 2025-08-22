@@ -11,7 +11,7 @@ from app.models.payments import Order # Import Order model
 from app.models.disputes import Dispute # Import Dispute model
 from app.utils.security import roles_required
 from mongoengine.queryset.visitor import Q
-from app.blueprints.admin.forms import UserManagementForm, ListingModerationForm, SuspendUserForm, BanUserForm, DeleteUserForm
+from app.blueprints.admin.forms import UserManagementForm, ListingModerationForm, SuspendUserForm, BanUserForm, DeleteUserForm, ToggleListingStatusForm, DeleteListingForm
 import os
 
 admin_bp = Blueprint('admin', __name__)
@@ -216,11 +216,11 @@ def edit_user(user_id):
         # Prevent admin from deactivating or banning themselves
         if user.id == current_user.id and (not user.active or user.is_banned):
             flash('You cannot deactivate or ban your own admin account.', 'danger')
-            return redirect(url_for('admin_bp.manage_users'))
+            return redirect(url_for('admin.manage_users'))
 
         user.save()
         flash(f'User {user.username} updated successfully!', 'success')
-        return redirect(url_for('admin_bp.manage_users'))
+        return redirect(url_for('admin.manage_users'))
     
     elif request.method == 'GET':
         # Populate form fields on GET request
@@ -246,14 +246,14 @@ def delete_user(user_id):
         # Prevent admin from deleting themselves
         if user_to_delete.id == current_user.id:
             flash('You cannot delete your own admin account.', 'danger')
-            return redirect(url_for('admin_bp.manage_users'))
+            return redirect(url_for('admin.manage_users'))
         
         # Optionally, handle associated data (listings, messages, etc.)
         # e.g., set listing.user_id to None or delete cascade
         
         user_to_delete.delete()
         flash(f'User {user_to_delete.username} deleted successfully!', 'success')
-        return redirect(url_for('admin_bp.manage_users'))
+        return redirect(url_for('admin.manage_users'))
 
 @admin_bp.route("/user/<string:user_id>/suspend", methods=['POST'])
 @login_required
@@ -270,17 +270,17 @@ def suspend_user(user_id):
     # Prevent admin from suspending themselves
     if user_to_suspend.id == current_user.id:
         flash('You cannot suspend your own admin account.', 'danger')
-        return redirect(url_for('admin_bp.manage_users'))
+        return redirect(url_for('admin.manage_users'))
     
     if not user_to_suspend.active:
         flash(f'User {user_to_suspend.username} is already suspended.', 'info')
-        return redirect(url_for('admin_bp.manage_users'))
+        return redirect(url_for('admin.manage_users'))
 
     user_to_suspend.active = False
     user_to_suspend.ban_reason = reason # Store the reason
     user_to_suspend.save()
     flash(f'User {user_to_suspend.username} has been suspended.', 'success')
-    return redirect(url_for('admin_bp.manage_users'))
+    return redirect(url_for('admin.manage_users'))
 
 @admin_bp.route("/user/<string:user_id>/ban", methods=['POST'])
 @login_required
@@ -297,18 +297,18 @@ def ban_user(user_id):
     # Prevent admin from banning themselves
     if user_to_ban.id == current_user.id:
         flash('You cannot ban your own admin account.', 'danger')
-        return redirect(url_for('admin_bp.manage_users'))
+        return redirect(url_for('admin.manage_users'))
     
     if user_to_ban.is_banned:
         flash(f'User {user_to_ban.username} is already banned.', 'info')
-        return redirect(url_for('admin_bp.manage_users'))
+        return redirect(url_for('admin.manage_users'))
 
     user_to_ban.active = False
     user_to_ban.is_banned = True
     user_to_ban.ban_reason = reason # Store the reason
     user_to_ban.save()
     flash(f'User {user_to_ban.username} has been permanently banned.', 'success')
-    return redirect(url_for('admin_bp.manage_users'))
+    return redirect(url_for('admin.manage_users'))
 
 # --- Listing Moderation ---
 @admin_bp.route("/manage_listings")
@@ -454,3 +454,27 @@ def view_donations():
     donations = Donation.objects.order_by('-donation_date')
     # You might want to add filters here (e.g., by status, recipient)
     return render_template('admin/view_donations.html', title='Manage Donations', donations=donations)
+
+@admin_bp.route("/listing/<string:listing_id>/toggle_status", methods=['POST'])
+@login_required
+@roles_required('admin')
+def toggle_listing_status(listing_id):
+    """
+    Admin route to toggle a listing's availability status.
+    """
+    listing = Listing.objects(id=listing_id).first_or_404()
+    listing.is_available = not listing.is_available
+    listing.save()
+    flash(f'Listing "{listing.title}" status toggled successfully!', 'success')
+    return redirect(url_for('admin.manage_listings'))
+
+@admin_bp.route("/manage_payments")
+@login_required
+@roles_required('admin')
+def manage_payments():
+    """
+    Admin view for all payment records (orders).
+    """
+    orders = Order.objects.order_by('-created_at')
+    # You might want to add filters here (e.g., by status, user, listing)
+    return render_template('admin/manage_payments.html', title='Manage Payments', orders=orders)

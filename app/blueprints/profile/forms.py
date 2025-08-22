@@ -67,3 +67,45 @@ class UnblockUserForm(FlaskForm):
     A simple form for unblocking a user.
     """
     submit = SubmitField('Unblock')
+
+class PayoutDetailsForm(FlaskForm):
+    """
+    Form for sellers to enter their bank account details for payouts.
+    """
+    bank_name = StringField(
+        'Bank Name',
+        validators=[DataRequired(), Length(max=100)],
+        render_kw={"placeholder": "e.g., First National Bank"}
+    )
+    account_number = StringField(
+        'Account Number',
+        validators=[DataRequired(), Length(min=5, max=50)],
+        render_kw={"placeholder": "e.g., 1234567890"}
+    )
+    account_name = StringField(
+        'Account Holder Name',
+        validators=[DataRequired(), Length(max=100)],
+        render_kw={"placeholder": "e.g., John Doe"}
+    )
+    submit = SubmitField('Save Payout Details')
+
+class PayoutDetailsForm(FlaskForm):
+    """
+    Form for sellers to enter their bank account details for payouts.
+    """
+    bank_name = StringField(
+        'Bank Name',
+        validators=[DataRequired(), Length(max=100)],
+        render_kw={"placeholder": "e.g., First National Bank"}
+    )
+    account_number = StringField(
+        'Account Number',
+        validators=[DataRequired(), Length(min=5, max=50)],
+        render_kw={"placeholder": "e.g., 1234567890"}
+    )
+    account_name = StringField(
+        'Account Holder Name',
+        validators=[DataRequired(), Length(max=100)],
+        render_kw={"placeholder": "e.g., John Doe"}
+    )
+    submit = SubmitField('Save Payout Details')

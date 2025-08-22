@@ -9,6 +9,14 @@ class Order(db.Document):
     listing = ReferenceField('Listing', required=True)
     price_at_purchase = FloatField(required=True)
     status = StringField(max_length=50, default='pending')
+    order_type = StringField(max_length=50, choices=('sale_listing', 'premium_purchase', 'credit_top_up'), default='sale_listing')
+    
+    # New fields for delivery tracking
+    delivery_status = StringField(max_length=50, choices=('pending', 'shipped', 'delivered', 'cancelled'), default='pending')
+    delivery_method = StringField(max_length=50)
+    tracking_number = StringField(max_length=100)
+    delivery_date = DateTimeField()
+
     order_date = DateTimeField(default=datetime.utcnow)
     transaction_id_gateway = StringField(max_length=100, unique=True)
     payment_gateway = StringField(max_length=50)
@@ -40,6 +48,11 @@ class Order(db.Document):
             'listing_title': self.listing.title,
             'price_at_purchase': self.price_at_purchase,
             'status': self.status,
+            'order_type': self.order_type,
+            'delivery_status': self.delivery_status,
+            'delivery_method': self.delivery_method,
+            'tracking_number': self.tracking_number,
+            'delivery_date': self.delivery_date.isoformat() + 'Z' if self.delivery_date else None,
             'order_date': self.order_date.isoformat() + 'Z',
             'transaction_id_gateway': self.transaction_id_gateway,
             'payment_gateway': self.payment_gateway,

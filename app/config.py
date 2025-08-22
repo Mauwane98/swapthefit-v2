@@ -30,7 +30,7 @@ class Config:
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER') or 'olerato@riseandshinechess.co.za' # Default sender email address
 
     # Paystack API Key
-    PAYSTACK_SECRET_KEY = os.environ.get('PAYSTACK_SECRET_KEY')
+    PAYSTACK_SECRET_KEY = 'sk_test_3066f1ef9ee4abdb86f10f5794afc23990f2bb33'
 
     # Google OAuth settings for social login
     # You need to obtain these from the Google API Console.

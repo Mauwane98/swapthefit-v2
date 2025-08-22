@@ -32,14 +32,14 @@
                                  class="rounded" style="width: 50px; height: 50px; object-fit: cover;">
                         </td>
                         <td><a href="{{ url_for('listings.listing_detail', listing_id=listing.id) }}">{{ listing.title }}</a></td>
-                        <td><a href="{{ url_for('listings.user_profile', user_id=listing.owner.id) }}">{{ listing.owner.username }}</a></td>
+                        <td><a href="{{ url_for('listings.user_profile', user_id=listing.user.id) }}">{{ listing.user.username }}</a></td>
                         <td>{{ listing.category }}</td>
                         <td>
                             <span class="badge {% if listing.is_active %}bg-success{% else %}bg-danger{% endif %}">
                                 {{ 'Active' if listing.is_active else 'Inactive' }}
                             </span>
                         </td>
-                        <td>{{ listing.created_at.strftime('%b %d, %Y') }}</td>
+                        <td>{{ listing.date_posted.strftime('%b %d, %Y') }}</td>
                         <td>
                             <form action="{{ url_for('admin.toggle_listing_status', listing_id=listing.id) }}" method="POST" class="d-inline">
                                 {{ toggle_status_form.hidden_tag() }}

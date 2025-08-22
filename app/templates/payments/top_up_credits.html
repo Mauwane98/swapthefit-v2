@@ -1,0 +1,20 @@
+{% extends "_layouts/base.html" %}
+{% block content %}
+<div class="container mx-auto p-4">
+    <h1 class="text-2xl font-bold mb-4">Top Up Your Credits</h1>
+    <p class="mb-4">Your current credit balance: R{{ current_user.credit_balance|default(0.00)|round(2) }}</p>
+    <form method="POST" action="{{ url_for('payments.top_up_credits') }}" class="bg-white p-6 rounded-lg shadow-md">
+        {{ form.hidden_tag() }}
+        <div class="mb-4">
+            {{ form.amount.label(class="block text-gray-700 text-sm font-bold mb-2") }}
+            {{ form.amount(class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline") }}
+            {% for error in form.amount.errors %}
+                <p class="text-red-500 text-xs italic">{{ error }}</p>
+            {% endfor %}
+        </div>
+        <div class="flex items-center justify-between">
+            {{ form.submit(class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline") }}
+        </div>
+    </form>
+</div>
+{% endblock %}

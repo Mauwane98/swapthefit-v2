@@ -1,195 +1,445 @@
 # app/blueprints/payments/routes.py
-from flask import Blueprint, render_template, url_for, flash, redirect, request, abort, current_app
+
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from flask_login import login_required, current_user
-from app.models.payments import Order
-from app.models.listings import Listing
-from app.models.users import User
-from app.models.notifications import Notification
-from app.blueprints.payments.forms import ProcessPaymentForm, PremiumListingPurchaseForm
-from app.extensions import db
-from app.blueprints.notifications.routes import add_notification
 from datetime import datetime, timedelta
-import secrets # For simulating transaction IDs
 
-payments_bp = Blueprint('payments', __name__)
+# --- Model Imports ---
+# Assuming your models are in app/models/
+from app.models.users import User
+from app.models.listings import Listing
+from app.models.orders import Order
+from app.blueprints.payments.forms import ProcessPaymentForm, TopUpCreditsForm
 
-# Define platform fee rate (e.g., 5% of the sale price)
-PLATFORM_FEE_RATE = 0.05
+# --- Service and Helper Imports ---
+# These would be custom services you build to interact with external APIs or handle business logic.
+from app.services.paystack import PaystackService # For interacting with Paystack API
+from app.services.notification_service import add_notification # For creating notifications
 
-# Define premium package pricing and duration
+# --- Mock/Placeholder Implementations for Demonstration ---
+# In a real app, these would be in separate files.
+# -----------------------------------------------------------------
+
+# --- Constants ---
+PLATFORM_FEE_RATE = 0.10  # 10% platform fee
 PREMIUM_PACKAGES = {
-    '7_days_50': {'duration_days': 7, 'cost': 50.00},
-    '14_days_90': {'duration_days': 14, 'cost': 90.00},
-    '30_days_150': {'duration_days': 30, 'cost': 150.00}
+    '7_days': {'cost': 50.00, 'duration_days': 7, 'name': '7-Day Boost'},
+    '30_days': {'cost': 150.00, 'duration_days': 30, 'name': '30-Day Feature'},
 }
 
-@payments_bp.route("/process_payment/<string:listing_id>", methods=['GET', 'POST'])
+# --- Blueprint Definition ---
+payments_bp = Blueprint(
+    'payments', 
+    __name__, 
+    template_folder='templates', 
+    static_folder='static'
+)
+
+
+@payments_bp.route("/create_checkout_session/<string:listing_id>", methods=['POST'])
 @login_required
-def process_payment(listing_id):
+def create_checkout_session(listing_id):
     """
-    Handles the payment process for a specific listing (sale).
+    Initializes a payment session for purchasing a listing, supporting Paystack and Platform Credits.
     """
     listing = Listing.objects(id=listing_id).first_or_404()
 
-    # Ensure listing is for sale and available
-    if listing.listing_type != 'sale' or not listing.is_available:
-        flash('This listing is not available for sale.', 'danger')
-        return redirect(url_for('listings.listing_detail', listing_id=listing.id))
-    
-    # Prevent buying own listing
-    if listing.user_id == current_user.id:
-        flash('You cannot purchase your own listing.', 'danger')
+    if not listing.is_available:
+        flash("This item is no longer available for purchase.", "warning")
         return redirect(url_for('listings.listing_detail', listing_id=listing.id))
 
-    form = ProcessPaymentForm()
+    if listing.user.id == current_user.id:
+        flash("You cannot purchase your own listing.", "danger")
+        return redirect(url_for('listings.listing_detail', listing_id=listing.id))
+
+    form = ProcessPaymentForm() # Assuming this form is used to select payment method
     if form.validate_on_submit():
-        # --- Simulate Payment Gateway Interaction ---
-        # In a real application, this would involve API calls to PayFast, PayPal, etc.
-        # For now, we'll simulate success.
-        payment_successful = True # Assume payment is successful for simulation
-        gateway_transaction_id = secrets.token_urlsafe(16) # Simulate a unique transaction ID
+        payment_gateway_choice = form.payment_gateway.data
+        delivery_method = form.delivery_method.data # Get delivery method from form
+        
+        if payment_gateway_choice == 'Platform_Credits':
+            if current_user.credit_balance >= listing.price:
+                # Process payment with platform credits
+                current_user.credit_balance -= listing.price
+                current_user.save()
 
-        if payment_successful:
-            # Calculate fees
+                platform_fee = listing.price * PLATFORM_FEE_RATE
+                seller_payout = listing.price - platform_fee
+
+                order = Order(
+                    buyer=current_user.id,
+                    seller=listing.user.id,
+                    listing=listing.id,
+                    price_at_purchase=listing.price,
+                    status='completed',
+                    transaction_id_gateway='N/A', # No external transaction ID for credit payment
+                    payment_gateway='Platform Credits',
+                    amount_paid_total=listing.price,
+                    platform_fee=platform_fee,
+                    seller_payout_amount=seller_payout,
+                    payout_status='pending',
+                    order_type='sale_listing',
+                    delivery_method=delivery_method # Store delivery method
+                )
+                order.save()
+
+                listing.is_available = False
+                listing.status = 'sold'
+                listing.save()
+
+                flash('Payment successful using platform credits! Your order has been placed.', 'success')
+                add_notification(
+                    user_id=listing.user.id,
+                    message=f"Your listing '{listing.title}' has been sold to {current_user.username} for R{listing.price:.2f} using platform credits!",
+                    notification_type='listing_sold',
+                    payload={'order_id': str(order.id), 'listing_id': str(listing.id), 'buyer_id': str(current_user.id)}
+                )
+                add_notification(
+                    user_id=current_user.id,
+                    message=f"You successfully purchased '{listing.title}' from {listing.user.username} for R{listing.price:.2f} using platform credits.",
+                    notification_type='listing_purchased',
+                    payload={'order_id': str(order.id), 'listing_id': str(listing.id), 'seller_id': str(listing.user.id)}
+                )
+                return redirect(url_for('payments.view_order', order_id=str(order.id)))
+            else:
+                flash(f"Insufficient platform credits. You have R{current_user.credit_balance:.2f} but need R{listing.price:.2f}.", "danger")
+                return redirect(url_for('listings.listing_detail', listing_id=listing.id))
+        
+        elif payment_gateway_choice == 'Paystack':
+            paystack_service = PaystackService()
+            
+            # Metadata to be sent to Paystack and returned in the callback
+            metadata = {
+                'listing_id': str(listing.id),
+                'buyer_id': str(current_user.id),
+                'seller_id': str(listing.user.id),
+                'type': 'sale_listing',
+                'delivery_method': delivery_method # Pass delivery method to metadata
+            }
+
+            # The callback URL Paystack will redirect to after payment
+            callback_url = url_for('payments.paystack_callback', _external=True)
+
+            # Paystack expects the amount in the lowest currency unit (kobo for NGN, pesewas for GHS, etc.)
+            amount_in_kobo = int(listing.price * 100)
+
+            response = paystack_service.initialize_payment(
+                email=current_user.email,
+                amount=amount_in_kobo,
+                metadata=metadata,
+                callback_url=callback_url
+            )
+
+            if response['status']:
+                # Redirect user to Paystack's payment page
+                return redirect(response['data']['authorization_url'])
+            else:
+                flash("Could not initiate payment. Please try again.", "danger")
+                return redirect(url_for('listings.listing_detail', listing_id=listing.id))
+        else:
+            flash("Invalid payment method selected.", "danger")
+            return redirect(url_for('listings.listing_detail', listing_id=listing.id))
+    
+    # If form is not submitted via POST or validation fails, render the listing detail page
+    # This part might need adjustment depending on how the form is rendered in the template
+    flash("Please select a payment method.", "danger")
+    return redirect(url_for('listings.listing_detail', listing_id=listing.id))
+
+
+@payments_bp.route("/create_premium_session/<string:listing_id>/<string:package_key>", methods=['POST'])
+@login_required
+def create_premium_session(listing_id, package_key):
+    """
+    Initializes a payment session with Paystack for promoting a listing.
+    """
+    listing = Listing.objects(id=listing_id, user=current_user.id).first_or_404()
+    package = PREMIUM_PACKAGES.get(package_key)
+
+    if not package:
+        flash("Invalid premium package selected.", "danger")
+        return redirect(url_for('listings.listing_detail', listing_id=listing.id))
+
+    paystack_service = PaystackService()
+    
+    metadata = {
+        'listing_id': str(listing.id),
+        'buyer_id': str(current_user.id),
+        'seller_id': str(current_user.id), # For premium, buyer and seller are the same
+        'type': 'premium_purchase',
+        'premium_package_key': package_key
+    }
+    
+    callback_url = url_for('payments.paystack_callback', _external=True)
+    amount_in_kobo = int(package['cost'] * 100)
+
+    response = paystack_service.initialize_payment(
+        email=current_user.email,
+        amount=amount_in_kobo,
+        metadata=metadata,
+        callback_url=callback_url
+    )
+
+    if response['status']:
+        return redirect(response['data']['authorization_url'])
+    else:
+        flash("Could not initiate premium payment. Please try again.", "danger")
+        return redirect(url_for('listings.listing_detail', listing_id=listing.id))
+
+
+@payments_bp.route("/top_up_credits", methods=['GET', 'POST'])
+@login_required
+def top_up_credits():
+    """
+    Allows a user to top up their platform credit balance.
+    """
+    form = TopUpCreditsForm()
+    if form.validate_on_submit():
+        amount = form.amount.data
+        paystack_service = PaystackService()
+
+        metadata = {
+            'buyer_id': str(current_user.id),
+            'type': 'credit_top_up',
+            'top_up_amount': amount
+        }
+
+        callback_url = url_for('payments.paystack_callback', _external=True)
+        amount_in_kobo = int(amount * 100)
+
+        response = paystack_service.initialize_payment(
+            email=current_user.email,
+            amount=amount_in_kobo,
+            metadata=metadata,
+            callback_url=callback_url
+        )
+
+        if response['status']:
+            return redirect(response['data']['authorization_url'])
+        else:
+            flash("Could not initiate credit top-up. Please try again.", "danger")
+            return redirect(url_for('payments.top_up_credits'))
+    
+    return render_template("payments/top_up_credits.html", form=form)
+
+
+@payments_bp.route("/paystack_callback")
+def paystack_callback():
+    """
+    Handles the callback from Paystack after a transaction.
+    Verifies the payment and finalizes the order.
+    """
+    reference = request.args.get('trxref') or request.args.get('reference')
+    if not reference:
+        flash('Payment reference not found.', 'danger')
+        return redirect(url_for('listings.marketplace'))
+
+    paystack_service = PaystackService()
+    verification_response = paystack_service.verify_payment(reference)
+
+    if verification_response and verification_response['status'] and verification_response['data']['status'] == 'success':
+        data = verification_response['data']
+        metadata = data.get('metadata', {})
+        
+        listing_id = metadata.get('listing_id')
+        buyer_id = metadata.get('buyer_id')
+        seller_id = metadata.get('seller_id')
+        transaction_type = metadata.get('type')
+        delivery_method = metadata.get('delivery_method') # Get delivery method from metadata
+
+        listing = Listing.objects(id=listing_id).first()
+        buyer = User.objects(id=buyer_id).first()
+        seller = User.objects(id=seller_id).first()
+
+        if not all([listing, buyer, seller]):
+            flash('Error processing payment: associated data not found.', 'danger')
+            current_app.logger.error(f"Paystack callback error: Missing data for reference {reference}")
+            return redirect(url_for('listings.marketplace'))
+
+        if transaction_type == "sale_listing":
+            if not listing.is_available:
+                flash('This listing is no longer available.', 'danger')
+                return redirect(url_for('listings.listing_detail', listing_id=listing.id))
+
             platform_fee = listing.price * PLATFORM_FEE_RATE
             seller_payout = listing.price - platform_fee
-            amount_paid_total = listing.price # For simple sales, total paid is listing price
+            amount_paid_total = data['amount'] / 100
 
-            # Create Order record
             order = Order(
-                buyer_id=current_user.id,
-                seller_id=listing.user_id,
-                listing_id=listing.id,
+                buyer=buyer.id,
+                seller=seller.id,
+                listing=listing.id,
                 price_at_purchase=listing.price,
-                status='completed', # Mark as completed upon successful payment
-                transaction_id_gateway=gateway_transaction_id,
-                payment_gateway=form.payment_gateway.data,
+                status='completed',
+                transaction_id_gateway=reference,
+                payment_gateway='Paystack',
                 amount_paid_total=amount_paid_total,
                 platform_fee=platform_fee,
                 seller_payout_amount=seller_payout,
-                payout_status='pending' # Payout to seller is pending initially
+                payout_status='pending',
+                delivery_method=delivery_method # Store delivery method
             )
-            db.session.add(order)
-            db.session.commit()
+            order.save()
 
-            # Run fraud detection for the payment transaction
-            FraudDetectionService.monitor_payment_transaction(order.id)
-
-            # Update listing status
             listing.is_available = False
-            listing.status = 'sold' # Mark listing as sold
-            db.session.commit()
+            listing.status = 'sold'
+            listing.save()
 
             flash('Payment successful! Your order has been placed.', 'success')
 
-            # Notify seller about the sale
             add_notification(
-                user_id=listing.user_id,
-                message=f"Your listing '{listing.title}' has been sold to {current_user.username} for R{listing.price:.2f}!",
+                user_id=seller.id,
+                message=f"Your listing '{listing.title}' has been sold to {buyer.username} for R{listing.price:.2f}!",
                 notification_type='listing_sold',
-                payload={'order_id': order.id, 'listing_id': listing.id, 'buyer_id': current_user.id}
+                payload={'order_id': str(order.id), 'listing_id': str(listing.id), 'buyer_id': str(buyer.id)}
             )
-            # Notify buyer about successful purchase
             add_notification(
-                user_id=current_user.id,
-                message=f"You successfully purchased '{listing.title}' from {listing.user.username} for R{listing.price:.2f}.",
+                user_id=buyer.id,
+                message=f"You successfully purchased '{listing.title}' from {seller.username} for R{listing.price:.2f}.",
                 notification_type='listing_purchased',
-                payload={'order_id': order.id, 'listing_id': listing.id, 'seller_id': listing.user_id}
+                payload={'order_id': str(order.id), 'listing_id': str(listing.id), 'seller_id': str(seller.id)}
             )
 
-            return redirect(url_for('payments.view_order', order_id=order.id))
-        else:
-            flash('Payment failed. Please try again.', 'danger')
+            return redirect(url_for('payments.view_order', order_id=str(order.id)))
+        
+        elif transaction_type == "premium_purchase":
+            premium_package_key = metadata.get('premium_package_key')
+            package_details = PREMIUM_PACKAGES.get(premium_package_key)
 
-    return render_template('payments/process_payment.html', title='Process Payment', form=form, listing=listing)
+            if not package_details:
+                flash('Error processing premium purchase: package details missing.', 'danger')
+                return redirect(url_for('listings.dashboard'))
 
-@payments_bp.route("/purchase_premium", methods=['GET', 'POST'])
-@login_required
-def purchase_premium_listing():
-    """
-    Allows a user to purchase premium visibility for one of their listings.
-    """
-    form = PremiumListingPurchaseForm()
-    
-    # Dynamically populate listing choices (only user's own listings)
-    user_listings = Listing.objects(user=current_user.id)
-    form.listing_id.choices = [(str(l.id), f"{l.title} (ID: {l.id})") for l in user_listings]
-    form.listing_id.choices.insert(0, ('', 'Select your listing'))
+            listing.is_premium = True
+            listing.premium_expiry_date = datetime.utcnow() + timedelta(days=package_details['duration_days'])
+            listing.save()
 
-    if form.validate_on_submit():
-        listing_to_promote = Listing.objects(id=form.listing_id.data).first()
-
-        # Validate that the listing belongs to the current user
-        if not listing_to_promote or listing_to_promote.user_id != current_user.id:
-            flash('Invalid listing selected or you do not own this listing.', 'danger')
-            return render_template('payments/purchase_premium.html', title='Purchase Premium', form=form)
-
-        premium_package_key = form.premium_package.data
-        package_details = PREMIUM_PACKAGES.get(premium_package_key)
-
-        if not package_details:
-            flash('Invalid premium package selected.', 'danger')
-            return render_template('payments/purchase_premium.html', title='Purchase Premium', form=form)
-
-        cost = package_details['cost']
-
-        # --- Simulate Payment Gateway Interaction for Premium Purchase ---
-        payment_successful = True  # Assume payment is successful for simulation
-        gateway_transaction_id = secrets.token_urlsafe(16)  # Simulate a unique transaction ID
-
-        if payment_successful:
-            # Create an Order record for the premium purchase
             order = Order(
-                buyer_id=current_user.id,
-                seller_id=current_user.id,  # Buyer and seller are the same for premium purchase
-                listing_id=listing_to_promote.id,
-                price_at_purchase=cost,
-                status='completed',  # Mark as completed upon successful payment
-                transaction_id_gateway=gateway_transaction_id,
-                payment_gateway='Simulated',  # Or form.payment_gateway.data if a form field exists
-                amount_paid_total=cost,
-                platform_fee=0.0,  # No platform fee for premium purchases
-                seller_payout_amount=0.0,  # No payout for premium purchases
+                buyer=buyer.id,
+                seller=buyer.id,
+                listing=listing.id,
+                price_at_purchase=package_details['cost'],
+                status='completed',
+                transaction_id_gateway=reference,
+                payment_gateway='Paystack',
+                amount_paid_total=data['amount'] / 100,
+                platform_fee=0.0,
+                seller_payout_amount=0.0,
                 payout_status='N/A'
             )
-            db.session.add(order)
-            db.session.commit()
+            order.save()
 
-            # Run fraud detection for the premium purchase transaction
-            FraudDetectionService.monitor_payment_transaction(order.id)
+            flash(f'Successfully purchased premium visibility for "{listing.title}"!', 'success')
+            add_notification(
+                user_id=buyer.id,
+                message=f"Your listing '{listing.title}' is now premium until {listing.premium_expiry_date.strftime('%Y-%m-%d')}.",
+                notification_type='premium_activated',
+                payload={'listing_id': str(listing.id)}
+            )
+            return redirect(url_for('listings.listing_detail', listing_id=str(listing.id)))
+        
+        elif transaction_type == "credit_top_up":
+            top_up_amount = metadata.get('top_up_amount')
+            if not top_up_amount:
+                flash('Error processing credit top-up: amount missing.', 'danger')
+                return redirect(url_for('payments.top_up_credits'))
+            
+            # Ensure the buyer is the current user for security
+            if str(current_user.id) != buyer_id:
+                flash('Security error: Mismatched user for credit top-up.', 'danger')
+                current_app.logger.error(f"Security error: Mismatched user {current_user.id} for credit top-up {buyer_id}")
+                return redirect(url_for('listings.marketplace'))
 
-            # Update listing to premium
-            listing_to_promote.is_premium = True
-            listing_to_promote.premium_until = datetime.utcnow() + timedelta(days=package_details['duration_days'])
-            db.session.commit()
+            current_user.credit_balance += float(top_up_amount)
+            current_user.save()
 
-            flash(f'Successfully purchased premium visibility for "{listing_to_promote.title}"!', 'success')
+            order = Order(
+                buyer=current_user.id,
+                seller=current_user.id, # Self-transaction for top-up
+                listing=None, # No listing associated with credit top-up
+                price_at_purchase=float(top_up_amount),
+                status='completed',
+                transaction_id_gateway=reference,
+                payment_gateway='Paystack',
+                amount_paid_total=data['amount'] / 100,
+                platform_fee=0.0,
+                seller_payout_amount=0.0,
+                payout_status='N/A',
+                order_type='credit_top_up' # New field to distinguish order types
+            )
+            order.save()
 
-            # Notify user about premium activation
+            flash(f'Successfully topped up your credit balance with R{float(top_up_amount):.2f}!', 'success')
             add_notification(
                 user_id=current_user.id,
-                message=f"Your listing '{listing_to_promote.title}' is now premium until {listing_to_promote.premium_until.strftime('%Y-%m-%d')}.",
-                notification_type='premium_activated',
-                payload={'listing_id': str(listing_to_promote.id), 'premium_until': listing_to_promote.premium_until.isoformat()}
+                message=f"Your credit balance has been topped up with R{float(top_up_amount):.2f}. Your new balance is R{current_user.credit_balance:.2f}.",
+                notification_type='credit_top_up',
+                payload={'amount': float(top_up_amount), 'new_balance': current_user.credit_balance}
             )
+            return redirect(url_for('profile.profile')) # Redirect to user profile or a credit balance page
 
-            return redirect(url_for('listings.listing_detail', listing_id=listing_to_promote.id))
-        else:
-            flash('Premium purchase failed. Please try again.', 'danger')
+            if not package_details:
+                flash('Error processing premium purchase: package details missing.', 'danger')
+                return redirect(url_for('listings.dashboard'))
 
-    return render_template('payments/purchase_premium.html', title='Purchase Premium', form=form)
+            listing.is_premium = True
+            listing.premium_expiry_date = datetime.utcnow() + timedelta(days=package_details['duration_days'])
+            listing.save()
 
-@payments_bp.route("/manage_orders")
+            order = Order(
+                buyer=buyer.id,
+                seller=buyer.id,
+                listing=listing.id,
+                price_at_purchase=package_details['cost'],
+                status='completed',
+                transaction_id_gateway=reference,
+                payment_gateway='Paystack',
+                amount_paid_total=data['amount'] / 100,
+                platform_fee=0.0,
+                seller_payout_amount=0.0,
+                payout_status='N/A'
+            )
+            order.save()
+
+            flash(f'Successfully purchased premium visibility for "{listing.title}"!', 'success')
+            add_notification(
+                user_id=buyer.id,
+                message=f"Your listing '{listing.title}' is now premium until {listing.premium_expiry_date.strftime('%Y-%m-%d')}.",
+                notification_type='premium_activated',
+                payload={'listing_id': str(listing.id)}
+            )
+            return redirect(url_for('listings.listing_detail', listing_id=str(listing.id)))
+
+    else:
+        message = verification_response.get('message', 'Payment verification failed.')
+        flash(f'Payment failed: {message}', 'danger')
+        current_app.logger.error(f"Paystack verification failed for reference {reference}: {message}")
+        return redirect(url_for('listings.marketplace'))
+
+
+@payments_bp.route("/order/<string:order_id>")
 @login_required
-def manage_orders():
+def view_order(order_id):
     """
-    Displays a list of all orders (as buyer or seller) for the current user.
+    Displays the details of a specific order.
+    Ensures the current user is either the buyer or seller.
     """
-    # Fetch orders where current user is either buyer or seller
-    orders_as_buyer = Order.objects(buyer_id=current_user.id).order_by('-date_created')
-    orders_as_seller = Order.objects(seller_id=current_user.id).order_by('-date_created')
+    order = Order.objects(id=order_id).first_or_404()
+    
+    if current_user.id not in [order.buyer.id, order.seller.id]:
+        flash("You do not have permission to view this order.", "danger")
+        return redirect(url_for('listings.dashboard'))
+        
+    return render_template("view_order.html", order=order)
 
-    # Combine and sort orders (optional, depending on desired display)
-    all_orders = sorted(list(orders_as_buyer) + list(orders_as_seller), key=lambda x: x.date_created, reverse=True)
 
-    return render_template('payments/manage_orders.html', title='Manage Orders', orders=all_orders)
+@payments_bp.route("/order_history")
+@login_required
+def order_history():
+    """
+    Displays a history of orders for the current user,
+    including items they've purchased and items they've sold.
+    """
+    purchases = Order.objects(buyer=current_user.id).order_by('-created_at')
+    sales = Order.objects(seller=current_user.id).order_by('-created_at')
+    
+    return render_template("order_history.html", purchases=purchases, sales=sales)
