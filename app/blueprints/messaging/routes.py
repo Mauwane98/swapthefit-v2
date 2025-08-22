@@ -4,6 +4,7 @@ from app.models.messages import Message
 from app.models.users import User # Import User model to fetch sender/receiver info
 from app.extensions import db
 from mongoengine.queryset.visitor import Q # Import Q for complex queries
+from .forms import MessageForm # Import the new MessageForm
 
 messaging_bp = Blueprint('messaging', __name__)
 
@@ -15,17 +16,13 @@ def inbox():
     and the messages within a selected conversation.
     """
     # Get all unique users current_user has exchanged messages with
-    # This involves querying messages where current_user is either sender or receiver
-    sender_ids = Message.objects(receiver=current_user).distinct('sender')
-    receiver_ids = Message.objects(sender=current_user).distinct('receiver')
+    sender_users = Message.objects(receiver=current_user).distinct('sender')
+    receiver_users = Message.objects(sender=current_user).distinct('receiver')
 
     # Combine results and exclude current_user themselves
-    partner_ids = list(set(sender_ids + receiver_ids))
-    if current_user.id in partner_ids:
-        partner_ids.remove(current_user.id)
-
-    # Fetch User objects for conversation partners
-    conversation_partners = User.objects(id__in=partner_ids)
+    conversation_partners = list(set(sender_users + receiver_users))
+    if current_user in conversation_partners:
+        conversation_partners.remove(current_user)
 
     # Sort conversations by the latest message
     sorted_partners = []
@@ -42,7 +39,7 @@ def inbox():
     conversation_partners = [partner for partner, _ in sorted_partners]
 
 
-    selected_conversation_id = request.args.get('user_id', type=str) # Changed to str for ObjectId
+    selected_conversation_id = request.args.get('user_id', type=str)
     messages = []
     selected_partner = None
 
@@ -61,56 +58,57 @@ def inbox():
                     message.read_status = True
                     message.save() # Save the updated message
 
+    # Pass the form to the template
+    form = MessageForm()
+
     return render_template(
         'messaging/inbox.html',
         conversation_partners=conversation_partners,
         messages=messages,
-        selected_partner=selected_partner
+        selected_partner=selected_partner,
+        form=form
     )
 
-@messaging_bp.route('/send_message', methods=['POST'])
+@messaging_bp.route('/send_message/<string:receiver_id>', methods=['POST'])
 @login_required
-def send_message():
+def send_message(receiver_id):
     """
     Handles sending a new message.
-    Expects 'receiver_id' and 'content' in the form data.
     """
-    receiver_id = request.form.get('receiver_id', type=str) # Changed to str for ObjectId
-    content = request.form.get('content')
+    form = MessageForm()
 
-    if not receiver_id or not content:
-        flash('Receiver and message content are required.', 'danger')
-        return redirect(url_for('messaging.inbox'))
+    if form.validate_on_submit():
+        content = form.content.data
+        receiver = User.objects(id=receiver_id).first()
+        if not receiver:
+            flash('Invalid recipient.', 'danger')
+            return redirect(url_for('messaging.inbox'))
 
-    receiver = User.objects(id=receiver_id).first()
-    if not receiver:
-        flash('Invalid recipient.', 'danger')
-        return redirect(url_for('messaging.inbox'))
+        try:
+            new_message = Message(
+                sender=current_user,
+                receiver=receiver,
+                content=content
+            )
+            new_message.save()
+            flash('Message sent!', 'success')
+            return redirect(url_for('messaging.inbox', user_id=receiver_id))
+        except Exception as e:
+            flash(f'Error sending message: {str(e)}', 'danger')
+            return redirect(url_for('messaging.inbox'))
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f"Error in {field}: {error}", 'danger')
 
-    if current_user.id == receiver.id:
-        flash('You cannot send messages to yourself.', 'danger')
-        return redirect(url_for('messaging.inbox'))
-
-    try:
-        new_message = Message(
-            sender=current_user,
-            receiver=receiver,
-            content=content
-        )
-        new_message.save()
-        flash('Message sent!', 'success')
-    except Exception as e:
-        flash(f'Error sending message: {str(e)}', 'danger')
-
-    return redirect(url_for('messaging.inbox', user_id=receiver_id))
+    return redirect(url_for('messaging.inbox'))
 
 
-@messaging_bp.route('/api/messages/<string:partner_id>') # Changed to string for ObjectId
+@messaging_bp.route('/api/messages/<string:partner_id>')
 @login_required
 def api_get_messages(partner_id):
     """
     API endpoint to fetch messages between the current user and a specific partner.
-    Used for AJAX updates in the chat interface.
     """
     partner = User.objects(id=partner_id).first()
     if not partner:
@@ -125,25 +123,23 @@ def api_get_messages(partner_id):
     for message in messages:
         if message.receiver == current_user and not message.read_status:
             message.read_status = True
-            message.save() # Save the updated message
+            message.save()
 
-    return jsonify([msg.to_dict() for msg in messages])
+    messages_data = [msg.to_dict() for msg in messages]
+    return jsonify(messages_data)
 
 @messaging_bp.route('/api/conversations')
 @login_required
 def api_get_conversations():
     """
     API endpoint to fetch a list of conversation partners for the current user.
-    Used for AJAX updates of the conversation list.
     """
-    sender_ids = Message.objects(receiver=current_user).distinct('sender')
-    receiver_ids = Message.objects(sender=current_user).distinct('receiver')
+    sender_users = Message.objects(receiver=current_user).distinct('sender')
+    receiver_users = Message.objects(sender=current_user).distinct('receiver')
 
-    partner_ids = list(set(sender_ids + receiver_ids))
-    if current_user.id in partner_ids:
-        partner_ids.remove(current_user.id)
-
-    conversation_partners = User.objects(id__in=partner_ids)
+    conversation_partners = list(set(sender_users + receiver_users))
+    if current_user in conversation_partners:
+        conversation_partners.remove(current_user)
 
     partners_data = []
     for partner in conversation_partners:
@@ -164,11 +160,10 @@ def api_get_conversations():
                 'username': partner.username,
                 'latest_message_content': latest_message.content,
                 'latest_message_timestamp': latest_message.timestamp.isoformat() + 'Z',
-                'profile_pic': partner.image_file, # Assuming User model has image_file
+                'profile_pic': partner.image_file,
                 'unread_count': unread_count
             })
     
-    # Sort partners by the timestamp of their latest message (most recent first)
     partners_data.sort(key=lambda x: x['latest_message_timestamp'], reverse=True)
 
     return jsonify(partners_data)

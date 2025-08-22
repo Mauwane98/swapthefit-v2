@@ -41,5 +41,6 @@ class Review(db.Document):
             'transaction_id': self.transaction_id,
             'date_posted': self.date_posted.isoformat() + 'Z',
             'listing_id': str(self.listing.id) if self.listing else None,
-            'listing_title': self.listing.title if self.listing else None
+            'listing_title': self.listing.title if self.listing else None,
+            'image_files': self.image_files # New field
         }

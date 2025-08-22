@@ -6,60 +6,195 @@
 <div class="container my-5">
     <div class="text-center mb-5">
         <h1 class="display-5 fw-bold">Admin Dashboard</h1>
-        <p class="lead">Platform overview and management tools.</p>
+        <p class="lead">Welcome, Administrator {{ current_user.username }}!</p>
     </div>
 
-    <!-- Stats Section -->
+    <div class="row mb-5">
+        {% if current_user.show_account_summary_on_dashboard %}
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Overall Statistics</h5>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Total Users
+                            <span class="badge bg-primary rounded-pill">{{ total_users }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Total Listings
+                            <span class="badge bg-primary rounded-pill">{{ total_listings }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Active Listings
+                            <span class="badge bg-success rounded-pill">{{ active_listings }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Pending Reports
+                            <span class="badge bg-warning rounded-pill">{{ pending_reports }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Open Disputes
+                            <span class="badge bg-danger rounded-pill">{{ open_disputes }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% if current_user.show_account_summary_on_dashboard %}
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Transaction & Listing Breakdown</h5>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Sale Listings
+                            <span class="badge bg-info rounded-pill">{{ total_sale_listings }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Swap Listings
+                            <span class="badge bg-info rounded-pill">{{ total_swap_listings }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Donation Listings
+                            <span class="badge bg-info rounded-pill">{{ total_donation_listings }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Completed Swaps
+                            <span class="badge bg-success rounded-pill">{{ total_completed_swaps }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Completed Orders
+                            <span class="badge bg-success rounded-pill">{{ total_completed_orders }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Total Order Value
+                            <span class="badge bg-success rounded-pill">R{{ "%.2f"|format(total_order_value) }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Completed Donations
+                            <span class="badge bg-success rounded-pill">{{ total_completed_donations }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Total Donation Value
+                            <span class="badge bg-success rounded-pill">R{{ "%.2f"|format(total_donation_value) }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
     <div class="row">
-        <div class="col-md-3 mb-4">
-            <div class="card text-center shadow-sm border-0">
+        {% if current_user.show_my_listings_on_dashboard %}
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
                 <div class="card-body">
-                    <h1 class="display-4 fw-bold" style="color: var(--bolt-green);">{{ total_users }}</h1>
-                    <p class="text-muted mb-0">Total Users</p>
+                    <h5 class="card-title">Manage Users</h5>
+                    <p class="card-text">View, edit, and manage user accounts.</p>
+                    <a href="{{ url_for('admin_bp.manage_users') }}" class="btn btn-primary">Go to Users</a>
                 </div>
             </div>
         </div>
-        <div class="col-md-3 mb-4">
-            <div class="card text-center shadow-sm border-0">
+        {% endif %}
+        {% if current_user.show_my_listings_on_dashboard %}
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
                 <div class="card-body">
-                    <h1 class="display-4 fw-bold" style="color: var(--bolt-green);">{{ active_listings }}</h1>
-                    <p class="text-muted mb-0">Active Listings</p>
+                    <h5 class="card-title">Manage Disputes</h5>
+                    <p class="card-text">Review and resolve user disputes.</p>
+                    <a href="{{ url_for('disputes.manage_disputes') }}" class="btn btn-primary">Go to Disputes</a>
                 </div>
             </div>
         </div>
-        <div class="col-md-3 mb-4">
-            <div class="card text-center shadow-sm border-0">
+        {% endif %}
+        {% if current_user.show_my_listings_on_dashboard %}
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
                 <div class="card-body">
-                    <h1 class="display-4 fw-bold" style="color: var(--bolt-green);">{{ pending_reports }}</h1>
-                    <p class="text-muted mb-0">Pending Reports</p>
+                    <h5 class="card-title">Manage Reports</h5>
+                    <p class="card-text">Handle reported listings and users.</p>
+                    <a href="{{ url_for('reports.manage_reports') }}" class="btn btn-primary">Go to Reports</a>
                 </div>
             </div>
         </div>
-        <div class="col-md-3 mb-4">
-            <div class="card text-center shadow-sm border-0">
-                <div class="card-body">
-                    <h1 class="display-4 fw-bold" style="color: var(--bolt-green);">{{ open_disputes }}</h1>
-                    <p class="text-muted mb-0">Open Disputes</p>
-                </div>
-            </div>
-        </div>
+        {% endif %}
     </div>
 
-    <!-- Quick Actions Section -->
-    <div class="card shadow-sm border-0 mt-4">
-        <div class="card-header bg-white p-3">
-            <h4 class="my-2">Management</h4>
+    <div class="row mt-4">
+        {% if current_user.show_my_listings_on_dashboard %}
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Manage Listings</h5>
+                    <p class="card-text">Oversee all active and inactive listings.</p>
+                    <a href="{{ url_for('admin_bp.manage_listings') }}" class="btn btn-primary">Go to Listings</a>
+                </div>
+            </div>
         </div>
-        <div class="list-group list-group-flush">
-            <a href="{{ url_for('admin.manage_users') }}" class="list-group-item list-group-item-action">Manage Users</a>
-            <a href="{{ url_for('admin.manage_listings') }}" class="list-group-item list-group-item-action">Moderate Listings</a>
-            <a href="{{ url_for('reports.manage_reports') }}" class="list-group-item list-group-item-action">Manage Reports</a>
-            <a href="{{ url_for('disputes.manage_disputes') }}" class="list-group-item list-group-item-action">Manage Disputes</a>
-            <a href="{{ url_for('admin.view_reviews') }}" class="list-group-item list-group-item-action">View Reviews</a>
-            <a href="{{ url_for('admin.view_swap_requests') }}" class="list-group-item list-group-item-action">View Swap Requests</a>
-            <a href="{{ url_for('admin.view_donations') }}" class="list-group-item list-group-item-action">View Donations</a>
-            <a href="{{ url_for('admin.view_notifications') }}" class="list-group-item list-group-item-action">View Notifications</a>
+        {% endif %}
+        {% if current_user.show_my_listings_on_dashboard %}
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">My Listings</h5>
+                    <p class="card-text">View and manage your own listed items.</p>
+                    <a href="{{ url_for('listings.my_listings') }}" class="btn btn-primary">Go to My Listings</a>
+                </div>
+            </div>
         </div>
+        {% endif %}
+        {% if current_user.show_account_summary_on_dashboard %}
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Manage Payments</h5>
+                    <p class="card-text">Review payment transactions and payouts.</p>
+                    <a href="{{ url_for('admin_bp.manage_payments') }}" class="btn btn-primary">Go to Payments</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% if current_user.show_account_summary_on_dashboard %}
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">System Settings</h5>
+                    <p class="card-text">Configure application-wide settings.</p>
+                    <a href="#" class="btn btn-primary">Go to Settings</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- What's New (Activity Feed) Section for Admin -->
+        {% if current_user.show_activity_feed_on_dashboard %}
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body p-4">
+                    <h5 class="card-title fw-bold mb-3">Recent Activities</h5>
+                    {% if recent_activities %}
+                        <ul class="list-group list-group-flush">
+                            {% for activity in recent_activities %}
+                                <li class="list-group-item">
+                                    <small class="text-muted">{{ activity.timestamp.strftime('%b %d, %Y %H:%M') }}</small><br>
+                                    <strong>{{ activity.description }}</strong>
+                                    {% if activity.payload.listing_id %}
+                                        <a href="{{ url_for('listings.listing_detail', listing_id=activity.payload.listing_id) }}" class="btn btn-sm btn-link p-0 ms-2">View Listing &rarr;</a>
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="alert alert-info text-center" role="alert">
+                            No recent activities to display.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

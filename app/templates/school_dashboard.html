@@ -10,6 +10,7 @@
     </div>
 
     <div class="row">
+        {% if current_user.show_account_summary_on_dashboard %}
         <div class="col-lg-4 mb-4">
             <div class="card h-100 shadow-sm border-0">
                 <div class="card-body">
@@ -25,33 +26,22 @@
                 </div>
             </div>
         </div>
+        {% endif %}
 
+        {% if current_user.show_my_listings_on_dashboard %}
         <div class="col-lg-4 mb-4">
             <div class="card h-100 shadow-sm border-0">
                 <div class="card-body">
-                    <h4 class="card-title fw-bold">Listings from Your School</h4>
-                    {% if school_listings %}
-                        <ul class="list-group list-group-flush">
-                            {% for listing in school_listings[:3] %}
-                                <li class="list-group-item d-flex align-items-center">
-                                    <img src="{{ url_for('static', filename='uploads/' + listing.image_file) }}" alt="{{ listing.title }}" class="rounded me-3" style="width: 40px; height: 40px; object-fit: cover;">
-                                    <div>
-                                        <a href="{{ url_for('listings.listing_detail', listing_id=listing.id) }}" class="text-decoration-none">{{ listing.title }}</a>
-                                        <small class="d-block text-muted">By: {{ listing.user.username }}</small>
-                                    </div>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                        {% if school_listings|length > 3 %}
-                            <a href="{{ url_for('listings.marketplace', school_name=current_user.username) }}" class="btn btn-secondary btn-sm mt-3">View All</a>
-                        {% endif %}
-                    {% else %}
-                        <p class="text-muted">No listings from your school yet.</p>
-                    {% endif %}
+                    <h4 class="card-title fw-bold">My Listings</h4>
+                    <p class="text-muted">View and manage items you've listed for swap, sale, or donation.</p>
+                    <a href="{{ url_for('listings.my_listings') }}" class="btn btn-primary mt-3">Go to My Listings</a>
+                    <p class="text-muted small mt-2">({{ listings|length if listings else 0 }} active listings)</p>
                 </div>
             </div>
         </div>
+        {% endif %}
 
+        {% if current_user.show_account_summary_on_dashboard %}
         <div class="col-lg-4 mb-4">
             <div class="card h-100 shadow-sm border-0">
                 <div class="card-body">
@@ -62,9 +52,39 @@
                 </div>
             </div>
         </div>
+        {% endif %}
+
+        <!-- What's New (Activity Feed) Section -->
+        {% if current_user.show_activity_feed_on_dashboard %}
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body p-4">
+                    <h4 class="card-title fw-bold mb-3">What's New from Followed Users</h4>
+                    {% if recent_activities %}
+                        <ul class="list-group list-group-flush">
+                            {% for activity in recent_activities %}
+                                <li class="list-group-item">
+                                    <small class="text-muted">{{ activity.timestamp.strftime('%b %d, %Y %H:%M') }}</small><br>
+                                    <strong>{{ activity.description }}</strong>
+                                    {% if activity.payload.listing_id %}
+                                        <a href="{{ url_for('listings.listing_detail', listing_id=activity.payload.listing_id) }}" class="btn btn-sm btn-link p-0 ms-2">View Listing &rarr;</a>
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="alert alert-info text-center" role="alert">
+                            No recent activities from users you follow. Start following schools or NGOs to see updates here!
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <div class="row">
+        {% if current_user.show_swap_activity_on_dashboard %}
         <div class="col-lg-6 mb-4">
             <div class="card h-100 shadow-sm border-0">
                 <div class="card-body">
@@ -90,7 +110,9 @@
                 </div>
             </div>
         </div>
+        {% endif %}
 
+        {% if current_user.show_swap_activity_on_dashboard %}
         <div class="col-lg-6 mb-4">
             <div class="card h-100 shadow-sm border-0">
                 <div class="card-body">
@@ -104,6 +126,7 @@
                 </div>
             </div>
         </div>
+        {% endif %}
     </div>
 
 </div>

@@ -15,7 +15,7 @@
                 <div class="col">
                     <div class="card h-100 shadow-sm border-0">
                         <a href="{{ url_for('listings.listing_detail', listing_id=item.listing.id) }}">
-                            <img src="{{ url_for('static', filename='uploads/' + item.listing.image_file) if item.listing.image_file else 'https://placehold.co/600x400/d1d5db/374151?text=No+Image' }}" 
+                            <img src="{{ url_for('static', filename='uploads/' + item.listing.image_files[0]) if item.listing.image_files else 'https://placehold.co/600x400/d1d5db/374151?text=No+Image' }}" 
                                  alt="{{ item.listing.title }}" 
                                  class="card-img-top" style="height: 200px; object-fit: cover;">
                         </a>

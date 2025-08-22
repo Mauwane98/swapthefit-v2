@@ -7,7 +7,7 @@ from app.utils.emails import send_password_reset_email, send_welcome_email
 from app.extensions import bcrypt # Import bcrypt from extensions
 import datetime
 # Import the roles_required decorator from app.utils.security
-from app.utils.security import roles_required 
+ 
 # Import the activity logger
 from app.utils.activity_logger import log_activity
 

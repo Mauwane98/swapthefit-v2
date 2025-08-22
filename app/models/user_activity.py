@@ -1,11 +1,10 @@
 # app/models/user_activity.py
 from datetime import datetime
 from app.extensions import db
-from mongoengine.fields import ReferenceField, IntField, StringField, DateTimeField, DictField
+from mongoengine.fields import ReferenceField, StringField, DateTimeField, DictField
 import json # Import json for handling payload
 
 class UserActivity(db.Document):
-    id = IntField(primary_key=True)
     user = ReferenceField('User', required=False)
     action_type = StringField(max_length=100, required=True)
     description = StringField(required=True)
@@ -24,7 +23,7 @@ class UserActivity(db.Document):
         Converts the UserActivity object to a dictionary, useful for JSON serialization.
         """
         return {
-            'id': self.id,
+            'id': str(self.id),
             'user_id': str(self.user.id),
             'username': self.user.username,
             'action_type': self.action_type,

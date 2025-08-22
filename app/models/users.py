@@ -30,6 +30,8 @@ class User(db.Document, UserMixin):
     password = db.StringField(max_length=60, required=True) # Hashed password
     date_joined = db.DateTimeField(required=True, default=datetime.utcnow)
     active = db.BooleanField(default=True) # Field to indicate if user account is active
+    is_banned = db.BooleanField(default=False) # Field to indicate if user is permanently banned
+    ban_reason = db.StringField(max_length=500, required=False) # Reason for ban or suspension
     
     # User roles: 'parent', 'school', 'ngo', 'admin'
     role = db.StringField(max_length=20, required=True, default='parent') 
@@ -42,6 +44,13 @@ class User(db.Document, UserMixin):
     resolved_disputes_count = db.IntField(required=True, default=0)
     fault_disputes_count = db.IntField(required=True, default=0)
 
+    # Fraud Detection Metrics
+    dispute_initiator_count = db.IntField(default=0)
+    dispute_respondent_count = db.IntField(default=0)
+    failed_payment_attempts = db.IntField(default=0)
+    total_listings_created = db.IntField(default=0)
+    flagged_listings_count = db.IntField(default=0)
+
     # Field for User Blocking Feature
     blocked_users_json = db.StringField(required=True, default='[]') 
 
@@ -52,6 +61,17 @@ class User(db.Document, UserMixin):
 
     # Field for contact person for school/NGO roles
     contact_person = db.StringField(max_length=100, required=False)
+
+    # User preferences for dashboard display
+    show_my_listings_on_dashboard = db.BooleanField(default=True)
+    show_swap_activity_on_dashboard = db.BooleanField(default=True)
+    show_account_summary_on_dashboard = db.BooleanField(default=True)
+    show_activity_feed_on_dashboard = db.BooleanField(default=True)
+
+    # Contact and notification preferences
+    phone_number = db.StringField(max_length=20, required=False)
+    receive_email_notifications = db.BooleanField(default=True)
+    receive_sms_notifications = db.BooleanField(default=True)
 
 
     # Relationships to other models
@@ -173,5 +193,14 @@ class User(db.Document, UserMixin):
             'blocked_users': self.get_blocked_users(), # Include blocked users in dict representation
             'total_donations_received_count': self.total_donations_received_count,
             'total_donations_value': self.total_donations_value,
-            'total_families_supported_ytd': self.total_families_supported_ytd
+            'total_families_supported_ytd': self.total_families_supported_ytd,
+            'is_banned': self.is_banned,
+            'ban_reason': self.ban_reason,
+            'phone_number': self.phone_number,
+            'receive_email_notifications': self.receive_email_notifications,
+            'receive_sms_notifications': self.receive_sms_notifications,
+            'show_my_listings_on_dashboard': self.show_my_listings_on_dashboard,
+            'show_swap_activity_on_dashboard': self.show_swap_activity_on_dashboard,
+            'show_account_summary_on_dashboard': self.show_account_summary_on_dashboard,
+            'show_activity_feed_on_dashboard': self.show_activity_feed_on_dashboard
         }

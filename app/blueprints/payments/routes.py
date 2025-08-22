@@ -70,6 +70,10 @@ def process_payment(listing_id):
                 payout_status='pending' # Payout to seller is pending initially
             )
             db.session.add(order)
+            db.session.commit()
+
+            # Run fraud detection for the payment transaction
+            FraudDetectionService.monitor_payment_transaction(order.id)
 
             # Update listing status
             listing.is_available = False
@@ -128,111 +132,64 @@ def purchase_premium_listing():
             return render_template('payments/purchase_premium.html', title='Purchase Premium', form=form)
 
         cost = package_details['cost']
-        duration_days = package_details['duration_days']
 
-        # --- Simulate Payment Gateway Interaction for Premium ---
-        payment_successful = True # Assume payment is successful for simulation
-        gateway_transaction_id = secrets.token_urlsafe(16) # Simulate a unique transaction ID
+        # --- Simulate Payment Gateway Interaction for Premium Purchase ---
+        payment_successful = True  # Assume payment is successful for simulation
+        gateway_transaction_id = secrets.token_urlsafe(16)  # Simulate a unique transaction ID
 
         if payment_successful:
-            # Calculate premium expiry date
-            new_expiry_date = datetime.utcnow() + timedelta(days=duration_days)
-            
-            # If already premium, extend the expiry date
-            if listing_to_promote.is_premium and listing_to_promote.premium_expiry_date and listing_to_promote.premium_expiry_date > datetime.utcnow():
-                new_expiry_date = listing_to_promote.premium_expiry_date + timedelta(days=duration_days)
-
-            # Update listing to premium
-            listing_to_promote.is_premium = True
-            listing_to_promote.premium_expiry_date = new_expiry_date
-            db.session.commit()
-
             # Create an Order record for the premium purchase
-            # Note: For premium purchases, the 'seller' is essentially the platform,
-            # but we'll use a dummy seller_id or current_user.id for simplicity if necessary.
-            # Or, if you have a dedicated 'platform' user, use that ID.
-            # For now, we'll set seller_id to current_user.id as a placeholder,
-            # but ideally this should be a system/platform account if tracking platform income.
             order = Order(
                 buyer_id=current_user.id,
-                seller_id=current_user.id, # Placeholder: In a real app, this might be a system account
-                listing_id=listing_to_promote.id, # Link to the listing being promoted
+                seller_id=current_user.id,  # Buyer and seller are the same for premium purchase
+                listing_id=listing_to_promote.id,
                 price_at_purchase=cost,
-                status='completed',
+                status='completed',  # Mark as completed upon successful payment
                 transaction_id_gateway=gateway_transaction_id,
-                payment_gateway=form.payment_gateway.data,
+                payment_gateway='Simulated',  # Or form.payment_gateway.data if a form field exists
                 amount_paid_total=cost,
-                platform_fee=cost, # Entire amount is platform fee for premium purchase
-                seller_payout_amount=0.0, # No payout to seller for premium purchase
-                payout_status='paid', # Already "paid" to platform
-                is_premium_listing_purchase=True,
-                premium_listing_id=listing_to_promote.id
+                platform_fee=0.0,  # No platform fee for premium purchases
+                seller_payout_amount=0.0,  # No payout for premium purchases
+                payout_status='N/A'
             )
             db.session.add(order)
             db.session.commit()
 
-            flash(f'Premium visibility purchased successfully for "{listing_to_promote.title}"! It is now premium until {new_expiry_date.strftime("%b %d, %Y")}.', 'success')
+            # Run fraud detection for the premium purchase transaction
+            FraudDetectionService.monitor_payment_transaction(order.id)
 
-            # Notify user about premium upgrade
+            # Update listing to premium
+            listing_to_promote.is_premium = True
+            listing_to_promote.premium_until = datetime.utcnow() + timedelta(days=package_details['duration_days'])
+            db.session.commit()
+
+            flash(f'Successfully purchased premium visibility for "{listing_to_promote.title}"!', 'success')
+
+            # Notify user about premium activation
             add_notification(
                 user_id=current_user.id,
-                message=f"Your listing '{listing_to_promote.title}' is now premium until {new_expiry_date.strftime('%b %d, %Y')}.",
-                notification_type='premium_purchased',
-                payload={'listing_id': listing_to_promote.id, 'expiry_date': new_expiry_date.isoformat()}
+                message=f"Your listing '{listing_to_promote.title}' is now premium until {listing_to_promote.premium_until.strftime('%Y-%m-%d')}.",
+                notification_type='premium_activated',
+                payload={'listing_id': str(listing_to_promote.id), 'premium_until': listing_to_promote.premium_until.isoformat()}
             )
 
-            return redirect(url_for('listings.dashboard')) # Redirect to user's dashboard
+            return redirect(url_for('listings.listing_detail', listing_id=listing_to_promote.id))
         else:
-            flash('Payment failed for premium purchase. Please try again.', 'danger')
+            flash('Premium purchase failed. Please try again.', 'danger')
 
     return render_template('payments/purchase_premium.html', title='Purchase Premium', form=form)
-
 
 @payments_bp.route("/manage_orders")
 @login_required
 def manage_orders():
     """
-    Displays orders relevant to the current user (as buyer or seller).
+    Displays a list of all orders (as buyer or seller) for the current user.
     """
-    # Orders where current user is the buyer
-    purchased_orders = Order.query.filter_by(buyer_id=current_user.id, is_premium_listing_purchase=False).order_by(Order.order_date.desc()).all()
-    # Orders where current user is the seller
-    sold_orders = Order.query.filter_by(seller_id=current_user.id, is_premium_listing_purchase=False).order_by(Order.order_date.desc()).all()
-    # Premium purchases made by the current user
-    premium_purchases = Order.query.filter_by(buyer_id=current_user.id, is_premium_listing_purchase=True).order_by(Order.order_date.desc()).all()
+    # Fetch orders where current user is either buyer or seller
+    orders_as_buyer = Order.objects(buyer_id=current_user.id).order_by('-date_created')
+    orders_as_seller = Order.objects(seller_id=current_user.id).order_by('-date_created')
 
-    return render_template(
-        'payments/manage_orders.html', 
-        purchased_orders=purchased_orders, 
-        sold_orders=sold_orders,
-        premium_purchases=premium_purchases,
-        title="Manage Orders"
-    )
+    # Combine and sort orders (optional, depending on desired display)
+    all_orders = sorted(list(orders_as_buyer) + list(orders_as_seller), key=lambda x: x.date_created, reverse=True)
 
-@payments_bp.route("/view_order/<int:order_id>")
-@login_required
-def view_order(order_id):
-    """
-    Displays the details of a specific order.
-    Only accessible by buyer, seller, or admin.
-    """
-    order = Order.query.get_or_404(order_id)
-
-    # Ensure current user is authorized
-    if not (current_user.id == order.buyer_id or 
-            current_user.id == order.seller_id or 
-            current_user.role == 'admin'):
-        flash('You do not have permission to view this order.', 'danger')
-        return redirect(url_for('payments.manage_orders'))
-    
-    return render_template('payments/view_order.html', title='Order Details', order=order)
-
-# --- Admin Routes for Payments (Optional, can be integrated into admin blueprint) ---
-# @payments_bp.route("/admin/manage_payments")
-# @login_required
-# @roles_required('admin')
-# def admin_manage_payments():
-#     """Admin route to view and manage all orders/payments."""
-#     orders = Order.query.order_by(Order.order_date.desc()).all()
-#     return render_template('admin/manage_payments.html', title='Manage Payments', orders=orders)
-
+    return render_template('payments/manage_orders.html', title='Manage Orders', orders=all_orders)

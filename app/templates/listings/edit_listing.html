@@ -63,28 +63,69 @@
                             </div>
                         </div>
 
-                        {% if listing.images %}
+                        {% if listing.image_files %}
                         <div class="mb-3">
                             <label class="form-label">Current Photos</label>
-                            <div class="row g-2">
-                                {% for image_url in listing.images %}
-                                <div class="col-3">
-                                    <img src="{{ image_url }}" alt="Current Listing Photo" class="img-thumbnail">
+                            <div class="row g-2" id="current-images-container">
+                                {% for image_file in listing.image_files %}
+                                <div class="col-4 col-md-3 mb-3 image-thumbnail-container" data-filename="{{ image_file }}">
+                                    <img src="{{ url_for('static', filename='uploads/' + image_file) }}" alt="Current Listing Photo" class="img-fluid rounded img-thumbnail">
+                                    <div class="form-check mt-1 text-center">
+                                        <input class="form-check-input image-checkbox" type="checkbox" id="removeImage-{{ loop.index }}" data-filename="{{ image_file }}" checked>
+                                        <label class="form-check-label" for="removeImage-{{ loop.index }}">Keep</label>
+                                    </div>
                                 </div>
                                 {% endfor %}
                             </div>
-                            <div class="form-text">Uploading new photos will replace the current ones.</div>
+                            <div class="form-text">Uncheck "Keep" to remove a photo. Uploading new photos will be added.</div>
+                            <input type="hidden" name="existing_image_filenames" id="existing_image_filenames" value="{{ listing.image_files|join(',') }}">
                         </div>
                         {% endif %}
 
                         <div class="mb-3">
-                            {{ form.image.label(class="form-label") }}
-                            {{ form.image(class="form-control form-control-lg") }}
-                            <div class="form-text">Upload up to 5 new photos. Max file size: 2MB per image. Formats: JPG, PNG, JPEG.</div>
-                            {% for error in form.image.errors %}
+                            {{ form.images.label(class="form-label") }}
+                            {{ form.images(class="form-control form-control-lg", multiple=True) }}
+                            <div class="form-text">Upload up to 5 additional photos. Max file size: 2MB per image. Formats: JPG, PNG, JPEG.</div>
+                            {% for error in form.images.errors %}
                                 <div class="invalid-feedback d-block">{{ error }}</div>
                             {% endfor %}
+
                         </div>
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const imageCheckboxes = document.querySelectorAll('.image-checkbox');
+        const existingImageFilenamesInput = document.getElementById('existing_image_filenames');
+
+        function updateHiddenField() {
+            const filenamesToKeep = [];
+            imageCheckboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    filenamesToKeep.push(checkbox.dataset.filename);
+                }
+            });
+            existingImageFilenamesInput.value = filenamesToKeep.join(',');
+        }
+
+        imageCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const label = this.nextElementSibling;
+                if (this.checked) {
+                    label.textContent = 'Keep';
+                } else {
+                    label.textContent = 'Remove';
+                }
+                updateHiddenField();
+            });
+        });
+
+        // Initial update of the hidden field on page load
+        updateHiddenField();
+    });
+</script>
+{% endblock %}
 
                         <div class="d-grid">
                             <button type="submit" class="btn btn-primary btn-lg">Update Listing</button>

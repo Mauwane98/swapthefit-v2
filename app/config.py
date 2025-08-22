@@ -6,15 +6,18 @@ load_dotenv()
 
 class Config:
     """Base configuration settings."""
+    DEBUG = True
     # Secret key for signing cookies and JWTs. It's crucial to change this
     # to a strong, randomly generated value in production.
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'a-very-secret-key-that-you-should-change-in-production-!!!!'
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    print(f"DEBUG: SECRET_KEY loaded: {SECRET_KEY[:5]}...") # Print first 5 chars for security
+
 
     # MongoDB settings
     # Ensure MONGO_URI is set in your .env file, e.g., MONGO_URI="mongodb://localhost:27017/swapthefit_db"
     # Replace 'localhost:27017' with your MongoDB host if it's remote.
     # 'swapthefit_db' is the default database name if not specified in MONGO_URI.
-    MONGO_URI = os.environ.get('MONGO_URI') or 'mongodb://localhost:27017/swapthefit_db'
+    MONGO_URI = os.environ.get('MONGO_URI')
 
     # Flask-Mail settings for sending notifications and password resets
     # These details are specific to the provided SMTP configuration.
@@ -23,8 +26,11 @@ class Config:
     MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'false').lower() in ['true', 'on', '1'] # Use TLS if true
     MAIL_USE_SSL = os.environ.get('MAIL_USE_SSL', 'true').lower() in ['true', 'on', '1'] # Use SSL if true (often mutually exclusive with TLS)
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME') or 'olerato@riseandshinechess.co.za'
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD') or 'wszxderfc1'
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER') or 'olerato@riseandshinechess.co.za' # Default sender email address
+
+    # Paystack API Key
+    PAYSTACK_SECRET_KEY = os.environ.get('PAYSTACK_SECRET_KEY')
 
     # Google OAuth settings for social login
     # You need to obtain these from the Google API Console.
@@ -33,7 +39,7 @@ class Config:
     GOOGLE_DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configuration"
 
     # JWT settings (for API authentication, if applicable)
-    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or 'another-super-secret-jwt-key-for-api-tokens'
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY')
 
     # Session and Cookie Security Enhancements
     # Forces cookies to be sent over HTTPS only, enhancing security.
@@ -53,7 +59,8 @@ class Config:
     # Enables CSRF protection for all forms.
     CSRF_ENABLED = True
     # Secret key for CSRF tokens. Should be different from SECRET_KEY.
-    WTF_CSRF_SECRET_KEY = os.environ.get('WTF_CSRF_SECRET_KEY') or 'a-unique-csrf-secret-key'
+    WTF_CSRF_SECRET_KEY = os.environ.get('WTF_CSRF_SECRET_KEY')
+    print(f"DEBUG: WTF_CSRF_SECRET_KEY loaded: {WTF_CSRF_SECRET_KEY[:5]}...") # Print first 5 chars for security
 
     # Pagination settings (example, adjust as needed)
     POSTS_PER_PAGE = 10

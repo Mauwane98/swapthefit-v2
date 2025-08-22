@@ -1,0 +1,8 @@
+<p>Dear {{ user.username }},</p>
+
+<p>Your listing "{{ listing.title }}" has been automatically deactivated due to inactivity ({{ LISTING_ACTIVE_PERIOD_DAYS }} days).</p>
+
+<p>You can reactivate it from your dashboard by visiting the listing page: <a href="{{ url_for('listings.listing_detail', listing_id=listing.id, _external=True) }}">{{ listing.title }}</a></p>
+
+<p>Thank you for using SwapTheFit!</p>
+<p>The SwapTheFit Team</p>

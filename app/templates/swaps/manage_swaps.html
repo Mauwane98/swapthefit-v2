@@ -32,11 +32,11 @@
                                     <a href="{{ url_for('swaps.view_swap_request', request_id=request.id) }}" class="btn btn-sm btn-secondary">View Details</a>
                                     {% if request.status == 'pending' %}
                                         <form action="{{ url_for('swaps.respond_swap', request_id=request.id, action='accept') }}" method="POST" class="d-inline">
-                                            {{ csrf_token() }}
+                                            {{ csrf_token() | safe }}
                                             <button type="submit" class="btn btn-sm btn-success">Accept</button>
                                         </form>
                                         <form action="{{ url_for('swaps.respond_swap', request_id=request.id, action='reject') }}" method="POST" class="d-inline">
-                                            {{ csrf_token() }}
+                                            {{ csrf_token() | safe }}
                                             <button type="submit" class="btn btn-sm btn-danger">Reject</button>
                                         </form>
                                     {% endif %}
@@ -66,14 +66,18 @@
                                     <small class="text-muted">Status: <span class="badge 
                                         {% if request.status == 'pending' %}bg-warning text-dark
                                         {% elif request.status == 'accepted' %}bg-success
-                                        {% elif request.status == 'rejected' or request.status == 'cancelled' %}bg-danger
-                                        {% endif %}">{{ request.status|capitalize }}</span></small>
+                                        {% elif request.status == 'declined' %}bg-danger
+                                        {% elif request.status == 'completed' %}bg-info
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ request.status.capitalize() }}</span>
+                                        {% endif %}
+                                    </small>
                                 </div>
                                 <div>
                                     <a href="{{ url_for('swaps.view_swap_request', request_id=request.id) }}" class="btn btn-sm btn-secondary">View Details</a>
                                     {% if request.status == 'pending' %}
                                         <form action="{{ url_for('swaps.respond_swap', request_id=request.id, action='cancel') }}" method="POST" class="d-inline">
-                                            {{ csrf_token() }}
+                                            {{ csrf_token() | safe }}
                                             <button type="submit" class="btn btn-sm btn-danger">Cancel Request</button>
                                         </form>
                                     {% endif %}

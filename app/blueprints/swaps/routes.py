@@ -1,13 +1,11 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, abort, current_app
+from flask import Blueprint, render_template, redirect, url_for, flash, abort, current_app
 from flask_login import login_required, current_user
 from app.models.swaps import SwapRequest
 from app.models.listings import Listing
-from app.models.users import User
 from app.models.notifications import Notification # For sending notifications
-from app.blueprints.swaps.forms import ProposeSwapForm
+from app.blueprints.swaps.forms import ProposeSwapForm, AcceptSwapForm, RejectSwapForm, CancelSwapForm, CompleteSwapForm
 from app.utils.security import roles_required
 from datetime import datetime
-from mongoengine.queryset.visitor import Q # For complex queries
 
 
 swaps_bp = Blueprint('swaps', __name__)
@@ -137,7 +135,17 @@ def view_swap_request(swap_request_id):
         flash('You do not have permission to view this swap request.', 'danger')
         return redirect(url_for('swaps.manage_swaps'))
     
-    return render_template('swaps/view_swap_request.html', swap_request=swap_request)
+    accept_form = AcceptSwapForm()
+    reject_form = RejectSwapForm()
+    cancel_form = CancelSwapForm()
+    complete_form = CompleteSwapForm()
+
+    return render_template('swaps/view_swap_request.html', 
+                           swap=swap_request,
+                           accept_form=accept_form,
+                           reject_form=reject_form,
+                           cancel_form=cancel_form,
+                           complete_form=complete_form)
 
 
 @swaps_bp.route('/accept/<string:swap_request_id>', methods=['POST'])
@@ -148,40 +156,42 @@ def accept_swap(swap_request_id):
     Accepts a pending swap request.
     """
     swap_request = SwapRequest.objects(id=swap_request_id).first()
+    form = AcceptSwapForm()
     if not swap_request:
         flash('Swap request not found.', 'danger')
         return redirect(url_for('swaps.manage_swaps'))
+    if form.validate_on_submit():
 
-    # Ensure current user is the responder and the request is pending
-    if current_user.id != swap_request.responder.id or swap_request.status != 'pending':
-        flash('You do not have permission to accept this request or it is not pending.', 'danger')
-        return redirect(url_for('swaps.manage_swaps'))
+        # Ensure current user is the responder and the request is pending
+        if current_user.id != swap_request.responder.id or swap_request.status != 'pending':
+            flash('You do not have permission to accept this request or it is not pending.', 'danger')
+            return redirect(url_for('swaps.manage_swaps'))
 
-    swap_request.status = 'accepted'
-    swap_request.updated_date = datetime.utcnow()
-    swap_request.save()
+        swap_request.status = 'accepted'
+        swap_request.updated_date = datetime.utcnow()
+        swap_request.save()
 
-    # Update statuses of both listings to reflect the accepted swap
-    # They remain 'pending_swap' as logistics are still to be handled
-    # listing statuses are already 'pending_swap', they don't need to change again here.
+        # Update statuses of both listings to reflect the accepted swap
+        # They remain 'pending_swap' as logistics are still to be handled
+        # listing statuses are already 'pending_swap', they don't need to change again here.
 
-    # Notify the requester that their swap request has been accepted
-    notification = Notification(
-        recipient=swap_request.requester.id,
-        sender=current_user.id,
-        message=f"Your swap request for '{swap_request.responder_listing.title}' has been ACCEPTED by {current_user.username}!",
-        link=url_for('swaps.view_swap_request', swap_request_id=swap_request.id),
-        notification_type='swap_status_update'
-    )
-    notification.save()
-    current_app.extensions['socketio'].emit(
-        'new_notification',
-        {'message': notification.message, 'count': Notification.objects(recipient=swap_request.requester.id, read=False).count()},
-        room=str(swap_request.requester.id)
-    )
+        # Notify the requester that their swap request has been accepted
+        notification = Notification(
+            recipient=swap_request.requester.id,
+            sender=current_user.id,
+            message=f"Your swap request for '{swap_request.responder_listing.title}' has been ACCEPTED by {current_user.username}!",
+            link=url_for('swaps.view_swap_request', swap_request_id=swap_request.id),
+            notification_type='swap_status_update'
+        )
+        notification.save()
+        current_app.extensions['socketio'].emit(
+            'new_notification',
+            {'message': notification.message, 'count': Notification.objects(recipient=swap_request.requester.id, read=False).count()},
+            room=str(swap_request.requester.id)
+        )
 
-    flash('Swap request accepted! Please arrange logistics.', 'success')
-    return redirect(url_for('swaps.view_swap_request', swap_request_id=swap_request.id))
+        flash('Swap request accepted! Please arrange logistics.', 'success')
+        return redirect(url_for('swaps.view_swap_request', swap_request_id=swap_request.id))
 
 
 @swaps_bp.route('/reject/<string:swap_request_id>', methods=['POST'])
@@ -192,42 +202,44 @@ def reject_swap(swap_request_id):
     Rejects a pending swap request.
     """
     swap_request = SwapRequest.objects(id=swap_request_id).first()
+    form = RejectSwapForm()
     if not swap_request:
         flash('Swap request not found.', 'danger')
         return redirect(url_for('swaps.manage_swaps'))
+    if form.validate_on_submit():
 
-    # Ensure current user is the responder and the request is pending
-    if current_user.id != swap_request.responder.id or swap_request.status != 'pending':
-        flash('You do not have permission to reject this request or it is not pending.', 'danger')
-        return redirect(url_for('swaps.manage_swaps'))
+        # Ensure current user is the responder and the request is pending
+        if current_user.id != swap_request.responder.id or swap_request.status != 'pending':
+            flash('You do not have permission to reject this request or it is not pending.', 'danger')
+            return redirect(url_for('swaps.manage_swaps'))
 
-    swap_request.status = 'rejected'
-    swap_request.updated_date = datetime.utcnow()
-    swap_request.save()
+        swap_request.status = 'rejected'
+        swap_request.updated_date = datetime.utcnow()
+        swap_request.save()
 
-    # Change listing statuses back to 'available' as the swap is off
-    swap_request.requester_listing.status = 'available'
-    swap_request.requester_listing.save()
-    swap_request.responder_listing.status = 'available'
-    swap_request.responder_listing.save()
+        # Change listing statuses back to 'available' as the swap is off
+        swap_request.requester_listing.status = 'available'
+        swap_request.requester_listing.save()
+        swap_request.responder_listing.status = 'available'
+        swap_request.responder_listing.save()
 
-    # Notify the requester that their swap request has been rejected
-    notification = Notification(
-        recipient=swap_request.requester.id,
-        sender=current_user.id,
-        message=f"Your swap request for '{swap_request.responder_listing.title}' has been REJECTED by {current_user.username}.",
-        link=url_for('swaps.view_swap_request', swap_request_id=swap_request.id),
-        notification_type='swap_status_update'
-    )
-    notification.save()
-    current_app.extensions['socketio'].emit(
-        'new_notification',
-        {'message': notification.message, 'count': Notification.objects(recipient=swap_request.requester.id, read=False).count()},
-        room=str(swap_request.requester.id)
-    )
+        # Notify the requester that their swap request has been rejected
+        notification = Notification(
+            recipient=swap_request.requester.id,
+            sender=current_user.id,
+            message=f"Your swap request for '{swap_request.responder_listing.title}' has been REJECTED by {current_user.username}.",
+            link=url_for('swaps.view_swap_request', swap_request_id=swap_request.id),
+            notification_type='swap_status_update'
+        )
+        notification.save()
+        current_app.extensions['socketio'].emit(
+            'new_notification',
+            {'message': notification.message, 'count': Notification.objects(recipient=swap_request.requester.id, read=False).count()},
+            room=str(swap_request.requester.id)
+        )
 
-    flash('Swap request rejected.', 'info')
-    return redirect(url_for('swaps.view_swap_request', swap_request_id=swap_request.id))
+        flash('Swap request rejected.', 'info')
+        return redirect(url_for('swaps.view_swap_request', swap_request_id=swap_request.id))
 
 
 @swaps_bp.route('/cancel/<string:swap_request_id>', methods=['POST'])
@@ -238,42 +250,44 @@ def cancel_swap(swap_request_id):
     Cancels a pending or accepted swap request (by the requester).
     """
     swap_request = SwapRequest.objects(id=swap_request_id).first()
+    form = CancelSwapForm()
     if not swap_request:
         flash('Swap request not found.', 'danger')
         return redirect(url_for('swaps.manage_swaps'))
+    if form.validate_on_submit():
 
-    # Ensure current user is the requester and the request is not yet completed
-    if current_user.id != swap_request.requester.id or swap_request.status == 'completed':
-        flash('You do not have permission to cancel this request or it is already completed.', 'danger')
+        # Ensure current user is the requester and the request is not yet completed
+        if current_user.id != swap_request.requester.id or swap_request.status == 'completed':
+            flash('You do not have permission to cancel this request or it is already completed.', 'danger')
+            return redirect(url_for('swaps.manage_swaps'))
+
+        swap_request.status = 'cancelled'
+        swap_request.updated_date = datetime.utcnow()
+        swap_request.save()
+
+        # Change listing statuses back to 'available'
+        swap_request.requester_listing.status = 'available'
+        swap_request.requester_listing.save()
+        swap_request.responder_listing.status = 'available'
+        swap_request.responder_listing.save()
+
+        # Notify the responder that the swap request has been cancelled
+        notification = Notification(
+            recipient=swap_request.responder.id,
+            sender=current_user.id,
+            message=f"{current_user.username} has CANCELLED the swap request for '{swap_request.requester_listing.title}'.",
+            link=url_for('swaps.view_swap_request', swap_request_id=swap_request.id),
+            notification_type='swap_status_update'
+        )
+        notification.save()
+        current_app.extensions['socketio'].emit(
+            'new_notification',
+            {'message': notification.message, 'count': Notification.objects(recipient=swap_request.responder.id, read=False).count()},
+            room=str(swap_request.responder.id)
+        )
+
+        flash('Swap request cancelled.', 'info')
         return redirect(url_for('swaps.manage_swaps'))
-
-    swap_request.status = 'cancelled'
-    swap_request.updated_date = datetime.utcnow()
-    swap_request.save()
-
-    # Change listing statuses back to 'available'
-    swap_request.requester_listing.status = 'available'
-    swap_request.requester_listing.save()
-    swap_request.responder_listing.status = 'available'
-    swap_request.responder_listing.save()
-
-    # Notify the responder that the swap request has been cancelled
-    notification = Notification(
-        recipient=swap_request.responder.id,
-        sender=current_user.id,
-        message=f"{current_user.username} has CANCELLED the swap request for '{swap_request.requester_listing.title}'.",
-        link=url_for('swaps.view_swap_request', swap_request_id=swap_request.id),
-        notification_type='swap_status_update'
-    )
-    notification.save()
-    current_app.extensions['socketio'].emit(
-        'new_notification',
-        {'message': notification.message, 'count': Notification.objects(recipient=swap_request.responder.id, read=False).count()},
-        room=str(swap_request.responder.id)
-    )
-
-    flash('Swap request cancelled.', 'info')
-    return redirect(url_for('swaps.manage_swaps'))
 
 
 @swaps_bp.route('/complete/<string:swap_request_id>', methods=['POST'])
@@ -285,58 +299,60 @@ def complete_swap(swap_request_id):
     This would typically happen after logistics (pickup/delivery) are confirmed.
     """
     swap_request = SwapRequest.objects(id=swap_request_id).first()
+    form = CompleteSwapForm()
     if not swap_request:
         flash('Swap request not found.', 'danger')
         return redirect(url_for('swaps.manage_swaps'))
+    if form.validate_on_submit():
 
-    # Ensure current user is involved in the swap and it's accepted
-    if (current_user.id != swap_request.requester.id and current_user.id != swap_request.responder.id) or swap_request.status != 'accepted':
-        flash('You do not have permission to complete this request or it is not accepted.', 'danger')
+        # Ensure current user is involved in the swap and it's accepted
+        if (current_user.id != swap_request.requester.id and current_user.id != swap_request.responder.id) or swap_request.status != 'accepted':
+            flash('You do not have permission to complete this request or it is not accepted.', 'danger')
+            return redirect(url_for('swaps.manage_swaps'))
+
+        swap_request.status = 'completed'
+        swap_request.updated_date = datetime.utcnow()
+        swap_request.save()
+
+        # Update listings status to 'swapped'
+        swap_request.requester_listing.status = 'swapped'
+        swap_request.requester_listing.is_active = False # Mark as inactive
+        swap_request.requester_listing.save()
+        swap_request.responder_listing.status = 'swapped'
+        swap_request.responder_listing.is_active = False # Mark as inactive
+        swap_request.responder_listing.save()
+
+        # Notify both parties about completion
+        message_to_requester = f"Your swap for '{swap_request.responder_listing.title}' with '{swap_request.requester_listing.title}' has been successfully COMPLETED!"
+        message_to_responder = f"Your swap for '{swap_request.responder_listing.title}' with '{swap_request.responder_listing.title}' has been successfully COMPLETED!"
+
+        notification_req = Notification(
+            recipient=swap_request.requester.id,
+            sender=current_user.id, # The user who clicked complete
+            message=message_to_requester,
+            link=url_for('swaps.view_swap_request', swap_request_id=swap_request.id),
+            notification_type='swap_status_update'
+        )
+        notification_req.save()
+        current_app.extensions['socketio'].emit(
+            'new_notification',
+            {'message': notification_req.message, 'count': Notification.objects(recipient=swap_request.requester.id, read=False).count()},
+            room=str(swap_request.requester.id)
+        )
+
+        notification_res = Notification(
+            recipient=swap_request.responder.id,
+            sender=current_user.id,
+            message=message_to_responder,
+            link=url_for('swaps.view_swap_request', swap_request_id=swap_request.id),
+            notification_type='swap_status_update'
+        )
+        notification_res.save()
+        current_app.extensions['socketio'].emit(
+            'new_notification',
+            {'message': notification_res.message, 'count': Notification.objects(recipient=swap_request.responder.id, read=False).count()},
+            room=str(swap_request.responder.id)
+        )
+
+        flash('Swap marked as completed! Congratulations!', 'success')
         return redirect(url_for('swaps.manage_swaps'))
-
-    swap_request.status = 'completed'
-    swap_request.updated_date = datetime.utcnow()
-    swap_request.save()
-
-    # Update listings status to 'swapped'
-    swap_request.requester_listing.status = 'swapped'
-    swap_request.requester_listing.is_active = False # Mark as inactive
-    swap_request.requester_listing.save()
-    swap_request.responder_listing.status = 'swapped'
-    swap_request.responder_listing.is_active = False # Mark as inactive
-    swap_request.responder_listing.save()
-
-    # Notify both parties about completion
-    message_to_requester = f"Your swap for '{swap_request.responder_listing.title}' with '{swap_request.requester_listing.title}' has been successfully COMPLETED!"
-    message_to_responder = f"Your swap for '{swap_request.requester_listing.title}' with '{swap_request.responder_listing.title}' has been successfully COMPLETED!"
-
-    notification_req = Notification(
-        recipient=swap_request.requester.id,
-        sender=current_user.id, # The user who clicked complete
-        message=message_to_requester,
-        link=url_for('swaps.view_swap_request', swap_request_id=swap_request.id),
-        notification_type='swap_status_update'
-    )
-    notification_req.save()
-    current_app.extensions['socketio'].emit(
-        'new_notification',
-        {'message': notification_req.message, 'count': Notification.objects(recipient=swap_request.requester.id, read=False).count()},
-        room=str(swap_request.requester.id)
-    )
-
-    notification_res = Notification(
-        recipient=swap_request.responder.id,
-        sender=current_user.id,
-        message=message_to_responder,
-        link=url_for('swaps.view_swap_request', swap_request_id=swap_request.id),
-        notification_type='swap_status_update'
-    )
-    notification_res.save()
-    current_app.extensions['socketio'].emit(
-        'new_notification',
-        {'message': notification_res.message, 'count': Notification.objects(recipient=swap_request.responder.id, read=False).count()},
-        room=str(swap_request.responder.id)
-    )
-
-    flash('Swap marked as completed! Congratulations!', 'success')
-    return redirect(url_for('swaps.manage_swaps'))

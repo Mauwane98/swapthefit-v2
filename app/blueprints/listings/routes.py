@@ -61,17 +61,10 @@ def create_listing():
     Handles the creation of new listings using a multi-step form.
     Stores partial data in session.
     """
-    form = ListingForm()
     current_step = int(request.args.get('step', 1)) # Get step from query param or default to 1
+    form = ListingForm(current_step=current_step)
 
     if request.method == 'POST':
-        # Load data from session into form before validation
-        listing_data = session.get('listing_data', {})
-        form.process(data=listing_data) # This will populate fields from session
-
-        # Set the form's step data based on the current_step from the URL
-        form.step.data = str(current_step)
-
         if form.validate_on_submit():
             # Store data in session
             listing_data = session.get('listing_data', {})
@@ -508,7 +501,7 @@ def edit_listing(listing_id):
                 'is_premium': listing.is_premium,
                 'brand': listing.brand,
                 'color': listing.color,
-                'image_files': old_listing_data.get('image_files', []), # Capture original image_files for logging
+                'image_files': listing.image_files, # Capture original image_files for logging
                 'is_available': listing.is_available
             }
 

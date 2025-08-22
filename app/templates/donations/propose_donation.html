@@ -15,7 +15,7 @@
                     <div class="mb-4">
                         <h2 class="h5 fw-bold">Item Details:</h2>
                         <div class="d-flex align-items-center mb-3">
-                            <img src="{{ url_for('static', filename='uploads/' + listing.image_file) }}" alt="{{ listing.title }}" class="rounded me-3" style="width: 80px; height: 80px; object-fit: cover;">
+                            <img src="{{ url_for('static', filename='uploads/' + listing.image_files[0]) }}" alt="{{ listing.title }}" class="rounded me-3" style="width: 80px; height: 80px; object-fit: cover;">
                             <div>
                                 <h5 class="mb-0">{{ listing.title }}</h5>
                                 <p class="text-muted mb-0">Size: {{ listing.size }} | Condition: {{ listing.condition }}</p>
@@ -26,7 +26,7 @@
                     </div>
 
                     <form method="POST" action="{{ url_for('donations.propose_donation', listing_id=listing.id) }}">
-                        {{ form.csrf_token }}
+                        {{ form.hidden_tag() }}
 
                         <div class="mb-3">
                             {{ form.recipient_id.label(class="form-label") }}

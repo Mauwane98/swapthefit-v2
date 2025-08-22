@@ -11,7 +11,7 @@
 
     <div class="card shadow-sm border-0">
         <div class="card-header bg-white p-3">
-            <form action="{{ url_for('admin.manage_users') }}" method="GET" class="row g-3">
+            <form action="{{ url_for('admin_bp.manage_users') }}" method="GET" class="row g-3">
                 <div class="col-md-4">
                     <input type="text" name="search_term" id="search_term" class="form-control" placeholder="Username or Email" value="{{ search_term if search_term else '' }}">
                 </div>
@@ -61,16 +61,30 @@
                                 {% else %}bg-secondary{% endif %}">{{ user.role|capitalize }}</span>
                         </td>
                         <td>
-                            <span class="badge {% if user.active %}bg-success{% else %}bg-danger{% endif %}">
-                                {{ 'Active' if user.active else 'Inactive' }}
+                            <span class="badge {% if user.is_banned %}bg-dark{% elif user.active %}bg-success{% else %}bg-danger{% endif %}">
+                                {% if user.is_banned %}Banned{% elif user.active %}Active{% else %}Inactive{% endif %}
                             </span>
+                            {% if user.ban_reason %}<br><small class="text-muted">Reason: {{ user.ban_reason }}</small>{% endif %}
                         </td>
                         <td>{{ user.date_joined.strftime('%b %d, %Y') }}</td>
                         <td>
-                            <a href="{{ url_for('admin.edit_user', user_id=user.id|string) }}" class="btn btn-sm btn-primary">Edit</a>
+                            <a href="{{ url_for('admin_bp.edit_user', user_id=user.id|string) }}" class="btn btn-sm btn-primary mb-1">Edit</a>
                             {% if user.id != current_user.id %}
-                            <form action="{{ url_for('admin.delete_user', user_id=user.id|string) }}" method="POST" class="d-inline">
-                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?');">Delete</button>
+                            {% if user.active and not user.is_banned %}
+                            <form action="{{ url_for('admin_bp.suspend_user', user_id=user.id|string) }}" method="POST" class="d-inline">
+                                {{ suspend_form.hidden_tag() }}
+                                <button type="submit" class="btn btn-sm btn-warning mb-1" onclick="return promptForReason(this, 'suspend');">Suspend</button>
+                            </form>
+                            {% endif %}
+                            {% if not user.is_banned %}
+                            <form action="{{ url_for('admin_bp.ban_user', user_id=user.id|string) }}" method="POST" class="d-inline">
+                                {{ ban_form.hidden_tag() }}
+                                <button type="submit" class="btn btn-sm btn-danger mb-1" onclick="return promptForReason(this, 'ban');">Ban</button>
+                            </form>
+                            {% endif %}
+                            <form action="{{ url_for('admin_bp.delete_user', user_id=user.id|string) }}" method="POST" class="d-inline">
+                                {{ delete_form.hidden_tag() }}
+                                <button type="submit" class="btn btn-sm btn-outline-danger mb-1" onclick="return confirm('Are you sure you want to permanently delete this user?');">Delete</button>
                             </form>
                             {% endif %}
                         </td>
@@ -86,4 +100,21 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+<script>
+function promptForReason(button, actionType) {
+    let reason = prompt(`Enter reason for ${actionType}:`);
+    if (reason === null) { // User clicked cancel
+        return false;
+    }
+    // Create a hidden input field for the reason and append it to the form
+    let form = button.closest('form');
+    let input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'reason';
+    input.value = reason;
+    form.appendChild(input);
+    return true;
+}
+</script>
 {% endblock %}

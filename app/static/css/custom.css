@@ -150,3 +150,61 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--white);
     margin-bottom: 1rem;
 }
+
+/*------------------------------------*
+    #RESPONSIVE DESIGN
+\*------------------------------------*/
+
+/* Small devices (phones, 576px and down) */
+@media (max-width: 576px) {
+    body {
+        font-size: 0.9rem;
+    }
+
+    .navbar-brand {
+        font-size: 1.2rem;
+    }
+
+    .nav-link {
+        padding: 0.5rem 0.75rem;
+    }
+
+    .btn-primary, .btn-secondary {
+        padding: 0.6rem 1.2rem;
+        font-size: 0.9rem;
+    }
+
+    .footer {
+        padding: 2rem 0;
+        text-align: center;
+    }
+
+    .footer .footer-heading {
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* Medium devices (tablets, 577px to 768px) */
+@media (min-width: 577px) and (max-width: 768px) {
+    body {
+        font-size: 0.95rem;
+    }
+
+    .navbar-brand {
+        font-size: 1.3rem;
+    }
+
+    .nav-link {
+        padding: 0.6rem 0.8rem;
+    }
+
+    .btn-primary, .btn-secondary {
+        padding: 0.7rem 1.4rem;
+        font-size: 0.95rem;
+    }
+}
+
+/* Large devices (desktops, 769px and up) - Current styles are generally for these */
+@media (min-width: 769px) {
+    /* No specific changes needed here yet, as base styles apply */
+}

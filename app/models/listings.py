@@ -1,9 +1,9 @@
-# app/models/listings.py
 from datetime import datetime
 from app.extensions import db
-from mongoengine.fields import ReferenceField, StringField, IntField, FloatField, DateTimeField, BooleanField
+from mongoengine.fields import ReferenceField, StringField, IntField, FloatField, DateTimeField, BooleanField, ListField
 
 class Listing(db.Document):
+    meta = {'strict': False}
     """
     Listing Model: Represents an item posted for swap, sale, or donation.
     This model captures all relevant details about the item, including its
@@ -18,21 +18,21 @@ class Listing(db.Document):
     gender = StringField(max_length=10) # e.g., "Male", "Female", "Unisex"
     school_name = StringField(max_length=100)
     location = StringField(max_length=100, required=True) # e.g., City, Suburb, or specific pickup point
-    image_file = StringField(max_length=120, required=True, default='default.jpg') # Filename of the item image
+    image_files = ListField(StringField(max_length=120), default=['default.jpg']) # List of filenames of the item images
     date_posted = db.DateTimeField(required=True, default=datetime.utcnow)
     is_available = db.BooleanField(default=True) # True if available, False if swapped/sold/donated
-    listing_type = db.StringField(max_length=20, required=True) # 'swap', 'sale', 'donation'
-    is_premium = db.BooleanField(default=False) # Field for premium listings
+    listing_type = StringField(max_length=20, required=True) # 'swap', 'sale', 'donation'
+    donation_recipient_type = StringField(max_length=20, choices=('ngo', 'school', 'parent', 'any'), default='any')
+    is_premium = BooleanField(default=False) # Field for premium listings
 
     # New fields for more granular filtering
-    brand = db.StringField(max_length=50) # e.g., "Nike", "Adidas", "School Brand"
-    color = db.StringField(max_length=50) # e.g., "Blue", "Red", "White"
+    brand = StringField(max_length=50) # e.g., "Nike", "Adidas", "School Brand"
+    color = StringField(max_length=50) # e.g., "Blue", "Red", "White"
 
     # New field for Premium Listings
-    premium_expiry_date = db.DateTimeField() # Date when premium status expires
+    premium_expiry_date = DateTimeField() # Date when premium status expires
 
     user = ReferenceField('User')
-    # user = db.relationship('User', backref=db.backref('listings', lazy=True))
 
     def __repr__(self):
         """
@@ -45,7 +45,7 @@ class Listing(db.Document):
         Converts the Listing object to a dictionary, useful for JSON serialization.
         """
         return {
-            'id': self.id,
+            'id': str(self.id),
             'title': self.title,
             'description': self.description,
             'price': self.price,
@@ -55,7 +55,7 @@ class Listing(db.Document):
             'gender': self.gender,
             'school_name': self.school_name,
             'location': self.location,
-            'image_file': self.image_file,
+            'image_files': self.image_files,
             'date_posted': self.date_posted.isoformat() + 'Z',
             'is_available': self.is_available,
             'listing_type': self.listing_type,
@@ -63,6 +63,6 @@ class Listing(db.Document):
             'brand': self.brand,
             'color': self.color,
             'premium_expiry_date': self.premium_expiry_date.isoformat() + 'Z' if self.premium_expiry_date else None,
-            'user_id': str(self.user.id),
-            'username': self.user.username
+            'user_id': str(self.user.id) if self.user else None,
+            'username': self.user.username if self.user else None
         }

@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, TextAreaField
+from wtforms import StringField, SubmitField, TextAreaField, BooleanField # Added BooleanField
 from wtforms.validators import DataRequired, Email, Length, Optional, ValidationError
 from flask_wtf.file import FileField, FileAllowed
 from flask_login import current_user
@@ -51,3 +51,19 @@ class EditProfileForm(FlaskForm):
             user = User.objects(email=email.data).first()
             if user:
                 raise ValidationError('That email is already in use. Please choose a different one.')
+
+class DashboardSettingsForm(FlaskForm):
+    """
+    Form for users to customize their dashboard display preferences.
+    """
+    show_my_listings_on_dashboard = BooleanField('Show My Listings Section')
+    show_swap_activity_on_dashboard = BooleanField('Show My Swap & Buy Activity Section')
+    show_account_summary_on_dashboard = BooleanField('Show Account & Payments Section')
+    show_activity_feed_on_dashboard = BooleanField('Show What\'s New (Activity Feed) Section')
+    submit = SubmitField('Save Dashboard Settings')
+
+class UnblockUserForm(FlaskForm):
+    """
+    A simple form for unblocking a user.
+    """
+    submit = SubmitField('Unblock')

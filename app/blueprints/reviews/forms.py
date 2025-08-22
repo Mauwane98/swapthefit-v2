@@ -1,5 +1,6 @@
 # app/blueprints/reviews/forms.py
 from flask_wtf import FlaskForm
+from flask_wtf.file import FileField, FileAllowed, MultipleFileField # Corrected import
 from wtforms import TextAreaField, SubmitField, IntegerField, BooleanField, SelectField
 from wtforms.validators import DataRequired, Length, NumberRange, Optional
 
@@ -35,4 +36,5 @@ class ReviewForm(FlaskForm):
     comment = TextAreaField('Your Detailed Review', validators=[DataRequired(), Length(min=20, max=1000)],
                             render_kw={"rows": 7, "placeholder": "Share your detailed experience with this user, focusing on communication, item accuracy, and overall transaction."})
     
+    review_images = MultipleFileField('Upload Images (Optional)', validators=[FileAllowed(['jpg', 'png', 'jpeg'], 'Images only!')])
     submit = SubmitField('Submit Review')

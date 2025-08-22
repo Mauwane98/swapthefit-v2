@@ -43,9 +43,8 @@
                         <h2 class="h5 fw-bold">Offered Listing</h2>
                         {% if swap.offered_listing %}
                             <div class="d-flex align-items-center bg-light p-3 rounded">
-                                <img src="{{ url_for('static', filename='uploads/' + swap.offered_listing.image_file) }}"
-                                     alt="{{ swap.offered_listing.title }}"
-                                     class="rounded me-3" style="width: 80px; height: 80px; object-fit: cover;">
+                                <img src="{{ url_for('static', filename='uploads/' + swap.offered_listing.image_files[0]) }}"
+                                 alt="{{ swap.offered_listing.title }}" class="rounded me-3" style="width: 100px; height: 100px; object-fit: cover;">
                                 <div>
                                     <h5 class="mb-0">{{ swap.offered_listing.title }}</h5>
                                     <p class="text-muted mb-0">Condition: {{ swap.offered_listing.condition }} | Size: {{ swap.offered_listing.size }}</p>
@@ -61,9 +60,8 @@
                         <h2 class="h5 fw-bold">Requested Listing</h2>
                         {% if swap.requested_listing %}
                             <div class="d-flex align-items-center bg-light p-3 rounded">
-                                <img src="{{ url_for('static', filename='uploads/' + swap.requested_listing.image_file) }}"
-                                     alt="{{ swap.requested_listing.title }}"
-                                     class="rounded me-3" style="width: 80px; height: 80px; object-fit: cover;">
+                                <img src="{{ url_for('static', filename='uploads/' + swap.requested_listing.image_files[0]) }}"
+                                 alt="{{ swap.requested_listing.title }}" class="rounded me-3" style="width: 100px; height: 100px; object-fit: cover;">
                                 <div>
                                     <h5 class="mb-0">{{ swap.requested_listing.title }}</h5>
                                     <p class="text-muted mb-0">Condition: {{ swap.requested_listing.condition }} | Size: {{ swap.requested_listing.size }}</p>
@@ -79,13 +77,16 @@
                         {% if swap.status == 'pending' %}
                             {% if current_user.id == swap.respondent.id %}
                                 <form action="{{ url_for('swaps.accept_swap', swap_id=swap.id) }}" method="POST">
+                                    {{ accept_form.hidden_tag() }}
                                     <button type="submit" class="btn btn-primary btn-lg">Accept Swap</button>
                                 </form>
                                 <form action="{{ url_for('swaps.reject_swap', swap_id=swap.id) }}" method="POST">
+                                    {{ reject_form.hidden_tag() }}
                                     <button type="submit" class="btn btn-danger btn-lg">Reject Swap</button>
                                 </form>
                             {% elif current_user.id == swap.initiator.id %}
                                 <form action="{{ url_for('swaps.cancel_swap', swap_id=swap.id) }}" method="POST">
+                                    {{ cancel_form.hidden_tag() }}
                                     <button type="submit" class="btn btn-secondary btn-lg" onclick="return confirm('Are you sure you want to cancel this swap request?');">Cancel Request</button>
                                 </form>
                             {% endif %}
@@ -113,6 +114,7 @@
                             {% if current_user.id == swap.initiator.id or current_user.id == swap.respondent.id %}
                                 {% if swap.logistics_record and swap.logistics_record.status == 'delivered' %}
                                     <form action="{{ url_for('swaps.complete_swap', swap_id=swap.id) }}" method="POST" class="mt-3">
+                                        {{ complete_form.hidden_tag() }}
                                         <button type="submit" class="btn btn-success btn-lg">Mark Swap as Completed</button>
                                     </form>
                                 {% endif %}

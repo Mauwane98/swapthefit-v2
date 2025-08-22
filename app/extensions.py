@@ -43,7 +43,7 @@ def init_app(app):
     # Initialize Flask-SocketIO for real-time features.
     # 'async_mode' can be 'eventlet', 'gevent', 'threading', or 'auto'.
     # Using 'eventlet' or 'gevent' is recommended for production.
-    socketio.init_app(app, cors_allowed_origins="*", async_mode='threading')
+    socketio.init_app(app, cors_allowed_origins="*", async_mode='threading', logger=True, engineio_logger=True)
 
     # Initialize CSRF protection for the application
     csrf.init_app(app)

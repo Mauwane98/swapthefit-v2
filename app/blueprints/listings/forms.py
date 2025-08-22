@@ -56,6 +56,12 @@ class ListingForm(FlaskForm):
         ('swap', 'For Swap'),
         ('donation', 'For Donation')
     ], validators=[DataRequired()], default='sale')
+    donation_recipient_type = SelectField('Donate To', choices=[
+        ('any', 'Any'),
+        ('ngo', 'NGO'),
+        ('school', 'School'),
+        ('parent', 'Parent')
+    ], validators=[Optional()])
     brand = StringField('Brand (Optional)', validators=[Length(max=50)])
     color = StringField('Color (Optional)', validators=[Length(max=50)])
     is_premium = BooleanField('Premium Listing')
@@ -63,21 +69,29 @@ class ListingForm(FlaskForm):
     submit = SubmitField('Next') # Changed to 'Next' for multi-step
     post_listing_submit = SubmitField('Post Listing') # New submit button for final step
 
-    def validate_on_submit(self, extra_validators=None):
-        # Custom validation for each step
+    def validate_on_submit(self):
+        if not self.is_submitted():
+            return False
+
         if self.current_step == 1:
-            return super().validate_on_submit()
+            fields_to_validate = ['title', 'description', 'uniform_type', 'condition', 'size', 'gender', 'location']
         elif self.current_step == 2:
-            # Images are optional, so no DataRequired for this step
-            return super().validate_on_submit()
+            fields_to_validate = ['images']
         elif self.current_step == 3:
-            # Validate price based on listing_type
-            if self.listing_type.data == 'sale' and not self.price.data:
-                self.price.errors.append('Price is required for sale listings.')
-            
-            # Call super().validate_on_submit after custom validation
-            return super().validate_on_submit()
-        return super().validate_on_submit()
+            fields_to_validate = ['price', 'listing_type', 'brand', 'color', 'is_premium']
+        else:
+            fields_to_validate = []
+
+        valid = True
+        for field_name in fields_to_validate:
+            if not getattr(self, field_name).validate(self):
+                valid = False
+        
+        if self.current_step == 3 and self.listing_type.data == 'sale' and not self.price.data:
+            self.price.errors.append('Price is required for sale listings.')
+            valid = False
+
+        return valid
 
 class BulkUploadForm(FlaskForm):
     """

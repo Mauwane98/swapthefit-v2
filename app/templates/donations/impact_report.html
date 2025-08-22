@@ -1,0 +1,46 @@
+{% extends "_layouts/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="text-center mb-5">
+        <h1 class="display-5 fw-bold">{{ title }}</h1>
+        <p class="lead">Track your organization's impact on the community.</p>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm h-100 text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Items Received</h5>
+                    <p class="display-4 fw-bold text-primary">{{ user.total_donations_received_count }}</p>
+                    <p class="card-text">Total number of items received through donations.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm h-100 text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Estimated Value Received</h5>
+                    <p class="display-4 fw-bold text-success">R{{ "%.2f"|format(user.total_donations_value) }}</p>
+                    <p class="card-text">Estimated total monetary value of all received donations.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm h-100 text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Families Supported (YTD)</h5>
+                    <p class="display-4 fw-bold text-info">{{ user.total_families_supported_ytd }}</p>
+                    <p class="card-text">Number of families or individuals supported this year.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info mt-5" role="alert">
+        This report provides a summary of your organization's impact. This data can be valuable for grant applications, public relations, and internal planning.
+    </div>
+</div>
+{% endblock %}

@@ -6,8 +6,53 @@
 <div class="container my-5">
     <div class="row">
         <div class="col-lg-7">
-            <img src="{{ url_for('static', filename='uploads/' + listing.image_file) }}" 
-                 alt="{{ listing.title }}" class="img-fluid rounded-3 shadow-sm">
+            <div id="listingCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel">
+                <div class="carousel-inner rounded-3 shadow-sm">
+                    {% for image_filename in listing.image_files %}
+                    <div class="carousel-item {% if loop.first %}active{% endif %}">
+                        <img src="{{ url_for('static', filename='uploads/' + image_filename) }}" class="d-block w-100 img-fluid" alt="{{ listing.title }}" style="height: 400px; object-fit: cover; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#imageModal">
+                    </div>
+                    {% endfor %}
+                </div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#listingCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#listingCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+            </div>
+
+            <!-- Image Modal -->
+            <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-xl">
+                    <div class="modal-content bg-transparent border-0">
+                        <div class="modal-header border-0">
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-0">
+                            <div id="modalCarousel" class="carousel slide" data-bs-ride="carousel">
+                                <div class="carousel-inner">
+                                    {% for image_filename in listing.image_files %}
+                                    <div class="carousel-item {% if loop.first %}active{% endif %}">
+                                        <img src="{{ url_for('static', filename='uploads/' + image_filename) }}" class="d-block w-100" alt="{{ listing.title }}" style="max-height: 90vh; object-fit: contain;">
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                <button class="carousel-control-prev" type="button" data-bs-target="#modalCarousel" data-bs-slide="prev">
+                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                    <span class="visually-hidden">Previous</span>
+                                </button>
+                                <button class="carousel-control-next" type="button" data-bs-target="#modalCarousel" data-bs-slide="next">
+                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                    <span class="visually-hidden">Next</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="col-lg-5">
             <h1 class="display-5 fw-bold mb-3">{{ listing.title }}</h1>
@@ -36,6 +81,7 @@
                 {% else %}
                     <a href="{{ url_for('listings.edit_listing', listing_id=listing.id) }}" class="btn btn-secondary btn-lg">Edit Listing</a>
                     <form action="{{ url_for('listings.delete_listing', listing_id=listing.id) }}" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="d-grid">
                             <button type="submit" class="btn btn-danger btn-lg" onclick="return confirm('Are you sure you want to delete this listing? This action cannot be undone.');">Delete Listing</button>
                         </div>
@@ -45,4 +91,30 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var listingCarousel = document.getElementById('listingCarousel');
+        var modalCarousel = document.getElementById('modalCarousel');
+
+        listingCarousel.addEventListener('slid.bs.carousel', function (e) {
+            var activeIndex = Array.from(this.querySelectorAll('.carousel-item')).indexOf(e.relatedTarget);
+            var modalCarouselInstance = bootstrap.Carousel.getInstance(modalCarousel);
+            if (modalCarouselInstance) {
+                modalCarouselInstance.to(activeIndex);
+            }
+        });
+
+        var imageModal = document.getElementById('imageModal');
+        imageModal.addEventListener('show.bs.modal', function (e) {
+            var activeIndex = Array.from(listingCarousel.querySelectorAll('.carousel-item')).indexOf(listingCarousel.querySelector('.carousel-item.active'));
+            var modalCarouselInstance = bootstrap.Carousel.getInstance(modalCarousel);
+            if (modalCarouselInstance) {
+                modalCarouselInstance.to(activeIndex);
+            }
+        });
+    });
+</script>
 {% endblock %}

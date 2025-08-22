@@ -43,6 +43,52 @@
                         </select>
                     </div>
                 </div>
+                <div class="row g-3 mt-3">
+                    <div class="col-md-4">
+                        <select id="brand" name="brand" class="form-select">
+                            {% for b in brands %}
+                                <option value="{{ b }}" {% if brand_filter == b %}selected{% endif %}>{{ b }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <select id="color" name="color" class="form-select">
+                            {% for c in colors %}
+                                <option value="{{ c }}" {% if color_filter == c %}selected{% endif %}>{{ c }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <select id="listing_type" name="listing_type" class="form-select">
+                            {% for lt in listing_types %}
+                                <option value="{{ lt }}" {% if listing_type_filter == lt %}selected{% endif %}>{{ lt|capitalize }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="row g-3 mt-3">
+                    <div class="col-md-4">
+                        <select id="gender" name="gender" class="form-select">
+                            {% for g in genders %}
+                                <option value="{{ g }}" {% if gender_filter == g %}selected{% endif %}>{{ g }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="number" name="min_price" id="min_price" class="form-control" placeholder="Min Price" value="{{ min_price if min_price is not none else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <input type="number" name="max_price" id="max_price" class="form-control" placeholder="Max Price" value="{{ max_price if max_price is not none else '' }}">
+                    </div>
+                </div>
+                <div class="row g-3 mt-3">
+                    <div class="col-md-12">
+                        <div class="input-group">
+                            <input type="text" name="location" id="location" class="form-control" placeholder="Location (e.g., City, Suburb)" value="{{ location_filter }}">
+                            <button class="btn btn-outline-secondary" type="button" id="useMyLocationBtn">Use My Location</button>
+                        </div>
+                    </div>
+                </div>
             </form>
         </div>
     </div>
@@ -52,7 +98,7 @@
             <div class="col">
                 <div class="card h-100 border-0 shadow-sm">
                     <a href="{{ url_for('listings.listing_detail', listing_id=listing.id) }}">
-                        <img src="{{ url_for('static', filename='uploads/' + listing.image_file) }}" class="card-img-top" alt="{{ listing.title }}" style="height: 200px; object-fit: cover;">
+                        <img src="{{ url_for('static', filename='uploads/' + listing.image_files[0]) }}" class="card-img-top" alt="{{ listing.title }}" style="height: 200px; object-fit: cover;">
                     </a>
                     {% if listing.is_premium %}
                         <span class="position-absolute top-0 start-0 m-2 badge" style="background-color: var(--bolt-green); color: var(--bolt-dark-charcoal);">⭐ Premium</span>
@@ -85,7 +131,7 @@
                 <a class="page-link" href="{{ url_for('listings.marketplace', page=page-1, **request.args) }}">Previous</a>
             </li>
             {% for p in range(1, total_pages + 1) %}
-                <li class="page-item {% if p == page %}active{% endif %}">
+                <li class="page-item {% if p == page %}active{% endif %}>
                     <a class="page-link" href="{{ url_for('listings.marketplace', page=p, **request.args) }}">{{ p }}</a>
                 </li>
             {% endfor %}
@@ -96,4 +142,229 @@
     </nav>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('search_term');
+        const suggestionsDatalist = document.createElement('datalist');
+        suggestionsDatalist.id = 'search-suggestions';
+        searchInput.setAttribute('list', 'search-suggestions');
+        document.body.appendChild(suggestionsDatalist);
+
+        let debounceTimeout;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(() => {
+                const query = searchInput.value;
+                if (query.length > 2) { // Only fetch suggestions if query is at least 3 characters
+                    fetch(`/api/search_suggestions?query=${encodeURIComponent(query)}`)
+                        .then(response => response.json())
+                        .then(suggestions => {
+                            suggestionsDatalist.innerHTML = ''; // Clear previous suggestions
+                            suggestions.forEach(suggestion => {
+                                const option = document.createElement('option');
+                                option.value = suggestion;
+                                suggestionsDatalist.appendChild(option);
+                            });
+                        })
+                        .catch(error => console.error('Error fetching search suggestions:', error));
+                } else {
+                    suggestionsDatalist.innerHTML = ''; // Clear suggestions if query is too short
+                }
+            }, 300); // Debounce time
+        });
+
+        // Dynamic Filtering Logic
+        const filterForm = document.getElementById('marketplace-filter-form');
+        const listingsContainer = document.querySelector('.row.row-cols-1.row-cols-sm-2.row-cols-md-3.row-cols-lg-4.g-4');
+        const paginationContainer = document.querySelector('nav[aria-label="Page navigation"]');
+
+        // Function to fetch and update listings
+        function fetchListings(event) {
+            if (event) {
+                event.preventDefault(); // Prevent default form submission
+            }
+
+            const formData = new FormData(filterForm);
+            const params = new URLSearchParams();
+            for (const pair of formData.entries()) {
+                if (pair[1]) { // Only add non-empty values
+                    params.append(pair[0], pair[1]);
+                }
+            }            
+
+            // Get current page from URL if available, otherwise default to 1
+            const currentPage = new URLSearchParams(window.location.search).get('page') || '1';
+            params.set('page', currentPage); // Ensure page parameter is included
+
+            fetch(`${filterForm.action}?${params.toString()}`, {
+                method: 'GET', // Use GET for filtering
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest' // Indicate AJAX request
+                }
+            })
+            .then(response => response.text()) // Get response as text (HTML fragment)
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                // Extract the listings and pagination from the fetched HTML
+                const newlistings = doc.querySelector('.row.row-cols-1.row-cols-sm-2.row-cols-md-3.row-cols-lg-4.g-4');
+                const newPagination = doc.querySelector('nav[aria-label="Page navigation"]');
+
+                if (newlistings) {
+                    listingsContainer.innerHTML = newlistings.innerHTML;
+                } else {
+                    listingsContainer.innerHTML = '<div class="col-12"><div class="alert alert-light text-center" role="alert">No listings found. Try adjusting your search!</div></div>';
+                }
+
+                if (paginationContainer) {
+                    if (newPagination) {
+                        paginationContainer.innerHTML = newPagination.innerHTML;
+                    } else {
+                        paginationContainer.innerHTML = ''; // Clear pagination if no results
+                    }
+                }
+
+                // Update URL without reloading the page
+                const newUrl = `${filterForm.action}?${params.toString()}`;
+                history.pushState(null, '', newUrl);
+            })
+            .catch(error => console.error('Error fetching filtered listings:', error));
+        }
+
+        // Attach event listeners to filter inputs
+        filterForm.querySelectorAll('input, select').forEach(input => {
+            input.addEventListener('change', fetchListings);
+            input.addEventListener('keyup', function(event) {
+                if (input.type === 'text' || input.type === 'number') {
+                    // Debounce for text/number inputs to avoid too many requests
+                    clearTimeout(debounceTimeout);
+                    debounceTimeout = setTimeout(fetchListings, 500);
+                }
+            });
+        });
+
+        // Handle pagination clicks (delegation)
+        if (paginationContainer) {
+            paginationContainer.addEventListener('click', function(event) {
+                if (event.target.classList.contains('page-link')) {
+                    event.preventDefault();
+                    const pageUrl = new URL(event.target.href);
+                    const page = pageUrl.searchParams.get('page');
+                    const currentParams = new URLSearchParams(window.location.search);
+                    currentParams.set('page', page);
+                    
+                    fetch(`${filterForm.action}?${currentParams.toString()}`, {
+                        method: 'GET',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.text())
+                    .then(html => {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        const newlistings = doc.querySelector('.row.row-cols-1.row-cols-sm-2.row-cols-md-3.row-cols-lg-4.g-4');
+                        const newPagination = doc.querySelector('nav[aria-label="Page navigation"]');
+
+                        if (newlistings) {
+                            listingsContainer.innerHTML = newlistings.innerHTML;
+                        } else {
+                            listingsContainer.innerHTML = '<div class="col-12"><div class="alert alert-light text-center" role="alert">No listings found. Try adjusting your search!</div></div>';
+                        }
+
+                        if (paginationContainer) {
+                            if (newPagination) {
+                                paginationContainer.innerHTML = newPagination.innerHTML;
+                            } else {
+                                paginationContainer.innerHTML = '';
+                            }
+                        }
+                        const newUrl = `${filterForm.action}?${currentParams.toString()}`;
+                        history.pushState(null, '', newUrl);
+                    })
+                    .catch(error => console.error('Error fetching paginated listings:', error));
+                }
+            });
+        }
+
+        // Geolocation Logic
+        const useMyLocationBtn = document.getElementById('useMyLocationBtn');
+        const locationInput = document.getElementById('location');
+
+        if (useMyLocationBtn) {
+            useMyLocationBtn.addEventListener('click', function() {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(position => {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+
+                        // Use OpenStreetMap Nominatim for reverse geocoding
+                        fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                let address = '';
+                                if (data.address.city) {
+                                    address = data.address.city;
+                                } else if (data.address.town) {
+                                    address = data.address.town;
+                                } else if (data.address.village) {
+                                    address = data.address.village;
+                                } else if (data.address.suburb) {
+                                    address = data.address.suburb;
+                                } else if (data.address.county) {
+                                    address = data.address.county;
+                                }
+
+                                if (address) {
+                                    locationInput.value = address;
+                                    fetchListings(); // Trigger filter update
+                                } else {
+                                    flash('Could not determine your location.', 'warning');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error during reverse geocoding:', error);
+                                flash('Error getting location details. Please try again.', 'danger');
+                            });
+                    }, error => {
+                        console.error('Geolocation error:', error);
+                        let errorMessage = 'Unable to retrieve your location.';
+                        switch(error.code) {
+                            case error.PERMISSION_DENIED:
+                                errorMessage = 'Location access denied. Please enable location services in your browser settings.';
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                errorMessage = 'Location information is unavailable.';
+                                break;
+                            case error.TIMEOUT:
+                                errorMessage = 'The request to get user location timed out.';
+                                break;
+                        }
+                        flash(errorMessage, 'danger');
+                    });
+                } else {
+                    flash('Geolocation is not supported by your browser.', 'danger');
+                }
+            });
+        }
+    });
+
+    // Helper function for flashing messages (since Flask's flash won't work directly in JS)
+    function flash(message, category) {
+        const alertContainer = document.createElement('div');
+        alertContainer.classList.add('container', 'mt-4');
+        alertContainer.innerHTML = `
+            <div class="alert alert-${category === 'success' ? 'success' : category === 'danger' ? 'danger' : category === 'info' ? 'info' : 'secondary'} alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `;
+        document.querySelector('main').prepend(alertContainer);
+        setTimeout(() => alertContainer.remove(), 5000); // Remove after 5 seconds
+    }
+</script>
 {% endblock %}

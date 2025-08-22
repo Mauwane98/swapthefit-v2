@@ -1,0 +1,15 @@
+<p>Dear {{ user.username }},</p>
+
+<p>A new listing matching your saved search "{{ search.name }}" has been posted on SwapTheFit!</p>
+
+<p><strong>Listing Title:</strong> {{ listing.title }}</p>
+<p><strong>Description:</strong> {{ listing.description }}</p>
+<p><strong>Price:</strong> {{ listing.price }}</p>
+<p><strong>Uniform Type:</strong> {{ listing.uniform_type }}</p>
+<p><strong>Size:</strong> {{ listing.size }}</p>
+<p><strong>School:</strong> {{ listing.school_name }}</p>
+
+<p>You can view the listing here: <a href="{{ listing_url }}">{{ listing_url }}</a></p>
+
+<p>Thank you for using SwapTheFit!</p>
+<p>The SwapTheFit Team</p>

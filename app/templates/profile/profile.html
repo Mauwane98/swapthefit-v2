@@ -27,43 +27,73 @@
                 <div class="card-body p-5 border-top">
                     <h3 class="fw-bold mb-4">Edit Your Profile</h3>
                     <form method="POST" action="{{ url_for('profile.profile') }}" enctype="multipart/form-data">
-                        {{ form.hidden_tag() }}
+                        {{ edit_form.hidden_tag() }}
                         
                         <div class="mb-3">
-                            {{ form.username.label(class="form-label") }}
-                            {{ form.username(class="form-control form-control-lg") }}
-                            {% for error in form.username.errors %}
+                            {{ edit_form.username.label(class="form-label") }}
+                            {{ edit_form.username(class="form-control form-control-lg") }}
+                            {% for error in edit_form.username.errors %}
                                 <div class="invalid-feedback d-block">{{ error }}</div>
                             {% endfor %}
                         </div>
 
                         <div class="mb-3">
-                            {{ form.email.label(class="form-label") }}
-                            {{ form.email(class="form-control form-control-lg") }}
-                            {% for error in form.email.errors %}
+                            {{ edit_form.email.label(class="form-label") }}
+                            {{ edit_form.email(class="form-control form-control-lg") }}
+                            {% for error in edit_form.email.errors %}
                                 <div class="invalid-feedback d-block">{{ error }}</div>
                             {% endfor %}
                         </div>
 
                         <div class="mb-3">
-                            {{ form.about_me.label(class="form-label") }}
-                            {{ form.about_me(class="form-control form-control-lg", rows="4") }}
-                            {% for error in form.about_me.errors %}
+                            {{ edit_form.about_me.label(class="form-label") }}
+                            {{ edit_form.about_me(class="form-control form-control-lg", rows="4") }}
+                            {% for error in edit_form.about_me.errors %}
                                 <div class="invalid-feedback d-block">{{ error }}</div>
                             {% endfor %}
                         </div>
 
                         <div class="mb-3">
-                            {{ form.profile_pic.label(class="form-label") }}
-                            {{ form.profile_pic(class="form-control form-control-lg") }}
+                            {{ edit_form.profile_pic.label(class="form-label") }}
+                            {{ edit_form.profile_pic(class="form-control form-control-lg") }}
                             <div class="form-text">Upload a new profile picture (JPG, PNG, JPEG).</div>
-                            {% for error in form.profile_pic.errors %}
+                            {% for error in edit_form.profile_pic.errors %}
                                 <div class="invalid-feedback d-block">{{ error }}</div>
                             {% endfor %}
                         </div>
 
                         <div class="d-grid">
-                            <button type="submit" class="btn btn-primary btn-lg">Update Profile</button>
+                            {{ edit_form.submit(class="btn btn-primary btn-lg") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0 mt-4">
+                <div class="card-body p-5">
+                    <h3 class="fw-bold mb-4">Dashboard Settings</h3>
+                    <form method="POST" action="{{ url_for('profile.profile') }}">
+                        {{ dashboard_settings_form.hidden_tag() }}
+
+                        <div class="mb-3 form-check">
+                            {{ dashboard_settings_form.show_my_listings_on_dashboard(class="form-check-input") }}
+                            {{ dashboard_settings_form.show_my_listings_on_dashboard.label(class="form-check-label") }}
+                        </div>
+                        <div class="mb-3 form-check">
+                            {{ dashboard_settings_form.show_swap_activity_on_dashboard(class="form-check-input") }}
+                            {{ dashboard_settings_form.show_swap_activity_on_dashboard.label(class="form-check-label") }}
+                        </div>
+                        <div class="mb-3 form-check">
+                            {{ dashboard_settings_form.show_account_summary_on_dashboard(class="form-check-input") }}
+                            {{ dashboard_settings_form.show_account_summary_on_dashboard.label(class="form-check-label") }}
+                        </div>
+                        <div class="mb-3 form-check">
+                            {{ dashboard_settings_form.show_activity_feed_on_dashboard(class="form-check-input") }}
+                            {{ dashboard_settings_form.show_activity_feed_on_dashboard.label(class="form-check-label") }}
+                        </div>
+
+                        <div class="d-grid mt-4">
+                            {{ dashboard_settings_form.submit(class="btn btn-success btn-lg") }}
                         </div>
                     </form>
                 </div>

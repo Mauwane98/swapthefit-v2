@@ -5,19 +5,34 @@ from app.models.disputes import Dispute
 from app.models.users import User
 from app.models.listings import Listing # May be needed to link disputes to listings
 from app.blueprints.disputes.forms import RaiseDisputeForm, ResolveDisputeForm
-from app.extensions import db
+
 from app.blueprints.notifications.routes import add_notification # Import for dispute notifications
 from datetime import datetime
+from app.services.fraud_detection_service import FraudDetectionService
 
 disputes_bp = Blueprint('disputes', __name__)
 
-@disputes_bp.route("/disputes/raise", methods=['GET', 'POST'])
+@disputes_bp.route("/disputes/raise/<string:entity_type>/<string:entity_id>", methods=['GET', 'POST'])
 @login_required
-def raise_dispute():
+def raise_dispute(entity_type, entity_id):
     """
-    Allows a user to raise a new dispute.
+    Allows a user to raise a new dispute against a user or a listing.
+    'entity_type' can be 'user' or 'listing'.
+    'entity_id' is the ID of the user or listing being disputed.
     """
     form = RaiseDisputeForm()
+
+    if entity_type not in ['user', 'listing']:
+        flash('Invalid entity type for raising a dispute.', 'danger')
+        return redirect(url_for('landing_bp.index')) # Or a more appropriate fallback
+
+    # Pre-populate form fields based on entity_type
+    if request.method == 'GET':
+        if entity_type == 'user':
+            form.respondent_id.data = entity_id
+        elif entity_type == 'listing':
+            form.listing_id.data = entity_id
+
     if form.validate_on_submit():
         respondent_id = form.respondent_id.data
         listing_id = form.listing_id.data
@@ -53,6 +68,10 @@ def raise_dispute():
             status='open'
         )
         dispute.save()
+
+        # Run fraud detection for initiator and respondent
+        FraudDetectionService.check_user_dispute_volume(current_user.id)
+        FraudDetectionService.check_user_dispute_volume(respondent.id)
 
         flash('Your dispute has been submitted and will be reviewed by an administrator.', 'success')
 
@@ -165,6 +184,10 @@ def resolve_dispute(dispute_id):
             notification_type='dispute_update',
             payload={'dispute_id': str(dispute.id), 'status': dispute.status}
         )
+
+        # Run fraud detection for initiator and respondent after dispute resolution
+        FraudDetectionService.check_user_dispute_volume(dispute.initiator.id)
+        FraudDetectionService.check_user_dispute_volume(dispute.respondent.id)
 
         return redirect(url_for('disputes.manage_disputes'))
     

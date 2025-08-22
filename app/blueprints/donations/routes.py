@@ -70,7 +70,8 @@ def propose_donation(listing_id):
             sender=current_user.id,
             message=notification_message,
             link=url_for('donations.view_donation_request', donation_id=donation.id),
-            notification_type='new_donation'
+            notification_type='new_donation',
+            payload={'donation_id': str(donation.id)}
         )
         notification.save()
         current_app.extensions['socketio'].emit(
@@ -103,6 +104,22 @@ def manage_donations():
         received_donations=received_donations
     )
 
+@donations_bp.route('/impact_report')
+@login_required
+@roles_required('ngo') # Only NGOs can view their impact report
+def impact_report():
+    """
+    Displays the donation impact report for the current NGO user.
+    """
+    # The relevant data is already stored in the current_user object
+    # total_donations_received_count
+    # total_donations_value
+    # total_families_supported_ytd
+
+    return render_template('donations/impact_report.html',
+                           title='Donation Impact Report',
+                           user=current_user) # Pass current_user to access metrics
+
 @donations_bp.route('/view_request/<string:donation_id>')
 @login_required
 def view_donation_request(donation_id):
@@ -131,7 +148,8 @@ def view_donation_request(donation_id):
         'donations/view_donation_request.html', 
         donation=donation,
         confirm_form=confirm_form,
-        distribute_form=distribute_form
+        distribute_form=distribute_form,
+        cancel_form=CancelDonationForm()
     )
 
 @donations_bp.route('/confirm_receipt/<string:donation_id>', methods=['POST'])
@@ -177,13 +195,14 @@ def confirm_receipt(donation_id):
         recipient_user.save() # Save updated user metrics
 
         # Notify the donor
-        notification_message = f"Your donation of '{donation.donated_listing.title}' (Quantity: {donation.quantity}, Value: R{donation.estimated_value:.2f}) has been RECEIVED by {current_user.username}!"
+        notification_message = f"Your donation of '{donation.donated_listing.title}' (Quantity: {donation.quantity}, Value: R{donation.estimated_value:.2f}) has been RECEIVED by {current_user.username}! (Previously proposed: Quantity {old_quantity}, Value R{old_value:.2f})"
         notification = Notification(
             recipient=donation.donor.id,
             sender=current_user.id,
             message=notification_message,
             link=url_for('donations.view_donation_request', donation_id=donation.id),
-            notification_type='donation_status_update'
+            notification_type='donation_status_update',
+            payload={'donation_id': str(donation.id)}
         )
         notification.save()
         current_app.extensions['socketio'].emit(
@@ -248,7 +267,8 @@ def mark_distributed(donation_id):
             sender=current_user.id,
             message=notification_message,
             link=url_for('donations.view_donation_request', donation_id=donation.id),
-            notification_type='donation_status_update'
+            notification_type='donation_status_update',
+            payload={'donation_id': str(donation.id)}
         )
         notification.save()
         current_app.extensions['socketio'].emit(
@@ -304,13 +324,14 @@ def cancel_donation(donation_id):
         sender=current_user.id,
         message=notification_message,
         link=url_for('donations.view_donation_request', donation_id=donation.id),
-        notification_type='donation_status_update'
+        notification_type='donation_status_update',
+        payload={'donation_id': str(donation.id)}
     )
     notification.save()
     current_app.extensions['socketio'].emit(
-        'new_notification',
-        {'message': notification.message, 'count': Notification.objects(recipient=donation.recipient.id, read=False).count()},
-        room=str(donation.recipient.id)
+            'new_notification',
+            {'message': notification.message, 'count': Notification.objects(recipient=donation.recipient.id, read=False).count()},
+            room=str(donation.recipient.id)
     )
 
     flash('Donation cancelled successfully.', 'info')

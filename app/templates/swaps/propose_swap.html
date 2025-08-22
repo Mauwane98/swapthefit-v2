@@ -27,7 +27,7 @@
                     </div>
 
                     <form method="POST" action="{{ url_for('swaps.propose_swap', listing_id=requested_listing.id) }}">
-                        {{ csrf_token() }}
+                        {{ form.hidden_tag() }}
 
                         <h2 class="h5 fw-bold mb-3">Your Item to Offer:</h2>
                         {% if user_listings %}

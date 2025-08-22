@@ -47,8 +47,6 @@
                                 {% else %}
                                     N/A
                                 {% endif %}
-                            {% else %}
-                                Deleted/Unknown (ID: {{ report.reported_entity_id }})
                             {% endif %}
                         </td>
                         <td>{{ report.reason_category|replace('_', ' ')|title }}</td>
@@ -64,6 +62,17 @@
                         <td>
                             <a href="{{ url_for('reports.resolve_report', report_id=report.id) }}" class="btn btn-sm btn-primary">Manage</a>
                             <a href="{{ url_for('reports.report_detail', report_id=report.id) }}" class="btn btn-sm btn-secondary">View</a>
+                            {% if report.reported_entity_type == 'user' and report.reported_object and report.reported_object.active %}
+                            <form action="{{ url_for('admin_bp.suspend_user', user_id=report.reported_object.id) }}" method="POST" class="d-inline">
+                                {{ csrf_token() | safe }}
+                                <button type="submit" class="btn btn-sm btn-warning ms-1" onclick="return confirm('Are you sure you want to suspend this user?');">Suspend User</button>
+                            </form>
+                            {% elif report.reported_entity_type == 'listing' and report.reported_object and report.reported_object.is_available %}
+                            <form action="{{ url_for('admin_bp.remove_listing', listing_id=report.reported_object.id) }}" method="POST" class="d-inline">
+                                {{ csrf_token() | safe }}
+                                <button type="submit" class="btn btn-sm btn-danger ms-1" onclick="return confirm('Are you sure you want to remove this listing?');">Remove Listing</button>
+                            </form>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}

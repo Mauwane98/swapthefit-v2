@@ -4,7 +4,7 @@ from flask_login import login_required, current_user
 from app.models.wishlist import WishlistItem
 from app.models.listings import Listing
 from app.models.saved_search import SavedSearch
-from app.blueprints.wishlist.forms import SavedSearchForm
+from app.blueprints.wishlist.forms import SavedSearchForm, RemoveFromWishlistForm, DeleteSavedSearchForm
 from app.extensions import db
 
 
@@ -17,7 +17,8 @@ def wishlist():
     Displays the current user's wishlist items.
     """
     wishlist_items = WishlistItem.objects(user=current_user)
-    return render_template('wishlist/wishlist.html', wishlist_items=wishlist_items, title="My Wishlist")
+    remove_form = RemoveFromWishlistForm()
+    return render_template('wishlist/wishlist.html', wishlist_items=wishlist_items, title="My Wishlist", remove_form=remove_form)
 
 @wishlist_bp.route("/wishlist/add/<string:listing_id>", methods=['POST'])
 @login_required
@@ -43,10 +44,14 @@ def remove_from_wishlist(listing_id):
     """
     Removes a listing from the current user's wishlist.
     """
-    wishlist_item = WishlistItem.objects(user=current_user, listing=listing_id).first_or_404()
-    wishlist_item.delete()
-    flash('Item removed from wishlist.', 'success')
-    # Redirect to wishlist page or back to listing detail
+    form = RemoveFromWishlistForm()
+    if form.validate_on_submit():
+        wishlist_item = WishlistItem.objects(user=current_user, listing=listing_id).first_or_404()
+        wishlist_item.delete()
+        flash('Item removed from wishlist.', 'success')
+        # Redirect to wishlist page or back to listing detail
+        return redirect(url_for('wishlist.wishlist'))
+    flash('Invalid request.', 'danger')
     return redirect(url_for('wishlist.wishlist'))
 
 
@@ -57,7 +62,8 @@ def saved_searches():
     Displays the current user's saved search queries.
     """
     saved_searches = SavedSearch.objects(user=current_user).order_by('-date_saved')
-    return render_template('wishlist/saved_searches.html', saved_searches=saved_searches, title="My Saved Searches")
+    delete_form = DeleteSavedSearchForm()
+    return render_template('wishlist/saved_searches.html', saved_searches=saved_searches, title="My Saved Searches", delete_form=delete_form)
 
 @wishlist_bp.route("/saved_searches/save", methods=['GET', 'POST'])
 @login_required
@@ -123,7 +129,11 @@ def delete_saved_search(search_id):
     """
     Deletes a saved search entry for the current user.
     """
-    saved_search = SavedSearch.objects(id=search_id, user=current_user).first_or_404()
-    saved_search.delete()
-    flash('Saved search deleted.', 'success')
+    form = DeleteSavedSearchForm()
+    if form.validate_on_submit():
+        saved_search = SavedSearch.objects(id=search_id, user=current_user).first_or_404()
+        saved_search.delete()
+        flash('Saved search deleted.', 'success')
+        return redirect(url_for('wishlist.saved_searches'))
+    flash('Invalid request.', 'danger')
     return redirect(url_for('wishlist.saved_searches'))

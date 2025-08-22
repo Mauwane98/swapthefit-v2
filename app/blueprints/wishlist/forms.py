@@ -10,3 +10,15 @@ class SavedSearchForm(FlaskForm):
     name = StringField('Search Name', validators=[DataRequired(), Length(min=2, max=100)],
                        render_kw={"placeholder": "e.g., 'Blue School Uniforms for Boys'"})
     submit = SubmitField('Save Search')
+
+class RemoveFromWishlistForm(FlaskForm):
+    """
+    A simple form for removing an item from the wishlist.
+    """
+    submit = SubmitField('Remove from Wishlist')
+
+class DeleteSavedSearchForm(FlaskForm):
+    """
+    A simple form for deleting a saved search.
+    """
+    submit = SubmitField('Delete Search')

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>New Review on SwapTheFit</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
+        .header { background-color: #34D186; color: #ffffff; padding: 10px 20px; border-radius: 8px 8px 0 0; text-align: center; }
+        .content { padding: 20px; line-height: 1.6; color: #333333; }
+        .button { display: inline-block; background-color: #34D186; color: #ffffff; padding: 10px 20px; text-decoration: none; border-radius: 5px; }
+        .footer { text-align: center; padding: 10px; font-size: 0.8em; color: #666666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>New Review on SwapTheFit!</h2>
+        </div>
+        <div class="content">
+            <p>Hi {{ user.username }},</p>
+            <p>You've received a new review on your SwapTheFit profile from <strong>{{ reviewer_username }}</strong>!</p>
+            <p><strong>Rating:</strong> {{ rating }}/5 stars</p>
+            <p><strong>Comment:</strong></p>
+            <p style="background-color: #f9f9f9; padding: 15px; border-left: 5px solid #34D186; border-radius: 4px;">
+                "{{ comment }}"
+            </p>
+            <p>Check out your profile to see the full review and manage your reputation:</p>
+            <p style="text-align: center;">
+                <a href="{{ review_link }}" class="button">View My Profile</a>
+            </p>
+            <p>Thanks for being a part of the SwapTheFit community!</p>
+            <p>The SwapTheFit Team</p>
+        </div>
+        <div class="footer">
+            <p>&copy; {{ datetime.now().year }} SwapTheFit. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

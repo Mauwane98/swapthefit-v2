@@ -27,27 +27,82 @@ def save_picture(form_picture):
     form_picture.save(picture_path)
     return picture_fn
 
+from flask import Blueprint, render_template, url_for, flash, redirect, request, current_app
+from flask_login import login_required, current_user
+from app.models.users import User
+from app.blueprints.profile.forms import EditProfileForm, DashboardSettingsForm, UnblockUserForm # Import DashboardSettingsForm and UnblockUserForm
+from app.blueprints.auth.forms import RequestResetForm, ResetPasswordForm
+from app.extensions import db, bcrypt, mail # Import bcrypt and mail for password reset
+from flask_mail import Message # For sending emails
+import secrets
+import os
+import json # For handling blocked_users_json
+
+profile_bp = Blueprint('profile', __name__)
+
+def save_picture(form_picture):
+    """
+    Saves the uploaded profile picture to the static/profile_pics directory.
+    Generates a random filename to prevent collisions.
+    """
+    random_hex = secrets.token_hex(8)
+    _, f_ext = os.path.splitext(form_picture.filename)
+    picture_fn = random_hex + f_ext
+    picture_path = os.path.join(current_app.root_path, 'static/profile_pics', picture_fn)
+
+    # Resize image if necessary (Pillow/PIL could be used here)
+    # For now, just save it directly
+    form_picture.save(picture_path)
+    return picture_fn
+
 @profile_bp.route("/profile", methods=['GET', 'POST'])
 @login_required
 def profile():
     """
-    Displays and allows editing of the current user's profile.
+    Displays and allows editing of the current user's profile and dashboard settings.
     """
-    form = EditProfileForm(obj=current_user)
-    if form.validate_on_submit():
-        if form.picture.data:
-            picture_file = save_picture(form.picture.data)
-            current_user.image_file = picture_file
-        current_user.username = form.username.data
-        current_user.email = form.email.data
-        current_user.save()
-        flash('Your account has been updated!', 'success')
-        return redirect(url_for('profile.profile'))
+    edit_form = EditProfileForm(obj=current_user)
+    dashboard_settings_form = DashboardSettingsForm(obj=current_user) # Instantiate new form
+
+    if request.method == 'POST':
+        if edit_form.submit.data and edit_form.validate(): # Check which form was submitted
+            if edit_form.profile_pic.data:
+                picture_file = save_picture(edit_form.profile_pic.data)
+                current_user.image_file = picture_file
+            current_user.username = edit_form.username.data
+            current_user.email = edit_form.email.data
+            current_user.save()
+            flash('Your account has been updated!', 'success')
+            return redirect(url_for('profile.profile'))
+        
+        elif dashboard_settings_form.submit.data and dashboard_settings_form.validate(): # Check which form was submitted
+            current_user.show_my_listings_on_dashboard = dashboard_settings_form.show_my_listings_on_dashboard.data
+            current_user.show_swap_activity_on_dashboard = dashboard_settings_form.show_swap_activity_on_dashboard.data
+            current_user.show_account_summary_on_dashboard = dashboard_settings_form.show_account_summary_on_dashboard.data
+            current_user.show_activity_feed_on_dashboard = dashboard_settings_form.show_activity_feed_on_dashboard.data
+            current_user.save()
+            flash('Your dashboard settings have been updated!', 'success')
+            return redirect(url_for('profile.profile'))
+        else:
+            flash('Please correct the errors in the form.', 'danger')
+
     elif request.method == 'GET':
-        form.username.data = current_user.username
-        form.email.data = current_user.email
+        edit_form.username.data = current_user.username
+        edit_form.email.data = current_user.email
+        # Populate dashboard settings form on GET request
+        dashboard_settings_form.show_my_listings_on_dashboard.data = current_user.show_my_listings_on_dashboard
+        dashboard_settings_form.show_swap_activity_on_dashboard.data = current_user.show_swap_activity_on_dashboard
+        dashboard_settings_form.show_account_summary_on_dashboard.data = current_user.show_account_summary_on_dashboard
+        dashboard_settings_form.show_activity_feed_on_dashboard.data = current_user.show_activity_feed_on_dashboard
+
     image_file = url_for('static', filename='profile_pics/' + current_user.image_file)
-    return render_template('profile/profile.html', title='Profile', image_file=image_file, form=form)
+    return render_template(
+        'profile/profile.html', 
+        title='Profile', 
+        image_file=image_file, 
+        edit_form=edit_form, # Renamed to edit_form
+        dashboard_settings_form=dashboard_settings_form # Pass new form
+    )
 
 # --- User Blocking Feature Routes ---
 @profile_bp.route("/user/<string:user_id>/block", methods=['POST'])
@@ -101,4 +156,5 @@ def view_blocked_users():
     blocked_user_ids = current_user.get_blocked_users()
     blocked_users = User.objects(id__in=blocked_user_ids)
     
-    return render_template('profile/blocked_users.html', title='Blocked Users', blocked_users=blocked_users)
+    form = UnblockUserForm()
+    return render_template('profile/blocked_users.html', title='Blocked Users', blocked_users=blocked_users, form=form)

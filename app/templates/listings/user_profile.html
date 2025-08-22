@@ -16,6 +16,16 @@
                 <p class="lead text-muted mb-1">Email: {{ user.email }}</p>
                 <p class="text-muted mb-1">Role: <span class="fw-bold">{{ user.role|capitalize }}</span></p>
                 <p class="text-muted mb-1">Member Since: {{ user.date_joined.strftime('%b %d, %Y') }}</p>
+                <p class="text-muted mb-1">
+                    Average Rating: 
+                    <span class="h4 fw-bold text-warning">
+                        {% for i in range(average_rating|round(0, 'floor')|int) %}⭐{% endfor %}{# Full stars #}
+                        {% if average_rating % 1 >= 0.5 %}⭐{% endif %}{# Half star (optional, if you have a half-star icon) #}
+                        {{ "%.1f"|format(average_rating) }}/5
+                    </span> 
+                    ({{ total_reviews }} reviews)
+                </p>
+                <p class="text-muted mb-4">Total Completed Transactions: <span class="fw-bold">{{ total_transactions }}</span></p>
                 <p class="text-muted small mb-4">User ID: <span class="badge bg-light text-dark">{{ user.id }}</span></p>
 
                 {% if current_user.is_authenticated and current_user.id != user.id %}
@@ -30,6 +40,124 @@
     </div>
 
     <div class="mt-5">
+        <h2 class="h3 fw-bold mb-4">Reviews for {{ user.username }}</h2>
+        {% if reviews_received %}
+            <div class="list-group">
+                {% for review in reviews_received %}
+                    <div class="list-group-item list-group-item-action flex-column align-items-start">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">Review by {{ review.reviewer.username }}</h5>
+                            <small class="text-muted">
+                                {{ review.date_posted.strftime('%b %d, %Y') }}
+                                {% if review.rating %}
+                                    {% for i in range(review.rating) %}⭐{% endfor %}
+                                {% endif %}
+                            </small>
+                        </div>
+                        <p class="mb-1">Rating: {{ review.rating }}/5</p>
+                        <p class="mb-1">{{ review.comment }}</p>
+                        {% if review.image_files %}
+                            <div class="row mt-2">
+                                {% for image_file in review.image_files %}
+                                    <div class="col-md-3 col-sm-4 col-6 mb-2">
+                                        <img src="{{ url_for('static', filename='uploads/' + image_file) }}" class="img-fluid rounded" alt="Review Image">
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="text-muted">Transaction ID: {{ review.transaction_id }}</small>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-info text-center" role="alert">
+                No reviews yet for {{ user.username }}.
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="mt-5">
+        <h2 class="h3 fw-bold mb-4">{{ user.username }}'s Past Transactions</h2>
+        <div class="accordion" id="transactionsAccordion">
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingSwaps">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSwaps" aria-expanded="false" aria-controls="collapseSwaps">
+                        Completed Swaps ({{ completed_swaps|length }})
+                    </button>
+                </h2>
+                <div id="collapseSwaps" class="accordion-collapse collapse" aria-labelledby="headingSwaps" data-bs-parent="#transactionsAccordion">
+                    <div class="accordion-body">
+                        {% if completed_swaps %}
+                            <ul class="list-group">
+                                {% for swap in completed_swaps %}
+                                    <li class="list-group-item">
+                                        Swap ID: {{ swap.id }} - 
+                                        {{ swap.requester.username }} offered {{ swap.requester_listing.title }} for {{ swap.responder_listing.title }} from {{ swap.responder.username }}
+                                        <br><small class="text-muted">Completed on: {{ swap.updated_date.strftime('%b %d, %Y') }}</small>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p>No completed swaps.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingOrders">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOrders" aria-expanded="false" aria-controls="collapseOrders">
+                        Completed Orders ({{ completed_orders|length }})
+                    </button>
+                </h2>
+                <div id="collapseOrders" class="accordion-collapse collapse" aria-labelledby="headingOrders" data-bs-parent="#transactionsAccordion">
+                    <div class="accordion-body">
+                        {% if completed_orders %}
+                            <ul class="list-group">
+                                {% for order in completed_orders %}
+                                    <li class="list-group-item">
+                                        Order ID: {{ order.id }} - 
+                                        {{ order.listing.title }} (R{{ "%.2f"|format(order.listing.price) }})
+                                        <br><small class="text-muted">Buyer: {{ order.buyer.username }}, Seller: {{ order.seller.username }}</small>
+                                        <br><small class="text-muted">Completed on: {{ order.date_created.strftime('%b %d, %Y') }}</small>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p>No completed orders.</p>
+                        {% endif %}                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingDonations">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDonations" aria-expanded="false" aria-controls="collapseDonations">
+                        Completed Donations ({{ completed_donations|length }})
+                    </button>
+                </h2>
+                <div id="collapseDonations" class="accordion-collapse collapse" aria-labelledby="headingDonations" data-bs-parent="#transactionsAccordion">
+                    <div class="accordion-body">
+                        {% if completed_donations %}
+                            <ul class="list-group">
+                                {% for donation in completed_donations %}
+                                    <li class="list-group-item">
+                                        Donation ID: {{ donation.id }} - 
+                                        {{ donation.listing.title }}
+                                        <br><small class="text-muted">Donor: {{ donation.donor.username }}, Recipient: {{ donation.recipient.username }}</small>
+                                        <br><small class="text-muted">Completed on: {{ donation.date_donated.strftime('%b %d, %Y') }}</small>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p>No completed donations.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-5">
         <h2 class="h3 fw-bold mb-4">{{ user.username }}'s Listings</h2>
         {% if listings %}
             <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
@@ -37,7 +165,7 @@
                     <div class="col">
                         <div class="card h-100 shadow-sm border-0">
                             <a href="{{ url_for('listings.listing_detail', listing_id=listing.id) }}">
-                                <img src="{{ url_for('static', filename='uploads/' + listing.image_file) }}"
+                                <img src="{{ url_for('static', filename='uploads/' + listing.image_files[0]) }}"
                                      alt="{{ listing.title }}"
                                      class="card-img-top" style="height: 200px; object-fit: cover;">
                             </a>

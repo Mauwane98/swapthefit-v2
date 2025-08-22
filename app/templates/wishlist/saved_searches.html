@@ -24,6 +24,7 @@
                     <div class="card-footer bg-transparent border-0 p-3 d-flex justify-content-between">
                         <a href="{{ url_for('listings.marketplace') }}?{{ search.search_query_params }}" class="btn btn-sm btn-primary">Run Search</a>
                         <form action="{{ url_for('wishlist.delete_saved_search', search_id=search.id) }}" method="POST">
+                            {{ delete_form.hidden_tag() }}
                             <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                         </form>
                     </div>

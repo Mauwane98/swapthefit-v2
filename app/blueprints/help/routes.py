@@ -1,5 +1,5 @@
 # app/blueprints/help/routes.py
-from flask import Blueprint, render_template, url_for, request
+from flask import Blueprint, render_template
 
 help_bp = Blueprint('help', __name__)
 

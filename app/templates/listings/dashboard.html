@@ -50,7 +50,7 @@
                                         <div class="card-footer bg-transparent border-0 p-2 d-flex">
                                             <a href="{{ url_for('listings.edit_listing', listing_id=listing.id) }}" class="btn btn-sm btn-outline-secondary w-100 me-1">Edit</a>
                                             <form action="{{ url_for('listings.delete_listing', listing_id=listing.id) }}" method="POST" class="w-100 ms-1">
-                                                {{ csrf_token() }}
+                                                {{ csrf_token() | safe }}
                                                 <button type="submit" onclick="return confirm('Are you sure?');" class="btn btn-sm btn-outline-danger w-100">Delete</button>
                                             </form>
                                         </div>
@@ -103,7 +103,19 @@
                                         <a href="{{ url_for('swaps.view_swap_request', request_id=request.id) }}" class="list-group-item list-group-item-action">
                                             <div class="d-flex w-100 justify-content-between">
                                                 <h6 class="mb-1">To: {{ request.recipient.username }}</h6>
-                                                <small><span class="badge bg-light text-dark">{{ request.status }}</span></small>
+                                                <small>
+                                                    {% if request.status == 'pending' %}
+                                                        <span class="badge bg-warning text-dark">{{ request.status.capitalize() }}</span>
+                                                    {% elif request.status == 'accepted' %}
+                                                        <span class="badge bg-success">{{ request.status.capitalize() }}</span>
+                                                    {% elif request.status == 'declined' %}
+                                                        <span class="badge bg-danger">{{ request.status.capitalize() }}</span>
+                                                    {% elif request.status == 'completed' %}
+                                                        <span class="badge bg-info">{{ request.status.capitalize() }}</span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">{{ request.status.capitalize() }}</span>
+                                                    {% endif %}
+                                                </small>
                                             </div>
                                             <p class="mb-1 small">Your "{{ request.offered_listing.title }}" for their "{{ request.requested_listing.title }}".</p>
                                         </a>
@@ -135,7 +147,7 @@
                                         </div>
                                         <div class="card-footer bg-transparent border-0 p-2">
                                             <form action="{{ url_for('listings.remove_from_wishlist', listing_id=item.listing.id) }}" method="POST">
-                                                {{ csrf_token() }}
+                                                {{ csrf_token() | safe }}
                                                 <button type="submit" class="btn btn-sm btn-outline-danger w-100">Remove</button>
                                             </form>
                                         </div>

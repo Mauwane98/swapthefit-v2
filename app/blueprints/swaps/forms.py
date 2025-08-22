@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import SelectField, TextAreaField, SubmitField
+from wtforms import SelectField, TextAreaField, SubmitField, HiddenField
 from wtforms.validators import DataRequired, Length, ValidationError
 from app.models.listings import Listing
 from flask_login import current_user
@@ -49,3 +49,30 @@ class ProposeSwapForm(FlaskForm):
             else:
                 self.your_listing_id.choices.insert(0, ('', 'Select an item to offer'))
 
+class AcceptSwapForm(FlaskForm):
+    """
+    A simple form for accepting a swap request.
+    """
+    csrf_token = HiddenField()
+    submit = SubmitField('Accept Swap')
+
+class RejectSwapForm(FlaskForm):
+    """
+    A simple form for rejecting a swap request.
+    """
+    csrf_token = HiddenField()
+    submit = SubmitField('Reject Swap')
+
+class CancelSwapForm(FlaskForm):
+    """
+    A simple form for canceling a swap request.
+    """
+    csrf_token = HiddenField()
+    submit = SubmitField('Cancel Request')
+
+class CompleteSwapForm(FlaskForm):
+    """
+    A simple form for marking a swap as completed.
+    """
+    csrf_token = HiddenField()
+    submit = SubmitField('Mark Swap as Completed')

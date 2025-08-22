@@ -17,6 +17,7 @@
     <!-- Custom Bolt Theme CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
     
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     {% block head %}{% endblock %}
 </head>
 <body>
@@ -128,6 +129,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.5/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.5/ScrollTrigger.min.js"></script>
 
+    <!-- Socket.IO Client Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+
     <!-- Custom Animations -->
     <script src="{{ url_for('static', filename='js/animations.js') }}"></script>
 
@@ -159,6 +163,10 @@
         });
     </script>
     
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <!-- Toasts will be appended here -->
+    </div>
+
     {% block scripts %}{% endblock %}
 </body>
 </html>

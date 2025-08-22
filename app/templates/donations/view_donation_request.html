@@ -14,7 +14,7 @@
                     <div class="mb-4 p-3 bg-light rounded">
                         <h2 class="h5 fw-bold mb-3">Item: {{ donation.donated_listing.title }}</h2>
                         <div class="d-flex align-items-center mb-3">
-                            <img src="{{ url_for('static', filename='uploads/' + donation.donated_listing.image_file) }}" alt="{{ donation.donated_listing.title }}" class="rounded me-3" style="width: 100px; height: 100px; object-fit: cover;">
+                            <img src="{{ url_for('static', filename='uploads/' + donation.donated_listing.image_files[0]) }}" alt="{{ donation.donated_listing.title }}" class="rounded me-3" style="width: 100px; height: 100px; object-fit: cover;">
                             <div>
                                 <p class="mb-0">Size: {{ donation.donated_listing.size }}</p>
                                 <p class="mb-0">Condition: {{ donation.donated_listing.condition }}</p>
@@ -50,7 +50,7 @@
                             <div class="card-body">
                                 <h5 class="card-title fw-bold">Confirm Donation Receipt</h5>
                                 <form method="POST" action="{{ url_for('donations.confirm_receipt', donation_id=donation.id) }}">
-                                    {{ confirm_form.csrf_token }}
+                                    {{ confirm_form.hidden_tag() }}
                                     <div class="mb-3">
                                         {{ confirm_form.notes.label(class="form-label") }}
                                         {{ confirm_form.notes(class="form-control", rows="3") }}
@@ -66,7 +66,7 @@
                             <div class="card-body">
                                 <h5 class="card-title fw-bold">Mark as Distributed</h5>
                                 <form method="POST" action="{{ url_for('donations.mark_distributed', donation_id=donation.id) }}">
-                                    {{ distribute_form.csrf_token }}
+                                    {{ distribute_form.hidden_tag() }}
                                     <div class="mb-3">
                                         {{ distribute_form.distribution_notes.label(class="form-label") }}
                                         {{ distribute_form.distribution_notes(class="form-control", rows="3") }}
@@ -84,6 +84,7 @@
                     {% if current_user.id == donation.donor.id and donation.status == 'pending_pickup' %}
                         <div class="d-grid mt-4">
                             <form method="POST" action="{{ url_for('donations.cancel_donation', donation_id=donation.id) }}">
+                                {{ cancel_form.hidden_tag() }}
                                 <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to cancel this donation?');">
                                     Cancel Donation
                                 </button>

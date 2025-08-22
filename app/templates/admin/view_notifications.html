@@ -44,10 +44,10 @@
                         <td>{{ notification.created_at.strftime('%b %d, %Y') }}</td>
                         <td>
                             {% if notification.link %}
-                            <a href="{{ notification.link }}" class="btn btn-sm btn-primary">View</a>
+                            <a href="{{ notification.link }}" class="btn btn-sm btn-primary">View">View</a>
                             {% endif %}
                             <form action="{{ url_for('notifications.delete_notification', notification_id=notification.id) }}" method="POST" class="d-inline">
-                                {{ csrf_token() }}
+                                {{ csrf_token() | safe }}
                                 <button type="submit" onclick="return confirm('Are you sure?');" class="btn btn-sm btn-danger">Delete</button>
                             </form>
                         </td>
