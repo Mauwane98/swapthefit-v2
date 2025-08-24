@@ -9,7 +9,7 @@ class Badge(db.Document):
     name = StringField(max_length=100, required=True, unique=True)
     description = StringField(required=True)
     image_url = StringField(max_length=200, required=True) # URL or path to the badge image
-    criteria = DictField(required=True) # Defines the conditions for earning the badge
+    criteria = DictField(required=False) # Defines the conditions for earning the badge
     is_active = BooleanField(default=True)
     created_at = DateTimeField(default=datetime.utcnow)
 
