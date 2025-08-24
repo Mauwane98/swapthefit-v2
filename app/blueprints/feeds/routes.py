@@ -3,6 +3,7 @@ from flask_login import login_required, current_user
 from app.blueprints.feeds import feeds_bp
 from app.models.user_activity import UserActivity
 from mongoengine.queryset.visitor import Q # Import Q for complex queries
+from datetime import datetime # Import datetime
 
 FEEDS_PER_PAGE = 20 # Define pagination constant
 
@@ -31,4 +32,5 @@ def index():
                            title='Activity Feed',
                            current_activity_type=activity_type,
                            current_sort_by=sort_by,
-                           distinct_activity_types=distinct_activity_types)
+                           distinct_activity_types=distinct_activity_types,
+                           datetime=datetime) # Pass datetime to the template

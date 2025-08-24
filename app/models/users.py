@@ -94,104 +94,18 @@ class User(db.Document, UserMixin):
     account_name = db.StringField(max_length=100, required=False)
     paystack_recipient_code = db.StringField(max_length=50, required=False)
 
+    # Onboarding status
+    onboarding_completed = db.BooleanField(default=False)
+
+    # New field for last seen timestamp
+    last_seen = db.DateTimeField(default=datetime.utcnow)
+
     # Relationships to other models
     # saved_searches = db.relationship('SavedSearch', backref='user_saver', lazy=True)
     # wishlist_items = db.relationship('WishlistItem', backref='user_wisher', lazy=True)
 
 
-    def get_reset_token(self, expires_sec=1800):
-        """
-        Generates a signed token for password reset functionality.
-        The token expires after a specified number of seconds.
-        """
-        s = Serializer(current_app.config['SECRET_KEY'])
-        return s.dumps({'user_id': self.id}, expires_in=expires_sec).decode('utf-8')
-
-    @staticmethod
-    def verify_reset_token(token):
-        """
-        Verifies a password reset token and returns the user if valid.
-        """
-        s = Serializer(current_app.config['SECRET_KEY'])
-        try:
-            user_id = s.loads(token)['user_id']
-            return User.objects.get(id=user_id)
-        except (
-            BadSignature, 
-            SignatureExpired, 
-            KeyError, 
-            User.DoesNotExist # Catch if user_id from token doesn't exist
-        ) as e:
-            current_app.logger.warning(f"Password reset token verification failed: {e}")
-            return None
-
-    def get_blocked_users(self):
-        """
-        Retrieves the list of user IDs blocked by this user.
-        """
-        try:
-            return json.loads(self.blocked_users_json)
-        except json.JSONDecodeError:
-            return []
-
-    def add_blocked_user(self, user_id_to_block):
-        """
-        Adds a user ID to the list of blocked users.
-        """
-        blocked_users = self.get_blocked_users()
-        if user_id_to_block not in blocked_users:
-            blocked_users.append(user_id_to_block)
-            self.blocked_users_json = json.dumps(blocked_users)
-
-    def remove_blocked_user(self, user_id_to_unblock):
-        """
-        Removes a user ID from the list of blocked users.
-        """
-        blocked_users = self.get_blocked_users()
-        if user_id_to_unblock in blocked_users:
-            blocked_users.remove(user_id_to_unblock)
-            self.blocked_users_json = json.dumps(blocked_users)
-
-    def is_blocking(self, user_id_to_check):
-        """
-        Checks if this user is blocking a given user ID.
-        """
-        return user_id_to_check in self.get_blocked_users()
-
-    def is_blocked_by(self, user_id_checking):
-        """
-        Checks if this user is blocked by another user.
-        Requires querying the other user's blocked list.
-        """
-        other_user = User.objects(id=user_id_checking).first()
-        if other_user:
-            return self.id in other_user.get_blocked_users()
-        return False
-
-
-    def set_password(self, password):
-        """
-        Hashes the given password using bcrypt and stores it.
-        """
-        self.password = bcrypt.generate_password_hash(password).decode('utf-8')
-
-    def check_password(self, password):
-        """
-        Checks if the given password matches the stored hashed password.
-        """
-        return bcrypt.check_password_hash(self.password, password)
-
-    def has_role(self, role_name):
-        """
-        Checks if the user has the specified role.
-        """
-        return self.role == role_name
-
-    def __repr__(self):
-        """
-        String representation of the User object.
-        """
-        return f"User('{self.username}', '{self.email}', '{self.image_file}', '{self.role}')"
+    
 
     def get_followed_users_listings(self):
         """
@@ -205,46 +119,14 @@ class User(db.Document, UserMixin):
         listings = Listing.objects(user__in=followed_users_ids).order_by('-date_posted')
         return listings
 
-    # Payout details for sellers
-    bank_name = db.StringField(max_length=100, required=False)
-    account_number = db.StringField(max_length=50, required=False)
-    account_name = db.StringField(max_length=100, required=False)
-    paystack_recipient_code = db.StringField(max_length=50, required=False)
-
-    # Referral System
-    referral_code = db.StringField(max_length=20, unique=True, sparse=True) # Unique code for this user to share
-
-    # Forum Subscriptions
-    subscribed_topics = ListField(ReferenceField('Topic'))
+    
 
     # Relationships to other models
     # saved_searches = db.relationship('SavedSearch', backref='user_saver', lazy=True)
     # wishlist_items = db.relationship('WishlistItem', backref='user_wisher', lazy=True)
 
 
-    def get_reset_token(self, expires_sec=1800):
-        """
-        Generates a signed token for password reset functionality.
-        The token expires after a specified number of seconds.
-        """
-        s = Serializer(current_app.config['SECRET_KEY'])
-        return s.dumps({'user_id': self.id}, expires_in=expires_sec).decode('utf-8')
-        """
-        Generates a signed token for password reset functionality.
-        The token expires after a specified number of seconds.
-        """
-        s = Serializer(current_app.config['SECRET_KEY'])
-        try:
-            user_id = s.loads(token)['user_id']
-            return User.objects.get(id=user_id)
-        except (
-            BadSignature, 
-            SignatureExpired, 
-            KeyError, 
-            User.DoesNotExist # Catch if user_id from token doesn't exist
-        ) as e:
-            current_app.logger.warning(f"Password reset token verification failed: {e}")
-            return None
+    
 
     def get_blocked_users(self):
         """

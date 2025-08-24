@@ -20,6 +20,7 @@ from app.models.reviews import Review # Import Review model
 from mongoengine.errors import NotUniqueError, DoesNotExist, ValidationError
 from mongoengine.queryset.visitor import Q # Import Q for complex queries
 import csv # Add this import at the top
+from PIL import Image # Import Image from Pillow
 
 # Import the add_notification helper function
 from app.blueprints.notifications.routes import add_notification
@@ -28,6 +29,7 @@ from app.utils.activity_logger import log_activity
 from app.utils.security import roles_required # Import roles_required
 from app.services.fraud_detection_service import FraudDetectionService
 from app.services.paystack import PaystackService # Import PaystackService
+from app.services.recommendation_service import RecommendationService # Import RecommendationService
 
 listings_bp = Blueprint('listings', __name__)
 
@@ -35,6 +37,7 @@ def save_pictures(form_pictures):
     """
     Saves uploaded pictures to the static/uploads directory.
     Generates random filenames to prevent collisions.
+    Resizes images for optimized web display.
     Returns a list of saved filenames.
     """
     saved_filenames = []
@@ -46,11 +49,19 @@ def save_pictures(form_pictures):
             picture_path = os.path.join(current_app.root_path, 'static/uploads', picture_fn)
 
             try:
-                form_picture.save(picture_path)
+                # Open the image using Pillow
+                img = Image.open(form_picture)
+
+                # Resize image while maintaining aspect ratio
+                output_size = (800, 800) # Max width, max height
+                img.thumbnail(output_size, Image.Resampling.LANCZOS) # Use LANCZOS for high-quality downsampling
+
+                # Save the resized image
+                img.save(picture_path)
                 saved_filenames.append(picture_fn)
             except Exception as e:
-                current_app.logger.error(f"Error saving picture {form_picture.filename}: {e}")
-                flash('Failed to save one or more images. Please try again.', 'danger')
+                current_app.logger.error(f"Error saving or processing picture {form_picture.filename}: {e}")
+                flash('Failed to save or process one or more images. Please try again.', 'danger')
                 return [] # Return empty list if any save fails
     return saved_filenames
 
@@ -658,6 +669,10 @@ def dashboard():
             action_type='listing_created'
         ).order_by('-timestamp').limit(10) # Limit to 10 recent activities
 
+    # Get personalized recommendations
+    recommendation_service = RecommendationService()
+    recommended_listings = recommendation_service.get_recommendations(current_user)
+
     if user_role == 'parent':
         # Fetch pending and accepted swaps for the current user
         pending_swaps = list(SwapRequest.objects(
@@ -675,14 +690,16 @@ def dashboard():
             listings=listings, 
             pending_swaps=pending_swaps, 
             accepted_swaps=accepted_swaps,
-            recent_activities=recent_activities # Pass activities to template
+            recent_activities=recent_activities,
+            recommended_listings=recommended_listings # Pass recommendations to template
         )
     elif user_role == 'school':
         return render_template(
             'school_dashboard.html', 
             listings=listings,
             total_donations_value=current_user.total_donations_value,
-            recent_activities=recent_activities # Pass activities to template
+            recent_activities=recent_activities,
+            recommended_listings=recommended_listings # Pass recommendations to template
         )
     elif user_role == 'ngo':
         return render_template(
@@ -691,7 +708,8 @@ def dashboard():
             total_donations_received_count=current_user.total_donations_received_count,
             total_donations_value=current_user.total_donations_value,
             total_families_supported_ytd=current_user.total_families_supported_ytd,
-            recent_activities=recent_activities # Pass activities to template
+            recent_activities=recent_activities,
+            recommended_listings=recommended_listings # Pass recommendations to template
         )
     elif user_role == 'admin':
         # Calculate total order value for admin dashboard
@@ -709,9 +727,10 @@ def dashboard():
         return render_template(
             'admin/dashboard.html', 
             listings=listings,
-            recent_activities=recent_activities, # Pass activities to template
-            total_order_value=total_order_value, # Pass total order value to template
-            total_donation_value=total_donation_value # Pass total donation value to template
+            recent_activities=recent_activities,
+            total_order_value=total_order_value,
+            total_donation_value=total_donation_value,
+            recommended_listings=recommended_listings # Pass recommendations to template
         )
 
 

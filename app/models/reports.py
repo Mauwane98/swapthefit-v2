@@ -2,13 +2,14 @@
 from datetime import datetime
 from app.extensions import db
 from app.models.users import User # Import User model
+from mongoengine.fields import ReferenceField # Add this import
 
 class Report(db.Document):
     # MongoEngine automatically creates an _id field as primary key
     # If you need a custom ID, you can define it, e.g., report_id = db.StringField(primary_key=True)
     # For simplicity, we'll let MongoEngine manage the primary key (_id)
 
-    reporter = db.fields.ReferenceField(User, required=True) # Reference to the User who submitted the report
+    reporter = ReferenceField(User, required=True) # Reference to the User who submitted the report
 
     reported_entity_type = db.StringField(max_length=20, required=True)
     reported_entity_id = db.StringField(required=True) # Storing as StringField as it could be ObjectId or other ID

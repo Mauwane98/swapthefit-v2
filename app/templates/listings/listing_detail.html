@@ -109,7 +109,7 @@
                         {% elif listing.listing_type == 'swap' %}
                             <a href="{{ url_for('swaps.propose_swap', listing_id=listing.id) }}" class="btn btn-info btn-lg">Request Swap</a>
                         {% elif listing.listing_type == 'donation' %}
-                            <form action="{{ url_for('donations.request_donation', listing_id=listing.id) }}" method="POST">
+                            <form action="{{ url_for('donations.propose_donation', listing_id=listing.id) }}" method="POST">
                                 <div class="d-grid">
                                     <button type="submit" class="btn btn-success btn-lg">Request Donation</button>
                                 </div>

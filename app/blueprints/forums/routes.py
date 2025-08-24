@@ -47,16 +47,11 @@ def view_topic(topic_id, page=1):
     return render_template('forums/topic.html', topic=topic, posts_pagination=posts_pagination, form=form, title=topic.title, is_subscribed=is_subscribed)
 
 @forums_bp.route('/forum/new_topic', methods=['GET', 'POST'])
-@forums_bp.route('/forum/<string:forum_id>/new_topic', methods=['GET', 'POST'])
 @login_required
-def new_topic(forum_id=None):
-    if forum_id is None:
-        forums = Forum.objects.order_by('name')
-        return render_template('forums/select_forum.html', forums=forums, title='Select a Forum')
-
-    forum = Forum.objects.get_or_404(id=forum_id)
+def new_topic():
     form = CreateTopicForm()
     if form.validate_on_submit():
+        forum = form.forum.data # Get the selected forum from the form
         topic = Topic(
             title=form.title.data,
             forum=forum,
@@ -83,7 +78,7 @@ def new_topic(forum_id=None):
 
         flash('Your topic has been created!', 'success')
         return redirect(url_for('forums.view_topic', topic_id=topic.id))
-    return render_template('forums/new_topic.html', title='New Topic', form=form, forum=forum)
+    return render_template('forums/new_topic.html', title='New Topic', form=form)
 
 @forums_bp.route('/topic/<string:topic_id>/new_post', methods=['POST'])
 @login_required

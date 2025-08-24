@@ -230,6 +230,8 @@ def create_app(config_class=None):
     @socketio.on('connect')
     def handle_connect():
         if current_user.is_authenticated:
+            current_user.last_seen = datetime.utcnow()
+            current_user.save()
             socketio.join_room(str(current_user.id))
             current_app.logger.info(f"Client connected: {current_user.username} (ID: {current_user.id})")
         else:
@@ -238,6 +240,8 @@ def create_app(config_class=None):
     @socketio.on('disconnect')
     def handle_disconnect():
         if current_user.is_authenticated:
+            current_user.last_seen = datetime.utcnow()
+            current_user.save()
             socketio.leave_room(str(current_user.id))
             current_app.logger.info(f"Client disconnected: {current_user.username} (ID: {current_user.id})")
         else:

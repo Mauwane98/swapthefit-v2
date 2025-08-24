@@ -1,113 +1,3 @@
-{% extends "_layouts/base.html" %}
-
-{% block title %}Parent Dashboard{% endblock %}
-
-{% block content %}
-<div class="container my-5">
-    <div class="text-center mb-5">
-        <h1 class="display-5 fw-bold">Parent Dashboard</h1>
-        <p class="lead">Your personalized overview of SwapTheFit.</p>
-    </div>
-
-    <div class="row">
-        <!-- My Listings Section -->
-        {% if current_user.show_my_listings_on_dashboard %}
-        <div class="col-lg-4 mb-4">
-            <div class="card h-100 shadow-sm border-0">
-                <div class="card-body p-4">
-                    <h4 class="card-title fw-bold mb-3">My Listings</h4>
-                    <p class="text-muted">View and manage items you've listed for swap, sale, or donation.</p>
-                    <a href="{{ url_for('listings.my_listings') }}" class="btn btn-primary mt-2">Go to My Listings</a>
-                    <p class="text-muted small mt-2">({{ listings|length if listings else 0 }} active listings)</p>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- My Swap & Buy Activity Section -->
-        {% if current_user.show_swap_activity_on_dashboard %}
-        <div class="col-lg-4 mb-4">
-            <div class="card h-100 shadow-sm border-0">
-                <div class="card-body p-4">
-                    <h4 class="card-title fw-bold mb-3">My Swap & Buy Activity</h4>
-                    <p class="text-muted">Track the status of your swap offers, requests, purchases and donations.</p>
-                    <div class="d-grid gap-2">
-                        <a href="{{ url_for('swaps.manage_swaps') }}" class="btn btn-primary">Manage Swaps</a>
-                        <a href="{{ url_for('payments.order_history') }}" class="btn btn-secondary">Manage Orders</a>
-                        <a href="{{ url_for('donations.manage_donations') }}" class="btn btn-secondary">Manage Donations</a>
-                    </div>
-
-                    <ul class="list-group list-group-flush mt-3">
-                        <li class="list-group-item d-flex justify-content-between align-items-center">Pending Swaps: <span class="badge bg-warning text-dark rounded-pill">{{ pending_swaps|length }}</span></li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">Accepted Swaps: <span class="badge bg-info rounded-pill">{{ accepted_swaps|length }}</span></li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">Completed Swaps: <span class="badge bg-success rounded-pill">{{ completed_swaps|length }}</span></li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">Items Purchased: <span class="badge bg-info rounded-pill">{{ bought_items|length }}</span></li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">Items Sold: <span class="badge bg-success rounded-pill">{{ sold_items|length }}</span></li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">Items Donated: <span class="badge bg-secondary rounded-pill">{{ sent_donations|length }}</span></li>
-                    </ul>
-
-                    <h5 class="fw-bold mt-4 mb-3">Logistics Status Overview</h5>
-                    <ul class="list-group list-group-flush">
-                        {% for order in bought_items %}
-                            {% if order.logistics_record and order.logistics_record.status not in ['delivered', 'failed', 'cancelled'] %}
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <small>Order for "{{ order.purchased_listing.title }}" (Buyer)</small>
-                                    <a href="{{ url_for('logistics.view_logistics', logistics_id=order.logistics_record.id) }}" class="btn btn-sm btn-link">Status: {{ order.logistics_record.status|replace('_', ' ')|capitalize }} &rarr;</a>
-                                </li>
-                            {% endif %}
-                        {% endfor %}
-                        {% for order in sold_items %}
-                            {% if order.logistics_record and order.logistics_record.status not in ['delivered', 'failed', 'cancelled'] %}
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <small>Order for "{{ order.purchased_listing.title }}" (Seller)</small>
-                                    <a href="{{ url_for('logistics.view_logistics', logistics_id=order.logistics_record.id) }}" class="btn btn-sm btn-link">Status: {{ order.logistics_record.status|replace('_', ' ')|capitalize }} &rarr;</a>
-                                </li>
-                            {% endif %}
-                        {% endfor %}
-                        {% for swap in pending_swaps + accepted_swaps %}
-                            {% if swap.logistics_record and swap.logistics_record.status not in ['delivered', 'failed', 'cancelled'] %}
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <small>Swap for "{{ swap.offered_listing_obj.title }}" & "{{ swap.requested_listing_obj.title }}"</small>
-                                    <a href="{{ url_for('logistics.view_logistics', logistics_id=swap.logistics_record.id) }}" class="btn btn-sm btn-link">Status: {{ swap.logistics_record.status|replace('_', ' ')|capitalize }} &rarr;</a>
-                                </li>
-                            {% endif %}
-                        {% endfor %}
-                        {% for donation in sent_donations %}
-                            {% if donation.logistics_record and donation.logistics_record.status not in ['delivered', 'failed', 'cancelled'] %}
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <small>Donation of "{{ donation.donated_listing_obj.title }}"</small>
-                                    <a href="{{ url_for('logistics.view_logistics', logistics_id=donation.logistics_record.id) }}" class="btn btn-sm btn-link">Status: {{ donation.logistics_record.status|replace('_', ' ')|capitalize }} &rarr;</a>
-                                </li>
-                            {% endif %}
-                        {% endfor %}
-                        {% if not (bought_items or sold_items or pending_swaps or accepted_swaps or sent_donations) %}
-                            <li class="list-group-item text-muted">No active logistics to track.</li>
-                        {% endif %}
-                    </ul>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- My Account & Payments Section -->
-        {% if current_user.show_account_summary_on_dashboard %}
-        <div class="col-lg-4 mb-4">
-            <div class="card h-100 shadow-sm border-0">
-                <div class="card-body p-4">
-                    <h4 class="card-title fw-bold mb-3">Account & Payments</h4>
-                    <p class="text-muted">Manage your profile, payment methods, and transaction history.</p>
-                    <a href="{{ url_for('profile.profile') }}" class="btn btn-primary mt-2">View Profile</a>
-                    <ul class="list-group list-group-flush mt-3">
-                        <li class="list-group-item d-flex justify-content-between align-items-center">Wallet Balance: <span class="fw-bold">R 0.00</span></li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">Total Sales: <span class="fw-bold">R {{ "%.2f" | format(sold_items|sum(attribute='price_at_purchase')) if sold_items|sum(attribute='price_at_purchase') is not none else '0.00' }}</span></li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">Total Purchases: <span class="fw-bold">R {{ "%.2f" | format(bought_items|sum(attribute='price_at_purchase')) if bought_items|sum(attribute='price_at_purchase') is not none else '0.00' }}</span></li>
-                    </ul>
-                    <p class="text-muted small mt-2">Payment integration (e.g., PayFast/PayPal) coming soon.</p>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
         <!-- Activity Feed Section -->
         <div class="col-lg-4 mb-4">
             <div class="card h-100 shadow-sm border-0">
@@ -115,6 +5,34 @@
                     <h4 class="card-title fw-bold mb-3">Activity Feed</h4>
                     <p class="text-muted">See the latest activities across the platform.</p>
                     <a href="{{ url_for('feeds.index') }}" class="btn btn-primary mt-2">View Full Feed</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recommended Listings Section -->
+        <div class="col-lg-12 mb-4">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body p-4">
+                    <h4 class="card-title fw-bold mb-3">Recommended Listings for You</h4>
+                    {% if recommended_listings %}
+                        <div class="row">
+                            {% for listing in recommended_listings %}
+                                <div class="col-md-3 col-sm-6 mb-4">
+                                    <div class="card h-100 listing-card">
+                                        <img src="{{ url_for('static', filename='uploads/' + listing.image_files[0]) if listing.image_files else url_for('static', filename='uploads/default.jpg') }}" class="card-img-top" alt="{{ listing.title }}">
+                                        <div class="card-body">
+                                            <h5 class="card-title">{{ listing.title }}</h5>
+                                            <p class="card-text text-muted">{{ listing.location }}</p>
+                                            <p class="card-text fw-bold">{{ "R%.2f" | format(listing.price) if listing.price else "Donation/Swap" }}</p>
+                                            <a href="{{ url_for('listings.listing_detail', listing_id=listing.id) }}" class="btn btn-sm btn-outline-primary">View Details</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No recommendations available at the moment. Browse the <a href="{{ url_for('listings.marketplace') }}">marketplace</a> to help us learn your preferences!</p>
+                    {% endif %}
                 </div>
             </div>
         </div>

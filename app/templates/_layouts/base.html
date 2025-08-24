@@ -17,6 +17,9 @@
     <!-- Custom Bolt Theme CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
     
+    <!-- Shepherd.js CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/shepherd.css') }}">
+
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
     <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
@@ -147,9 +150,13 @@
     <!-- Custom Animations -->
     <script src="{{ url_for('static', filename='js/animations.js') }}"></script>
 
+    <!-- Shepherd.js JS -->
+    <script src="{{ url_for('static', filename='js/shepherd.min.js') }}"></script>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const isAuthenticated = {{ current_user.is_authenticated | tojson }};
+            const onboardingCompleted = {{ current_user.is_authenticated and current_user.onboarding_completed | tojson }};
 
             function updateUnreadNotificationCount() {
                 fetch('{{ url_for("notifications.api_unread_count") }}')
@@ -171,6 +178,139 @@
             if (isAuthenticated) {
                 updateUnreadNotificationCount();
                 setInterval(updateUnreadNotificationCount, 30000);
+
+                // Guided Onboarding Logic
+                if (!onboardingCompleted) {
+                    const tour = new Shepherd.Tour({
+                        defaultStepOptions: {
+                            cancelIcon: {
+                                enabled: true
+                            },
+                            classes: 'shadow-md bg-purple-dark',
+                            scrollTo: { behavior: 'smooth', block: 'center' }
+                        },
+                        useModalOverlay: true,
+                        confirmCancel: false,
+                        confirmCancelMessage: 'Are you sure you want to stop the tour?',
+                        exitOnEsc: true,
+                        keyboardNavigation: true
+                    });
+
+                    tour.addStep({
+                        id: 'welcome',
+                        text: 'Welcome to SwapTheFit! Let\'s take a quick tour to show you around.',
+                        buttons: [
+                            {
+                                text: 'Exit',
+                                action: tour.cancel
+                            },
+                            {
+                                text: 'Next',
+                                action: tour.next
+                            }
+                        ]
+                    });
+
+                    tour.addStep({
+                        id: 'create-listing',
+                        attachTo: { element: 'a[href="{{ url_for("listings.create_listing") }}"]', on: 'bottom' },
+                        text: 'This is where you can create a new listing to sell, swap, or donate items.',
+                        buttons: [
+                            {
+                                text: 'Back',
+                                action: tour.back
+                            },
+                            {
+                                text: 'Next',
+                                action: tour.next
+                            }
+                        ]
+                    });
+
+                    tour.addStep({
+                        id: 'marketplace',
+                        attachTo: { element: 'a[href="{{ url_for("listings.marketplace") }}"]', on: 'bottom' },
+                        text: 'Explore all available listings from other users here.',
+                        buttons: [
+                            {
+                                text: 'Back',
+                                action: tour.back
+                            },
+                            {
+                                text: 'Next',
+                                action: tour.next
+                            }
+                        ]
+                    });
+
+                    tour.addStep({
+                        id: 'forums',
+                        attachTo: { element: 'a[href="{{ url_for("forums.forum_home") }}"]', on: 'bottom' },
+                        text: 'Join discussions and connect with the community in our forums.',
+                        buttons: [
+                            {
+                                text: 'Back',
+                                action: tour.back
+                            },
+                            {
+                                text: 'Next',
+                                action: tour.next
+                            }
+                        ]
+                    });
+
+                    tour.addStep({
+                        id: 'feeds',
+                        attachTo: { element: 'a[href="{{ url_for("feeds.index") }}"]', on: 'bottom' },
+                        text: 'Stay updated with activities from users you follow.',
+                        buttons: [
+                            {
+                                text: 'Back',
+                                action: tour.back
+                            },
+                            {
+                                text: 'Next',
+                                action: tour.next
+                            }
+                        ]
+                    });
+
+                    tour.addStep({
+                        id: 'profile',
+                        attachTo: { element: '#navbarDropdown', on: 'left' },
+                        text: 'Access your profile, settings, and more from here.',
+                        buttons: [
+                            {
+                                text: 'Back',
+                                action: tour.back
+                            },
+                            {
+                                text: 'Done',
+                                action: () => {
+                                    tour.complete();
+                                    // Mark onboarding as complete on the backend
+                                    fetch('{{ url_for("profile.mark_onboarding_complete") }}', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json'
+                                        }
+                                    })
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (data.success) {
+                                            console.log('Onboarding marked as complete.');
+                                        } else {
+                                            console.error('Failed to mark onboarding complete:', data.message);
+                                        }
+                                    })
+                                    .catch(error => console.error('Error marking onboarding complete:', error));
+                                }
+                            }
+                        ]
+                    });
+
+                    tour.start();
+                }
             }
         });
     </script>

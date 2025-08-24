@@ -25,14 +25,38 @@
     {% if activities_pagination.items %}
         <ul class="list-group">
             {% for activity in activities_pagination.items %}
-                <li class="list-group-item d-flex justify-content-between align-items-start">
-                    <div class="ms-2 me-auto">
+                <li class="list-group-item d-flex align-items-center">
+                    <div class="flex-grow-1">
                         <div class="fw-bold">{{ activity.description }}</div>
-                        <small class="text-muted">{{ activity.timestamp.strftime('%Y-%m-%d %H:%M') }} by {{ activity.user.username if activity.user else 'System' }}</small>
+                        <small class="text-muted">
+                            {{ activity.timestamp.strftime('%Y-%m-%d %H:%M') }} by 
+                            {% if activity.user %}
+                                {{ activity.user.username }}
+                                {% if activity.user.last_seen and (datetime.utcnow() - activity.user.last_seen).total_seconds() < 300 %}
+                                    <span class="badge bg-success">Online</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Offline</span>
+                                {% endif %}
+                            {% else %}
+                                System
+                            {% endif %}
+                        </small>
+                        {% if activity.payload %}
+                            <div class="mt-1 text-info small">
+                                {% if activity.action_type == 'listing_created' %}
+                                    New Listing: <a href="{{ url_for('listings.listing_detail', listing_id=activity.payload.listing_id) }}">{{ activity.payload.listing_title }}</a> ({{ activity.payload.category }})
+                                {% elif activity.action_type == 'swap_proposed' %}
+                                    Swap Proposed: {{ activity.payload.proposing_user_username }} offered {{ activity.payload.offered_listing_title }} for {{ activity.payload.requested_listing_title }}
+                                {% elif activity.action_type == 'donation_made' %}
+                                    Donation Made: {{ activity.payload.donated_listing_title }} to {{ activity.payload.recipient_username }}
+                                {% elif activity.action_type == 'user_registered' %}
+                                    Welcome new user: {{ activity.payload.new_user_username }}
+                                {% else %}
+                                    Details: {{ activity.payload }}
+                                {% endif %}
+                            </div>
+                        {% endif %}
                     </div>
-                    {% if activity.payload %}
-                        <span class="badge bg-primary rounded-pill">Details</span>
-                    {% endif %}
                 </li>
             {% endfor %}
         </ul>

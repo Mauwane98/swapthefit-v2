@@ -1,113 +1,13 @@
-{% extends "_layouts/base.html" %}
-
-{% block title %}Create New Listing{% endblock %}
-
-{% block content %}
-<div class="container my-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card shadow-lg border-0">
-                <div class="card-body p-5">
-                    <div class="text-center mb-4">
-                        <h1 class="h2 fw-bold">Create a New Listing</h1>
-                        <p class="text-muted">Fill out the details below to list your item.</p>
-                    </div>
-
-                    <form method="POST" action="{{ url_for('listings.create_listing', step=current_step) }}" enctype="multipart/form-data">
-                        {{ form.hidden_tag() }}
-
-                        {# Display general form errors #}
-                        {% if form.errors %}
-                            <div class="alert alert-danger" role="alert">
-                                <strong>Please correct the following errors:</strong>
-                                <ul>
-                                    {% for field, errors in form.errors.items() %}
-                                        {% if field == 'csrf_token' %}{# Skip CSRF token error #}
-                                        {% elif field == 'images' %}{# Images errors are handled inline #}
-                                        {% else %}
-                                            <li>{{ field.replace('_', ' ').title() }}: {{ errors|join(', ') }}</li>
-                                        {% endif %}
-                                    {% endfor %}
-                                </ul>
-                            </div>
-                        {% endif %}
-
-                        <div class="progress mb-4" style="height: 10px;">
-                            <div class="progress-bar" role="progressbar" style="width: {{ (current_step / 3) * 100 }}%;" aria-valuenow="{{ (current_step / 3) * 100 }}" aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
-                        <p class="text-center text-muted mb-4">Step {{ current_step }} of 3</p>
-
-                        {# Step 1: Basic Details #}
-                        {% if current_step == 1 %}
-                            <h3 class="mb-3">Basic Details</h3>
-                            <div class="mb-3">
-                                {{ form.title.label(class="form-label") }}
-                                {{ form.title(class="form-control form-control-lg", placeholder="e.g., Blue School Blazer") }}
-                                {% for error in form.title.errors %}
-                                    <div class="invalid-feedback d-block">{{ error }}</div>
-                                {% endfor %}
-                            </div>
-
-                            <div class="mb-3">
-                                {{ form.description.label(class="form-label") }}
-                                {{ form.description(class="form-control form-control-lg", rows="5", placeholder="Describe the item, its features, and any imperfections.") }}
-                                {% for error in form.description.errors %}
-                                    <div class="invalid-feedback d-block">{{ error }}</div>
-                                {% endfor %}
-                            </div>
-
-                            <div class="row g-3">
-                                <div class="col-md-6 mb-3">
-                                    {{ form.uniform_type.label(class="form-label") }}
-                                    {{ form.uniform_type(render_kw={"class": "form-select form-select-lg"}) }}
-                                    {% for error in form.uniform_type.errors %}
-                                        <div class="invalid-feedback d-block">{{ error }}</div>
-                                    {% endfor %}
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    {{ form.size.label(class="form-label") }}
-                                    {{ form.size(render_kw={"class": "form-select form-select-lg"}) }}
-                                    {% for error in form.size.errors %}
-                                        <div class="invalid-feedback d-block">{{ error }}</div>
-                                    {% endfor %}
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    {{ form.condition.label(class="form-label") }}
-                                    {{ form.condition(render_kw={"class": "form-select form-select-lg"}) }}
-                                    {% for error in form.condition.errors %}
-                                        <div class="invalid-feedback d-block">{{ error }}</div>
-                                    {% endfor %}
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    {{ form.gender.label(class="form-label") }}
-                                    {{ form.gender(render_kw={"class": "form-select form-select-lg"}) }}
-                                    {% for error in form.gender.errors %}
-                                        <div class="invalid-feedback d-block">{{ error }}</div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                {{ form.school_name.label(class="form-label") }}
-                                {{ form.school_name(class="form-control form-control-lg", placeholder="e.g., Springfield Elementary (Optional)") }}
-                                {% for error in form.school_name.errors %}
-                                    <div class="invalid-feedback d-block">{{ error }}</div>
-                                {% endfor %}
-                            </div>
-                            <div class="mb-3">
-                                {{ form.location.label(class="form-label") }}
-                                {{ form.location(class="form-control form-control-lg", placeholder="e.g., Cape Town, Gardens") }}
-                                {% for error in form.location.errors %}
-                                    <div class="invalid-feedback d-block">{{ error }}</div>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-
                         {# Step 2: Images #}
                         {% if current_step == 2 %}
                             <h3 class="mb-3">Upload Images</h3>
                             <div class="mb-3">
-                                {{ form.images.label(class="form-label") }}
-                                {{ form.images(class="form-control form-control-lg", multiple=True) }}
+                                <label for="images" class="form-label">Upload Images</label>
+                                <div id="drop-area" class="border rounded p-4 text-center mb-3" style="cursor: pointer;">
+                                    <p class="lead">Drag & Drop your images here, or click to select</p>
+                                    <input type="file" id="images" name="images" class="d-none" multiple accept="image/png, image/jpeg, image/jpg">
+                                </div>
+                                <div id="image-preview" class="row mb-3"></div>
                                 <div class="form-text">Upload up to 5 photos. Max file size: 2MB per image. Formats: JPG, PNG, JPEG.</div>
                                 {% for error in form.images.errors %}
                                     <div class="invalid-feedback d-block">{{ error }}</div>
@@ -216,6 +116,109 @@
 
         // Listen for changes
         listingType.addEventListener('change', toggleDonationRecipientType);
+
+        // --- Image Upload Preview and Drag & Drop ---
+        const dropArea = document.getElementById('drop-area');
+        const fileInput = document.getElementById('images');
+        const imagePreview = document.getElementById('image-preview');
+
+        let uploadedFiles = []; // Global array to store files
+
+        // Prevent default drag behaviors
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false); // For global drag
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        // Highlight drop area when item is dragged over it
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, () => dropArea.classList.add('highlight'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.classList.remove('highlight');
+        });
+
+        // Handle dropped files
+        dropArea.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+
+        // Handle file selection via click
+        dropArea.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+        function handleFiles(files) {
+            // Validate file count
+            if (uploadedFiles.length + files.length > 5) {
+                alert('You can upload a maximum of 5 images.');
+                return;
+            }
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+
+                // Validate file type and size
+                if (!file.type.startsWith('image/')) {
+                    alert('Only image files are allowed.');
+                    continue;
+                }
+                if (file.size > 2 * 1024 * 1024) { // 2MB
+                    alert('File size exceeds 2MB limit.');
+                    continue;
+                }
+
+                uploadedFiles.push(file); // Add file to global array
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imgCol = document.createElement('div');
+                    imgCol.classList.add('col-4', 'mb-2', 'position-relative');
+                    imgCol.innerHTML = `
+                        <img src="${e.target.result}" class="img-fluid rounded" alt="Image Preview">
+                        <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 remove-image" data-filename="${file.name}">&times;</button>
+                    `;
+                    imagePreview.appendChild(imgCol);
+
+                    // Add event listener for remove button
+                    imgCol.querySelector('.remove-image').addEventListener('click', function() {
+                        const filenameToRemove = this.dataset.filename;
+                        uploadedFiles = uploadedFiles.filter(f => f.name !== filenameToRemove);
+                        imgCol.remove(); // Remove the preview
+                        updateFileInput(); // Update the hidden file input
+                    });
+                };
+                reader.readAsDataURL(file);
+            }
+            updateFileInput(); // Update the hidden file input after all files are processed
+        }
+
+        function updateFileInput() {
+            // Create a new FileList from the uploadedFiles array
+            const dataTransfer = new DataTransfer();
+            uploadedFiles.forEach(file => dataTransfer.items.add(file));
+            fileInput.files = dataTransfer.files;
+        }
+
+        // Clear previous previews on initial load if any (from session data)
+        imagePreview.innerHTML = '';
+        // Re-initialize uploadedFiles if there are previously uploaded images
+        {% if session.get('listing_data', {}).get('image_files', []) %}
+            // This part needs to be handled carefully. If images are already on the server,
+            // they should not be part of the 'uploadedFiles' array for new uploads.
+            // They should be managed separately. For now, I will assume 'uploadedFiles'
+            // only contains newly selected files.
+            // The existing previously uploaded images display logic is fine as is.
+        {% endif %}
     });
 </script>
 {% endblock %}

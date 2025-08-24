@@ -25,7 +25,7 @@ def propose_donation(listing_id):
         abort(404)
 
     # Ensure the listing belongs to the current user
-    if listing_to_donate.owner.id != current_user.id:
+    if listing_to_donate.user.id != current_user.id:
         flash('You can only donate your own listings.', 'danger')
         return redirect(url_for('listings.listing_detail', listing_id=listing_id))
     
