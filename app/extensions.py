@@ -22,7 +22,7 @@ def init_app(app):
     mail for email sending, SocketIO for real-time communication, and CSRF protection.
     """
     # Configure MongoEngine with the Flask app
-    db.init_app(app)
+    # db.init_app(app)
 
     # Configure LoginManager
     login_manager.init_app(app)
