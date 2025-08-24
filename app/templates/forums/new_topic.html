@@ -1,0 +1,31 @@
+{% extends "_layouts/base.html" %}
+
+{% block content %}
+    <div class="container mt-4">
+        <h1>Create New Topic in {{ forum.name }}</h1>
+        <hr>
+        <form method="POST">
+            {{ form.csrf_token }}
+            <div class="mb-3">
+                {{ form.title.label(class="form-label") }}
+                {{ form.title(class="form-control") }}
+                {% if form.title.errors %}
+                    <div class="invalid-feedback d-block">
+                        {% for error in form.title.errors %}{{ error }}{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            <div class="mb-3">
+                {{ form.content.label(class="form-label") }}
+                {{ form.content(class="form-control", rows=10) }}
+                {% if form.content.errors %}
+                    <div class="invalid-feedback d-block">
+                        {% for error in form.content.errors %}{{ error }}{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            {{ form.submit(class="btn btn-primary") }}
+            <a href="{{ url_for('forums.view_forum', forum_id=forum.id) }}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+{% endblock %}

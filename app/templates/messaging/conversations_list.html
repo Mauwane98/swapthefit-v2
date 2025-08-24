@@ -1,0 +1,69 @@
+{% extends "_layouts/base.html" %}
+
+{% block title %}Inbox{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-header">
+                    <h4 class="my-2">Conversations</h4>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for partner in conversation_partners %}
+                        <a href="{{ url_for('messaging.inbox', user_id=partner.id) }}" 
+                           class="list-group-item list-group-item-action {% if selected_partner and selected_partner.id == partner.id %}active{% endif %}">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ partner.username }}</h6>
+                                {# Assuming latest message timestamp is available in partner object or fetched via API #}
+                                {# <small>{{ partner.latest_message_timestamp.strftime('%b %d') }}</small> #}
+                            </div>
+                            {# Assuming latest message content is available in partner object or fetched via API #}
+                            {# <p class="mb-1 small text-muted">{{ partner.latest_message_content | truncate(30) }}</p> #}
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4" style="height: 600px; overflow-y: auto;">
+                    {% if selected_partner %}
+                        {% for message in messages %}
+                            <div class="d-flex mb-3 {% if message.sender == current_user %}justify-content-end{% endif %}">
+                                <div class="p-3 rounded-3" style="background-color: {% if message.sender == current_user %}var(--bolt-green){% else %}var(--bolt-light-gray){% endif %}; color: var(--bolt-dark-charcoal); max-width: 70%;">
+                                    {% if message.swap_request_title %}
+                                        <p class="mb-1 small text-info">{{ message.swap_request_title }}</p>
+                                    {% elif message.order_title %}
+                                        <p class="mb-1 small text-info">{{ message.order_title }}</p>
+                                    {% elif message.donation_title %}
+                                        <p class="mb-1 small text-info">{{ message.donation_title }}</p>
+                                    {% endif %}
+                                    <p class="mb-0">{{ message.content }}</p>
+                                    <small class="text-muted d-block text-end">{{ message.timestamp.strftime('%H:%M') }}</small>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted h-100 d-flex justify-content-center align-items-center">
+                            <p>Select a conversation to start messaging.</p>
+                        </div>
+                    {% endif %}
+                </div>
+                {% if selected_partner %}
+                <div class="card-footer bg-white p-3">
+                    <form method="POST" action="{{ url_for('messaging.send_message', receiver_id=selected_partner.id) }}">
+                        {{ form.hidden_tag() }}
+                        <div class="input-group">
+                            <input type="text" name="content" class="form-control form-control-lg" placeholder="Type your message..." required>
+                            <button class="btn btn-primary" type="submit">Send</button>
+                        </div>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

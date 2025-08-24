@@ -15,11 +15,15 @@ from datetime import datetime
 from bson.objectid import ObjectId
 from app.models.notifications import Notification
 from app.models.users import User
+from flask_apscheduler import APScheduler # Import APScheduler
 
 # Google OAuth Configuration
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", None)
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", None)
 GOOGLE_DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configuration"
+
+# Initialize scheduler
+scheduler = APScheduler()
 
 def create_app(config_class=None):
     """
@@ -53,6 +57,21 @@ def create_app(config_class=None):
 
     # Initialize Flask extensions with the app instance
     init_extensions(app)
+
+    # Configure and start scheduler
+    if not scheduler.running:
+        scheduler.init_app(app)
+        scheduler.start()
+
+    # Add payout job
+    @scheduler.task('interval', id='do_process_payouts', hours=24, misfire_grace_time=900)
+    def scheduled_process_payouts():
+        with app.app_context():
+            current_app.logger.info("Running scheduled payout processing...")
+            # Import and run the script's main function
+            from scripts.process_payouts import process_payouts
+            process_payouts.callback() # Call the underlying function of the click command
+            current_app.logger.info("Scheduled payout processing completed.")
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -107,6 +126,10 @@ def create_app(config_class=None):
     from app.blueprints.disputes.routes import disputes_bp
     from app.blueprints.reports.routes import reports_bp
     from app.blueprints.follows.routes import follows_bp
+    from app.blueprints.forums.routes import forums_bp # Import forums_bp
+    from app.blueprints.sponsored_content.routes import sponsored_content_bp # Import sponsored_content_bp
+    from app.blueprints.referrals.routes import referrals_bp # Import referrals_bp
+    from app.blueprints.feeds.routes import feeds_bp # Import feeds_bp
 
     app.register_blueprint(landing_bp)
     app.register_blueprint(auth_bp, url_prefix='/auth')
@@ -124,6 +147,10 @@ def create_app(config_class=None):
     app.register_blueprint(disputes_bp, url_prefix='/disputes')
     app.register_blueprint(reports_bp, url_prefix='/reports')
     app.register_blueprint(follows_bp, url_prefix='/follows')
+    app.register_blueprint(forums_bp, url_prefix='/forums') # Register forums_bp
+    app.register_blueprint(sponsored_content_bp, url_prefix='/sponsored_content') # Register sponsored_content_bp
+    app.register_blueprint(referrals_bp, url_prefix='/referrals') # Register referrals_bp
+    app.register_blueprint(feeds_bp, url_prefix='/feeds') # Register feeds_bp
 
     # Google OAuth Setup
     client = WebApplicationClient(GOOGLE_CLIENT_ID)
@@ -218,28 +245,43 @@ def create_app(config_class=None):
 
     @socketio.on('send_message')
     def handle_send_message(data):
+        from app.models.messages import Message
+        from app.models.users import User
+
         sender_id = data.get('sender_id')
         recipient_id = data.get('recipient_id')
         message_content = data.get('message')
-        timestamp = datetime.utcnow().isoformat()
-        if sender_id and recipient_id and message_content:
-            socketio.emit('new_message', {
-                'sender_id': sender_id,
-                'recipient_id': recipient_id,
-                'message': message_content,
-                'timestamp': timestamp,
-                'from_self': True
-            }, room=str(sender_id))
-            socketio.emit('new_message', {
-                'sender_id': sender_id,
-                'recipient_id': recipient_id,
-                'message': message_content,
-                'timestamp': timestamp,
-                'from_self': False
-            }, room=str(recipient_id))
-            current_app.logger.info(f"Message from {sender_id} to {recipient_id}: {message_content}")
-        else:
+
+        if not (sender_id and recipient_id and message_content):
             current_app.logger.warning("Invalid message data received.")
+            return
+
+        try:
+            sender = User.objects(id=sender_id).first()
+            recipient = User.objects(id=recipient_id).first()
+
+            if not (sender and recipient):
+                current_app.logger.warning(f"Sender or recipient not found. Sender ID: {sender_id}, Recipient ID: {recipient_id}")
+                return
+
+            new_message = Message(
+                sender=sender,
+                receiver=recipient,
+                content=message_content
+            )
+            new_message.save()
+
+            message_data = new_message.to_dict()
+
+            # Emit to sender
+            socketio.emit('new_message', {**message_data, 'from_self': True}, room=str(sender_id))
+            # Emit to recipient
+            socketio.emit('new_message', {**message_data, 'from_self': False}, room=str(recipient_id))
+
+            current_app.logger.info(f"Message from {sender.username} to {recipient.username} saved and emitted: {message_content}")
+
+        except Exception as e:
+            current_app.logger.error(f"Error saving or emitting message: {e}")
 
     @socketio.on('mark_notification_read')
     def handle_mark_notification_read(data):

@@ -46,7 +46,7 @@ class ListingForm(FlaskForm):
     location = StringField('Location (e.g., City, Suburb)', validators=[DataRequired(), Length(max=100)])
 
     # Step 2: Images
-    images = MultipleFileField('Upload Images', validators=[FileAllowed(['jpg', 'png', 'jpeg'], 'Images only!')])
+    images = MultipleFileField('Upload Images')
 
     # Step 3: Pricing & Type
     price = FloatField('Price (ZAR)', validators=[Optional(), NumberRange(min=0.01)],

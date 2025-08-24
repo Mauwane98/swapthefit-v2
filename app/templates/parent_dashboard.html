@@ -108,33 +108,39 @@
         </div>
         {% endif %}
 
-        <!-- What's New (Activity Feed) Section -->
-        {% if current_user.show_activity_feed_on_dashboard %}
+        <!-- Activity Feed Section -->
         <div class="col-lg-4 mb-4">
             <div class="card h-100 shadow-sm border-0">
                 <div class="card-body p-4">
-                    <h4 class="card-title fw-bold mb-3">What's New from Followed Users</h4>
-                    {% if recent_activities %}
-                        <ul class="list-group list-group-flush">
-                            {% for activity in recent_activities %}
-                                <li class="list-group-item">
-                                    <small class="text-muted">{{ activity.timestamp.strftime('%b %d, %Y %H:%M') }}</small><br>
-                                    <strong>{{ activity.description }}</strong>
-                                    {% if activity.payload.listing_id %}
-                                        <a href="{{ url_for('listings.listing_detail', listing_id=activity.payload.listing_id) }}" class="btn btn-sm btn-link p-0 ms-2">View Listing &rarr;</a>
-                                    {% endif %}
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    {% else %}
-                        <div class="alert alert-info text-center" role="alert">
-                            No recent activities from users you follow. Start following schools or NGOs to see updates here!
-                        </div>
-                    {% endif %}
+                    <h4 class="card-title fw-bold mb-3">Activity Feed</h4>
+                    <p class="text-muted">See the latest activities across the platform.</p>
+                    <a href="{{ url_for('feeds.index') }}" class="btn btn-primary mt-2">View Full Feed</a>
                 </div>
             </div>
         </div>
-        {% endif %}
+
+        <!-- Forums Section -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body p-4">
+                    <h4 class="card-title fw-bold mb-3">Community Forums</h4>
+                    <p class="text-muted">Engage with other parents, ask questions, and share advice.</p>
+                    <a href="{{ url_for('forums.forum_home') }}" class="btn btn-primary mt-2">Visit Forums</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notifications Section -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body p-4">
+                    <h4 class="card-title fw-bold mb-3">Your Notifications</h4>
+                    <p class="text-muted">Stay updated with new messages, activity on your listings, and more.</p>
+                    <a href="{{ url_for('notifications.index') }}" class="btn btn-primary mt-2">View Notifications</a>
+                    <p class="text-muted small mt-2">You have <span class="fw-bold">{{ unread_notifications }}</span> unread notifications.</p>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

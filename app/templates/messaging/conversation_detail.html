@@ -1,0 +1,76 @@
+{% extends "_layouts/base.html" %}
+
+{% block title %}Conversation with {{ conversation.participants[0].username if conversation.participants[0].id != current_user.id else conversation.participants[1].username }}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="card shadow-sm border-0">
+        <div class="card-header">
+            <h4 class="my-2">Conversation with {{ conversation.participants[0].username if conversation.participants[0].id != current_user.id else conversation.participants[1].username }}</h4>
+        </div>
+        <div class="card-body p-4" style="height: 600px; overflow-y: auto;">
+            {% for message in messages %}
+                <div class="d-flex mb-3 {% if message.sender == current_user %}justify-content-end{% endif %}">
+                    <div class="p-3 rounded-3" style="background-color: {% if message.sender == current_user %}var(--bolt-green){% else %}var(--bolt-light-gray){% endif %}; color: var(--bolt-dark-charcoal); max-width: 70%;">
+                        {% if message.swap_request_title %}
+                            <p class="mb-1 small text-info">{{ message.swap_request_title }}</p>
+                        {% elif message.order_title %}
+                            <p class="mb-1 small text-info">{{ message.order_title }}</p>
+                        {% elif message.donation_title %}
+                            <p class="mb-1 small text-info">{{ message.donation_title }}</p>
+                        {% endif %}
+                        <p class="mb-0">{{ message.content }}</p>
+                        <small class="text-muted d-block text-end">
+                            {{ message.timestamp.strftime('%H:%M') }}
+                            {% if message.sender == current_user %}
+                                {% if message.is_read %}
+                                    <i class="fas fa-check-double text-primary"></i> {# Double checkmark for read #}
+                                {% else %}
+                                    <i class="fas fa-check text-muted"></i> {# Single checkmark for sent #} 
+                                {% endif %}
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="card-footer bg-white p-3">
+            <form method="POST" action="{{ url_for('messaging.send_message', conversation_id=conversation.id) }}">
+                {{ form.hidden_tag() }}
+                <div class="input-group">
+                    {{ form.content(class="form-control form-control-lg", placeholder="Type your message...") }}
+                    <button class="btn btn-primary" type="submit">Send</button>
+                </div>
+            </form>
+            {# Quick Messages Section #}
+            <div class="mt-3">
+                {% if quick_messages %}
+                    <p class="text-muted">Quick Messages:</p>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for qm in quick_messages %}
+                            <button type="button" class="btn btn-outline-secondary btn-sm quick-message-btn" data-message="{{ qm.message_text }}">{{ qm.message_text }}</button>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const quickMessageButtons = document.querySelectorAll('.quick-message-btn');
+        const messageInput = document.querySelector('textarea[name="content"]');
+
+        quickMessageButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                messageInput.value = this.dataset.message;
+            });
+        });
+
+        // Scroll to the bottom of the chat body
+        const chatBody = document.querySelector('.card-body');
+        chatBody.scrollTop = chatBody.scrollHeight;
+    });
+</script>
+{% endblock %}

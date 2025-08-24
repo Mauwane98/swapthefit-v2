@@ -49,6 +49,12 @@ class RegistrationForm(FlaskForm):
         validators=[Optional(), Length(max=100)],
         render_kw={"placeholder": "If applicable (e.g., for schools/NGOs)"}
     )
+
+    referral_code = StringField(
+        'Referral Code (Optional)',
+        validators=[Optional(), Length(max=20)],
+        render_kw={"placeholder": "Enter a referral code if you have one"}
+    )
     
     submit = SubmitField('Register')
 

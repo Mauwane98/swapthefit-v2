@@ -1,0 +1,33 @@
+{% extends "_layouts/base.html" %}
+
+{% block content %}
+    <div class="container mt-4">
+        <h1>{{ title }}</h1>
+        <hr>
+        <div class="mb-3">
+            <a href="{{ url_for('forums.new_topic') }}" class="btn btn-primary">Create New Topic</a>
+        </div>
+        <form class="d-flex mb-4" method="GET" action="{{ url_for('forums.forum_home') }}">
+            <input class="form-control me-2" type="search" placeholder="Search forums..." aria-label="Search" name="q" value="{{ request.args.get('q', '') }}">
+            <button class="btn btn-outline-success" type="submit">Search</button>
+        </form>
+        {% if forums %}
+            <div class="list-group">
+                {% for forum in forums %}
+                    <a href="{{ url_for('forums.view_forum', forum_id=forum.id) }}" class="list-group-item list-group-item-action flex-column align-items-start">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">{{ forum.name }}</h5>
+                            <small class="text-muted">Topics: {{ forum.topic_count }} | Posts: {{ forum.post_count }}</small>
+                        </div>
+                        <p class="mb-1">{{ forum.description }}</p>
+                        <small class="text-muted">Last Post: {{ forum.last_post_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-info" role="alert">
+                No forums available yet.
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

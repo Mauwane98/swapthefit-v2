@@ -1,6 +1,7 @@
 from datetime import datetime
 from app.extensions import db
 from mongoengine.fields import ReferenceField, StringField, IntField, FloatField, DateTimeField, BooleanField, ListField
+from mongoengine.errors import DoesNotExist
 
 class Listing(db.Document):
     meta = {'strict': False}
@@ -44,7 +45,7 @@ class Listing(db.Document):
         """
         Converts the Listing object to a dictionary, useful for JSON serialization.
         """
-        return {
+        data = {
             'id': str(self.id),
             'title': self.title,
             'description': self.description,
@@ -63,6 +64,14 @@ class Listing(db.Document):
             'brand': self.brand,
             'color': self.color,
             'premium_expiry_date': self.premium_expiry_date.isoformat() + 'Z' if self.premium_expiry_date else None,
-            'user_id': str(self.user.id) if self.user else None,
-            'username': self.user.username if self.user else None
+            'user_id': None,
+            'username': None
         }
+        try:
+            if self.user:
+                data['user_id'] = str(self.user.id)
+                data['username'] = self.user.username
+        except DoesNotExist:
+            # If the user does not exist, user_id and username will remain None
+            pass
+        return data

@@ -28,9 +28,26 @@
                 <p class="text-muted mb-4">Total Completed Transactions: <span class="fw-bold">{{ total_transactions }}</span></p>
                 <p class="text-muted small mb-4">User ID: <span class="badge bg-light text-dark">{{ user.id }}</span></p>
 
+                {% if user_badges %}
+                    <div class="mb-4">
+                        <h6 class="fw-bold">Badges:</h6>
+                        {% for user_badge in user_badges %}
+                            <img src="{{ url_for('static', filename='images/' + user_badge.badge.image_url) }}" 
+                                 alt="{{ user_badge.badge.name }}" 
+                                 title="{{ user_badge.badge.name }}: {{ user_badge.badge.description }}"
+                                 class="me-2 mb-2" style="width: 50px; height: 50px;">
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
                 {% if current_user.is_authenticated and current_user.id != user.id %}
                     <div class="d-grid gap-2 d-md-block">
                         <a href="{{ url_for('messaging.inbox', user_id=user.id) }}" class="btn btn-primary me-md-2 mb-2 mb-md-0">Message {{ user.username }}</a>
+                        {% if is_following %}
+                                <a href="{{ url_for('follows.unfollow_user', user_id=user.id) }}" class="btn btn-outline-secondary me-md-2 mb-2 mb-md-0">Unfollow</a>
+                            {% else %}
+                                <a href="{{ url_for('follows.follow_user', user_id=user.id) }}" class="btn btn-success me-md-2 mb-2 mb-md-0">Follow</a>
+                            {% endif %}
                         <a href="{{ url_for('disputes.raise_dispute', entity_id=user.id, entity_type='user') }}" class="btn btn-danger me-md-2 mb-2 mb-md-0">Raise Dispute</a>
                         <a href="{{ url_for('reports.submit_report', entity_type='user', entity_id=user.id) }}" class="btn btn-secondary">Report User</a>
                     </div>
@@ -46,7 +63,7 @@
                 {% for review in reviews_received %}
                     <div class="list-group-item list-group-item-action flex-column align-items-start">
                         <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1">Review by {{ review.reviewer.username }}</h5>
+                            <h5 class="mb-1">Review by {% if review.reviewer %}{{ review.reviewer.username }}{% else %}[Deleted User]{% endif %}</h5>
                             <small class="text-muted">
                                 {{ review.date_posted.strftime('%b %d, %Y') }}
                                 {% if review.rating %}
@@ -92,7 +109,7 @@
                                 {% for swap in completed_swaps %}
                                     <li class="list-group-item">
                                         Swap ID: {{ swap.id }} - 
-                                        {{ swap.requester.username }} offered {{ swap.requester_listing.title }} for {{ swap.responder_listing.title }} from {{ swap.responder.username }}
+                                        {% if swap.requester %}{{ swap.requester.username }}{% else %}[Deleted User]{% endif %} offered {% if swap.requester_listing %}{{ swap.requester_listing.title }}{% else %}[Deleted Listing]{% endif %} for {% if swap.responder_listing %}{{ swap.responder_listing.title }}{% else %}[Deleted Listing]{% endif %} from {% if swap.responder %}{{ swap.responder.username }}{% else %}[Deleted User]{% endif %}
                                         <br><small class="text-muted">Completed on: {{ swap.updated_date.strftime('%b %d, %Y') }}</small>
                                     </li>
                                 {% endfor %}
@@ -117,8 +134,8 @@
                                 {% for order in completed_orders %}
                                     <li class="list-group-item">
                                         Order ID: {{ order.id }} - 
-                                        {{ order.listing.title }} (R{{ "%.2f"|format(order.listing.price) }})
-                                        <br><small class="text-muted">Buyer: {{ order.buyer.username }}, Seller: {{ order.seller.username }}</small>
+                                        {% if order.listing %}{{ order.listing.title }}{% else %}[Deleted Listing]{% endif %} (R{{ "%.2f"|format(order.listing.price) if order.listing and order.listing.price is not none else 'N/A' }})
+                                        <br><small class="text-muted">Buyer: {% if order.buyer %}{{ order.buyer.username }}{% else %}[Deleted User]{% endif %}, Seller: {% if order.seller %}{{ order.seller.username }}{% else %}[Deleted User]{% endif %}</small>
                                         <br><small class="text-muted">Completed on: {{ order.order_date.strftime('%b %d, %Y') }}</small>
                                     </li>
                                 {% endfor %}
@@ -142,8 +159,8 @@
                                 {% for donation in completed_donations %}
                                     <li class="list-group-item">
                                         Donation ID: {{ donation.id }} - 
-                                        {{ donation.listing.title }}
-                                        <br><small class="text-muted">Donor: {{ donation.donor.username }}, Recipient: {{ donation.recipient.username }}</small>
+                                        {% if donation.listing %}{{ donation.listing.title }}{% else %}[Deleted Listing]{% endif %}
+                                        <br><small class="text-muted">Donor: {% if donation.donor %}{{ donation.donor.username }}{% else %}[Deleted User]{% endif %}, Recipient: {% if donation.recipient %}{{ donation.recipient.username }}{% else %}[Deleted User]{% endif %}</small>
                                         <br><small class="text-muted">Completed on: {{ donation.date_donated.strftime('%b %d, %Y') }}</small>
                                     </li>
                                 {% endfor %}

@@ -5,6 +5,7 @@ from app.models.notifications import Notification
 from app.models.users import User # Needed to get user info if displaying sender of a message notification
 from app.extensions import db
 import json
+from app.blueprints.notifications.forms import NotificationSettingsForm
 
 notifications_bp = Blueprint('notifications', __name__)
 
@@ -76,6 +77,7 @@ def api_unread_count():
 def add_notification(user_id, message, notification_type='general', payload=None):
     """
     Creates and adds a new notification to the database.
+    Emits a SocketIO event to the recipient for real-time updates.
     
     Args:
         user_id (str): The ID of the user to notify.
@@ -83,8 +85,12 @@ def add_notification(user_id, message, notification_type='general', payload=None
         notification_type (str): Category of the notification (e.g., 'wishlist_update', 'new_message').
         payload (dict, optional): A dictionary of additional data to store with the notification.
     """
+    from flask import current_app
+    from app.extensions import socketio
+
     user = User.objects(id=user_id).first()
     if not user:
+        current_app.logger.warning(f"Attempted to add notification for non-existent user ID: {user_id}")
         return
 
     new_notification = Notification(
@@ -94,4 +100,40 @@ def add_notification(user_id, message, notification_type='general', payload=None
         payload=payload
     )
     new_notification.save()
+
+    # Emit SocketIO event for real-time notification
+    try:
+        unread_count = Notification.objects(user=user.id, is_read=False).count()
+        socketio.emit(
+            'new_notification',
+            {'message': message, 'count': unread_count, 'notification_type': notification_type, 'payload': payload},
+            room=str(user.id)
+        )
+        current_app.logger.info(f"Emitted new_notification to user {user.username} (ID: {user.id})")
+    except Exception as e:
+        current_app.logger.error(f"Error emitting SocketIO notification for user {user.id}: {e}")
+
     return new_notification
+
+@notifications_bp.route('/notifications/settings', methods=['GET', 'POST'])
+@login_required
+def notification_settings():
+    form = NotificationSettingsForm()
+    if form.validate_on_submit():
+        current_user.notify_new_message = form.notify_new_message.data
+        current_user.notify_listing_update = form.notify_listing_update.data
+        current_user.notify_swap_request = form.notify_swap_request.data
+        current_user.notify_forum_reply = form.notify_forum_reply.data
+        current_user.notify_new_follower = form.notify_new_follower.data
+        current_user.notify_admin_announcement = form.notify_admin_announcement.data
+        current_user.save()
+        flash('Your notification preferences have been updated!', 'success')
+        return redirect(url_for('notifications.notification_settings'))
+    elif request.method == 'GET':
+        form.notify_new_message.data = current_user.notify_new_message
+        form.notify_listing_update.data = current_user.notify_listing_update
+        form.notify_swap_request.data = current_user.notify_swap_request
+        form.notify_forum_reply.data = current_user.notify_forum_reply
+        form.notify_new_follower.data = current_user.notify_new_follower
+        form.notify_admin_announcement.data = current_user.notify_admin_announcement
+    return render_template('notifications/settings.html', title='Notification Settings', form=form)

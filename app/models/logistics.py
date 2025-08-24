@@ -2,6 +2,7 @@
 from datetime import datetime
 from app.extensions import db
 from app.models.users import User # Import User model
+from mongoengine.fields import ReferenceField # Add this import
 
 class Logistics(db.Document):
     """
@@ -16,8 +17,8 @@ class Logistics(db.Document):
     transaction_type = db.StringField(max_length=20, required=True) # 'sale', 'swap'
 
     # Parties involved (for easy lookup)
-    sender = db.fields.ReferenceField(User, required=True)
-    receiver = db.fields.ReferenceField(User, required=True)
+    sender = ReferenceField(User, required=True)
+    receiver = ReferenceField(User, required=True)
 
     # Shipping method: 'pickup_dropoff' (PUDO), 'courier', 'in_person'
     shipping_method = db.StringField(max_length=50, required=True)

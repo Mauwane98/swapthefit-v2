@@ -1,0 +1,23 @@
+{% extends "_layouts/base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>{{ title }}</h1>
+    <p class="lead">Please select a forum to create your new topic in:</p>
+    <hr>
+    {% if forums %}
+        <div class="list-group">
+            {% for forum in forums %}
+                <a href="{{ url_for('forums.new_topic', forum_id=forum.id) }}" class="list-group-item list-group-item-action">
+                    <h5>{{ forum.name }}</h5>
+                    <p class="mb-1">{{ forum.description }}</p>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info" role="alert">
+            No forums available to create topics in.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

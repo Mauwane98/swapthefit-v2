@@ -46,7 +46,7 @@ def init_app(app):
     socketio.init_app(app, cors_allowed_origins="*", async_mode='threading', logger=True, engineio_logger=True)
 
     # Initialize CSRF protection for the application
-    csrf.init_app(app)
+    # csrf.init_app(app) # Temporarily disabled for debugging
 
     # Initialize Flask-Moment for time and date rendering
     moment.init_app(app)

@@ -55,7 +55,7 @@
             </div>
         </div>
         <div class="col-lg-5">
-            <h1 class="display-5 fw-bold mb-3">{{ listing.title }}</h1>
+            <h1 class="display-5 fw-bold mb-3">{{ listing.title }} {% if listing.is_premium %}<span class="badge bg-warning text-dark">Premium</span>{% endif %}</h1>
             <p class="lead text-muted mb-4">{{ listing.description }}</p>
 
             <dl class="row">
@@ -69,7 +69,13 @@
                 <dd class="col-sm-8">{{ listing.size }}</dd>
 
                 <dt class="col-sm-4">Posted By</dt>
-                <dd class="col-sm-8"><a href="{{ url_for('listings.user_profile', user_id=listing.user.id) }}" class="text-decoration-none">{{ listing.user.username }}</a></dd>
+                <dd class="col-sm-8">
+    {% if listing.user %}
+        <a href="{{ url_for('listings.user_profile', user_id=listing.user.id) }}" class="text-decoration-none">{{ listing.user.username }}</a>
+    {% else %}
+        User not found
+    {% endif %}
+</dd>
             </dl>
 
             <hr class="my-4">
@@ -101,10 +107,9 @@
                                 <button type="submit" class="btn btn-success btn-lg w-100">Buy Now</button>
                             </form>
                         {% elif listing.listing_type == 'swap' %}
-                            <a href="{{ url_for('swaps.request_swap', listing_id=listing.id) }}" class="btn btn-info btn-lg">Request Swap</a>
+                            <a href="{{ url_for('swaps.propose_swap', listing_id=listing.id) }}" class="btn btn-info btn-lg">Request Swap</a>
                         {% elif listing.listing_type == 'donation' %}
                             <form action="{{ url_for('donations.request_donation', listing_id=listing.id) }}" method="POST">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <div class="d-grid">
                                     <button type="submit" class="btn btn-success btn-lg">Request Donation</button>
                                 </div>
@@ -117,11 +122,19 @@
                     {% endif %}
                 {% else %}
                     <a href="{{ url_for('listings.edit_listing', listing_id=listing.id) }}" class="btn btn-secondary btn-lg">Edit Listing</a>
+                    {% if not listing.is_premium %}
+                        <form action="{{ url_for('listings.initiate_premium_payment', listing_id=listing.id) }}" method="POST">
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-warning btn-lg">Make Premium</button>
+                            </div>
+                        </form>
+                    {% else %}
+                        <button class="btn btn-success btn-lg" disabled>Premium Listing</button>
+                    {% endif %}
                     {% if listing.listing_type == 'donation' %}
                         <a href="{{ url_for('donations.view_donation_requests', listing_id=listing.id) }}" class="btn btn-info btn-lg">View Donation Requests</a>
                     {% endif %}
                     <form action="{{ url_for('listings.delete_listing', listing_id=listing.id) }}" method="POST">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="d-grid">
                             <button type="submit" class="btn btn-danger btn-lg" onclick="return confirm('Are you sure you want to delete this listing? This action cannot be undone.');">Delete Listing</button>
                         </div>

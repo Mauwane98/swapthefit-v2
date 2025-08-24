@@ -5,6 +5,9 @@ from flask_login import UserMixin
 from itsdangerous import URLSafeTimedSerializer as Serializer
 from flask import current_app
 import json # For handling blocked_users_json
+from app.models.follows import Follow
+from app.models.listings import Listing
+from mongoengine.fields import ReferenceField, ListField
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -75,6 +78,14 @@ class User(db.Document, UserMixin):
     phone_number = db.StringField(max_length=20, required=False)
     receive_email_notifications = db.BooleanField(default=True)
     receive_sms_notifications = db.BooleanField(default=True)
+
+    # Notification preferences
+    notify_new_message = db.BooleanField(default=True)
+    notify_listing_update = db.BooleanField(default=True)
+    notify_swap_request = db.BooleanField(default=True)
+    notify_forum_reply = db.BooleanField(default=True)
+    notify_new_follower = db.BooleanField(default=True)
+    notify_admin_announcement = db.BooleanField(default=True)
 
 
     # Payout details for sellers
@@ -182,11 +193,29 @@ class User(db.Document, UserMixin):
         """
         return f"User('{self.username}', '{self.email}', '{self.image_file}', '{self.role}')"
 
+    def get_followed_users_listings(self):
+        """
+        Retrieves listings from users that the current user is following.
+        """
+        followed_users_ids = [follow.followed.id for follow in Follow.objects(follower=self.id)]
+        if not followed_users_ids:
+            return []
+        
+        # Fetch listings from followed users, ordered by creation date
+        listings = Listing.objects(user__in=followed_users_ids).order_by('-date_posted')
+        return listings
+
     # Payout details for sellers
     bank_name = db.StringField(max_length=100, required=False)
     account_number = db.StringField(max_length=50, required=False)
     account_name = db.StringField(max_length=100, required=False)
     paystack_recipient_code = db.StringField(max_length=50, required=False)
+
+    # Referral System
+    referral_code = db.StringField(max_length=20, unique=True, sparse=True) # Unique code for this user to share
+
+    # Forum Subscriptions
+    subscribed_topics = ListField(ReferenceField('Topic'))
 
     # Relationships to other models
     # saved_searches = db.relationship('SavedSearch', backref='user_saver', lazy=True)
@@ -200,11 +229,9 @@ class User(db.Document, UserMixin):
         """
         s = Serializer(current_app.config['SECRET_KEY'])
         return s.dumps({'user_id': self.id}, expires_in=expires_sec).decode('utf-8')
-
-    @staticmethod
-    def verify_reset_token(token):
         """
-        Verifies a password reset token and returns the user if valid.
+        Generates a signed token for password reset functionality.
+        The token expires after a specified number of seconds.
         """
         s = Serializer(current_app.config['SECRET_KEY'])
         try:

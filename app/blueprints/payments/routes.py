@@ -9,12 +9,14 @@ from datetime import datetime, timedelta
 from app.models.users import User
 from app.models.listings import Listing
 from app.models.orders import Order
-from app.blueprints.payments.forms import ProcessPaymentForm, TopUpCreditsForm
+from mongoengine.errors import DoesNotExist # Import DoesNotExist
+from app.blueprints.payments.forms import ProcessPaymentForm, TopUpCreditsForm, PremiumListingPurchaseForm
 
 # --- Service and Helper Imports ---
 # These would be custom services you build to interact with external APIs or handle business logic.
 from app.services.paystack import PaystackService # For interacting with Paystack API
 from app.services.notification_service import add_notification # For creating notifications
+from app.services.user_reputation_service import increment_transaction_count # For updating user trust score
 
 # --- Mock/Placeholder Implementations for Demonstration ---
 # In a real app, these would be in separate files.
@@ -36,6 +38,21 @@ payments_bp = Blueprint(
 )
 
 
+@payments_bp.route("/api/banks", methods=['GET'])
+@login_required
+def get_banks():
+    """
+    API endpoint to retrieve a list of banks from Paystack.
+    """
+    paystack_service = PaystackService()
+    response = paystack_service.list_banks()
+    if response and response['status']:
+        # Return only the data part, which contains the list of banks
+        return jsonify(response['data'])
+    else:
+        current_app.logger.error(f"Failed to retrieve bank list from Paystack: {response.get('message', 'Unknown error')}")
+        return jsonify({'error': 'Could not retrieve bank list'}), 500
+
 @payments_bp.route("/create_checkout_session/<string:listing_id>", methods=['POST'])
 @login_required
 def create_checkout_session(listing_id):
@@ -48,8 +65,13 @@ def create_checkout_session(listing_id):
         flash("This item is no longer available for purchase.", "warning")
         return redirect(url_for('listings.listing_detail', listing_id=listing.id))
 
-    if listing.user.id == current_user.id:
-        flash("You cannot purchase your own listing.", "danger")
+    try:
+        if listing.user.id == current_user.id:
+            flash("You cannot purchase your own listing.", "danger")
+            return redirect(url_for('listings.listing_detail', listing_id=listing.id))
+    except DoesNotExist:
+        flash("The seller of this listing no longer exists. This listing cannot be purchased.", "danger")
+        current_app.logger.warning(f"Listing {listing.id} references a non-existent user.")
         return redirect(url_for('listings.listing_detail', listing_id=listing.id))
 
     form = ProcessPaymentForm() # Assuming this form is used to select payment method
@@ -86,6 +108,10 @@ def create_checkout_session(listing_id):
                 listing.is_available = False
                 listing.status = 'sold'
                 listing.save()
+
+                # Increment transaction counts for buyer and seller
+                increment_transaction_count(current_user.id)
+                increment_transaction_count(listing.user.id)
 
                 flash('Payment successful using platform credits! Your order has been placed.', 'success')
                 add_notification(
@@ -284,6 +310,10 @@ def paystack_callback():
             listing.status = 'sold'
             listing.save()
 
+            # Increment transaction counts for buyer and seller
+            increment_transaction_count(buyer.id)
+            increment_transaction_count(seller.id)
+
             flash('Payment successful! Your order has been placed.', 'success')
 
             add_notification(
@@ -442,4 +472,4 @@ def order_history():
     purchases = Order.objects(buyer=current_user.id).order_by('-created_at')
     sales = Order.objects(seller=current_user.id).order_by('-created_at')
     
-    return render_template("order_history.html", purchases=purchases, sales=sales)
+    return render_template("payments/manage_orders.html", purchases=purchases, sales=sales)

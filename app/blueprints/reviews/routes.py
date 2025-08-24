@@ -12,148 +12,10 @@ from app.blueprints.reviews.forms import ReviewForm
 from app.extensions import db
 from app.blueprints.notifications.routes import add_notification # Import for review notifications
 from mongoengine.queryset.visitor import Q
-
-
-reviews_bp = Blueprint('reviews', __name__)
-
-def update_user_trust_score(user_id):
-    """
-    Recalculates and updates a user's trust score based on their reviews,
-    transaction history, and dispute resolution.
-    """
-    user = User.objects.get(id=user_id)
-    if not user:
-        return
-
-    # 1. Review-based score
-    received_reviews = Review.objects(reviewed_user=user.id)
-    user.positive_reviews_count = 0
-    user.negative_reviews_count = 0
-    sum_of_ratings = 0
-    total_reviews = 0
-
-    for review in received_reviews:
-        if review.is_positive:
-            user.positive_reviews_count += 1
-        else:
-            user.negative_reviews_count += 1
-        sum_of_ratings += review.rating
-        total_reviews += 1
-
-    review_score = 50.0 # Default if no reviews
-    if total_reviews > 0:
-        review_score = (sum_of_ratings / total_reviews) * 20 # Scale to 0-100
-
-    # 2. Transaction-based score
-    # Assuming total_transactions is updated when orders/swaps/donations complete
-    # This is a placeholder; actual implementation needs to increment this counter
-    # in the respective blueprints (payments, swaps, donations).
-    transaction_score = 0.0
-    if user.total_transactions > 0:
-        # Simple linear scaling: more transactions = higher score, up to a cap
-        transaction_score = min(user.total_transactions / 10.0, 1.0) * 100 # Max 100 for 10+ transactions
-
-    # 3. Dispute-based score
-    # Assuming resolved_disputes_count and fault_disputes_count are updated when disputes are resolved
-    dispute_score = 50.0 # Default
-    total_disputes = user.resolved_disputes_count + user.fault_disputes_count
-    if total_disputes > 0:
-        # Higher score for more resolved disputes vs. fault disputes
-        dispute_ratio = user.resolved_disputes_count / total_disputes
-        dispute_score = dispute_ratio * 100 # Scale to 0-100
-
-    # Combine scores with weights (adjust weights as needed)
-    # Example weights: reviews (60%), transactions (20%), disputes (20%)
-    user.trust_score = (
-        (review_score * 0.6) +
-        (transaction_score * 0.2) +
-        (dispute_score * 0.2)
-    )
-    
-    # Ensure trust score is within 0-100 range
-    user.trust_score = max(0.0, min(100.0, user.trust_score))
-
-    user.save()
-
-
-from flask import Blueprint, render_template, url_for, flash, redirect, request, abort, current_app # Added current_app
-from flask_login import login_required, current_user
-from app.models.reviews import Review
-from app.models.users import User
-from app.models.listings import Listing # Needed for linking reviews to listings
-# Assuming you have models for SwapRequest, Order, Donation to validate transaction_id
-from app.models.swaps import SwapRequest # Example for transaction validation
-from app.models.payments import Order # Example for transaction validation
-from app.models.donations import Donation # Example for transaction validation
-from app.blueprints.reviews.forms import ReviewForm
-from app.extensions import db
-from app.blueprints.notifications.routes import add_notification # Import for review notifications
-from mongoengine.queryset.visitor import Q
-# Import the save_pictures function from listings blueprint
-from app.blueprints.listings.routes import save_pictures # Import save_pictures
-
+from app.services.user_reputation_service import update_user_trust_score
+from app.services.badge_service import badge_service # Import badge_service
 
 reviews_bp = Blueprint('reviews', __name__)
-
-def update_user_trust_score(user_id):
-    """
-    Recalculates and updates a user's trust score based on their reviews,
-    transaction history, and dispute resolution.
-    """
-    user = User.objects.get(id=user_id)
-    if not user:
-        return
-
-    # 1. Review-based score
-    received_reviews = Review.objects(reviewed_user=user.id)
-    user.positive_reviews_count = 0
-    user.negative_reviews_count = 0
-    sum_of_ratings = 0
-    total_reviews = 0
-
-    for review in received_reviews:
-        if review.is_positive:
-            user.positive_reviews_count += 1
-        else:
-            user.negative_reviews_count += 1
-        sum_of_ratings += review.rating
-        total_reviews += 1
-
-    review_score = 50.0 # Default if no reviews
-    if total_reviews > 0:
-        review_score = (sum_of_ratings / total_reviews) * 20 # Scale to 0-100
-
-    # 2. Transaction-based score
-    # Assuming total_transactions is updated when orders/swaps/donations complete
-    # This is a placeholder; actual implementation needs to increment this counter
-    # in the respective blueprints (payments, swaps, donations).
-    transaction_score = 0.0
-    if user.total_transactions > 0:
-        # Simple linear scaling: more transactions = higher score, up to a cap
-        transaction_score = min(user.total_transactions / 10.0, 1.0) * 100 # Max 100 for 10+ transactions
-
-    # 3. Dispute-based score
-    # Assuming resolved_disputes_count and fault_disputes_count are updated when disputes are resolved
-    dispute_score = 50.0 # Default
-    total_disputes = user.resolved_disputes_count + user.fault_disputes_count
-    if total_disputes > 0:
-        # Higher score for more resolved disputes vs. fault disputes
-        dispute_ratio = user.resolved_disputes_count / total_disputes
-        dispute_score = dispute_ratio * 100 # Scale to 0-100
-
-    # Combine scores with weights (adjust weights as needed)
-    # Example weights: reviews (60%), transactions (20%), disputes (20%)
-    user.trust_score = (
-        (review_score * 0.6) +
-        (transaction_score * 0.2) +
-        (dispute_score * 0.2)
-    )
-    
-    # Ensure trust score is within 0-100 range
-    user.trust_score = max(0.0, min(100.0, user.trust_score))
-
-    user.save()
-
 
 @reviews_bp.route("/review/submit/<string:reviewed_user_id>", methods=['GET', 'POST'])
 @login_required
@@ -286,6 +148,9 @@ def submit_review(reviewed_user_id):
 
         # Recalculate trust score after review
         update_user_trust_score(reviewed_user.id)
+
+        # Check and award badges for the reviewed user
+        badge_service.check_and_award_badges(reviewed_user)
 
         flash('Your review has been submitted!', 'success')
 

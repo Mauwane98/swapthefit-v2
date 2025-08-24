@@ -147,7 +147,7 @@
         {% if not premium_purchases %}
             <div class="card-body text-center">
                 <p class="text-muted mb-0">You haven't purchased any premium listings yet.</p>
-                <a href="{{ url_for('payments.purchase_premium') }}" class="btn btn-primary mt-3">Go Premium Now!</a>
+                <a href="{{ url_for('listings.dashboard') }}" class="btn btn-primary mt-3">Go Premium Now!</a>
             </div>
         {% endif %}
     </div>

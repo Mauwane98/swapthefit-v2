@@ -18,8 +18,9 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
     
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+    <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
     {% block head %}{% endblock %}
-</head>
 <body>
     <header>
         <nav class="navbar navbar-expand-lg navbar-light bg-white py-3">
@@ -35,6 +36,16 @@
                         </li>
                         {% if current_user.is_authenticated %}
                             <li class="nav-item"><a class="nav-link" href="{{ url_for('listings.dashboard') }}">Dashboard</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('forums.forum_home') }}">Forums</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('feeds.index') }}">Feeds</a></li>
+                            <li class="nav-item">
+                                <a class="nav-link position-relative" href="{{ url_for('notifications.index') }}">
+                                    Notifications
+                                    <span id="unread-notifications-badge" class="badge rounded-pill bg-danger position-absolute top-0 start-100 translate-middle d-none">
+                                        0
+                                    </span>
+                                </a>
+                            </li>
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     {{ current_user.username }}
@@ -45,6 +56,7 @@
                                         <li><hr class="dropdown-divider"></li>
                                         <li><a class="dropdown-item" href="{{ url_for('admin.manage_users') }}">Admin Panel</a></li>
                                     {% endif %}
+                                    <li><a class="dropdown-item" href="{{ url_for('notifications.notification_settings') }}">Notification Settings</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Logout</a></li>
                                 </ul>
@@ -167,6 +179,22 @@
         <!-- Toasts will be appended here -->
     </div>
 
-    {% block scripts %}{% endblock %}
+    {% block scripts %}
+    <script>
+        tinymce.init({
+            selector: 'textarea.richtext-editor', // Target textareas with this class
+            plugins: 'advlist autolink lists link image charmap print preview anchor \
+                      searchreplace visualblocks code fullscreen insertdatetime media table paste code help wordcount',
+            toolbar: 'undo redo | formatselect | \
+                      bold italic backcolor | alignleft aligncenter \
+                      alignright alignjustify | bullist numlist outdent indent | \
+                      removeformat | help',
+            content_css: [
+                '//fonts.googleapis.com/css?family=Lato:300,300i,400,400i',
+                '//www.tiny.cloud/css/codepen.min.css'
+            ]
+        });
+    </script>
+    {% endblock %}
 </body>
 </html>

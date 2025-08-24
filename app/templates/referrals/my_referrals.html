@@ -1,0 +1,99 @@
+{% extends "_layouts/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="text-center mb-4">
+        <h1 class="h2 fw-bold">{{ title }}</h1>
+        <p class="lead text-muted">Share your unique referral code with friends and earn rewards!</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Your Referral Code</h5>
+            <div class="input-group mb-3">
+                <input type="text" class="form-control" id="referralCodeInput" value="{{ user_referral_code }}" readonly>
+                <button class="btn btn-outline-secondary" type="button" id="copyReferralCodeBtn">Copy</button>
+            </div>
+            <p class="card-text text-muted">Share this code with new users when they register.</p>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5 class="card-title">Referred Users</h5>
+            {% if my_referred_users %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Referred User</th>
+                            <th>Status</th>
+                            <th>Date Referred</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for referral in my_referred_users %}
+                        <tr>
+                            <td>
+                                {% if referral.referred_user %}
+                                    <a href="{{ url_for('listings.user_profile', user_id=referral.referred_user.id) }}">{{ referral.referred_user.username }}</a>
+                                {% else %}
+                                    N/A (User not yet registered or linked)
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if referral.status == 'completed' %}
+                                    <span class="badge bg-success">Completed</span>
+                                {% elif referral.status == 'pending' %}
+                                    <span class="badge bg-warning">Pending</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ referral.status.capitalize() }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ referral.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info text-center" role="alert">
+                You haven't referred any users yet. Share your code to start earning!
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const copyButton = document.getElementById('copyReferralCodeBtn');
+        const referralCodeInput = document.getElementById('referralCodeInput');
+
+        if (copyButton) {
+            copyButton.addEventListener('click', function() {
+                referralCodeInput.select();
+                referralCodeInput.setSelectionRange(0, 99999); // For mobile devices
+                document.execCommand('copy');
+                copyButton.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyButton.textContent = 'Copy';
+                }, 2000);
+            });
+        }
+    });
+</script>
+{% endblock %}

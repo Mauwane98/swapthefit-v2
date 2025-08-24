@@ -11,6 +11,7 @@ from app.extensions import db
 from app.blueprints.notifications.routes import add_notification
 from datetime import datetime
 from mongoengine.queryset.visitor import Q # For complex queries
+import json
 
 
 logistics_bp = Blueprint('logistics', __name__)

@@ -1,0 +1,43 @@
+{% extends "_layouts/base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>{{ title }}</h1>
+    <hr>
+    <form method="POST" action="{{ url_for('notifications.notification_settings') }}">
+        {{ form.csrf_token }}
+        <div class="card mb-4">
+            <div class="card-header">
+                Email Notifications
+            </div>
+            <div class="card-body">
+                <div class="form-check mb-2">
+                    {{ form.notify_new_message(class="form-check-input") }}
+                    {{ form.notify_new_message.label(class="form-check-label") }}
+                </div>
+                <div class="form-check mb-2">
+                    {{ form.notify_listing_update(class="form-check-input") }}
+                    {{ form.notify_listing_update.label(class="form-check-label") }}
+                </div>
+                <div class="form-check mb-2">
+                    {{ form.notify_swap_request(class="form-check-input") }}
+                    {{ form.notify_swap_request.label(class="form-check-label") }}
+                </div>
+                <div class="form-check mb-2">
+                    {{ form.notify_forum_reply(class="form-check-input") }}
+                    {{ form.notify_forum_reply.label(class="form-check-label") }}
+                </div>
+                <div class="form-check mb-2">
+                    {{ form.notify_new_follower(class="form-check-input") }}
+                    {{ form.notify_new_follower.label(class="form-check-label") }}
+                </div>
+                <div class="form-check mb-2">
+                    {{ form.notify_admin_announcement(class="form-check-input") }}
+                    {{ form.notify_admin_announcement.label(class="form-check-label") }}
+                </div>
+            </div>
+        </div>
+        {{ form.submit(class="btn btn-primary") }}
+    </form>
+</div>
+{% endblock %}

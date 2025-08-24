@@ -114,13 +114,13 @@
                                 {% endfor %}
                             </div>
                             {# Display previously uploaded images if any #}
-                            {% if form.images.data and form.images.data|length > 0 %}
+                            {% if session.get('listing_data', {}).get('image_files', []) %}
                                 <div class="mb-3">
                                     <p class="form-label">Previously Uploaded Images:</p>
                                     <div class="row">
-                                        {% for image_file in form.images.data %}
+                                        {% for image_filename in session.get('listing_data', {}).get('image_files', []) %}
                                             <div class="col-4 mb-2">
-                                                <img src="{{ url_for('static', filename='uploads/' + image_file) }}" class="img-fluid rounded" alt="Uploaded Image">
+                                                <img src="{{ url_for('static', filename='uploads/' + image_filename) }}" class="img-fluid rounded" alt="Uploaded Image">
                                             </div>
                                         {% endfor %}
                                     </div>

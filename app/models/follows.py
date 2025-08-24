@@ -1,18 +1,19 @@
+from app.extensions import db
 from datetime import datetime
-from app.extensions import db # Keep db import for db.Document
-from mongoengine import Document, ReferenceField, DateTimeField, CASCADE # Import directly from mongoengine
+from mongoengine.fields import ReferenceField, DateTimeField
 
-class Follow(Document): # Use Document directly
-    follower = ReferenceField('User', required=True, reverse_delete_rule=CASCADE) # Use CASCADE directly
-    followed = ReferenceField('User', required=True, reverse_delete_rule=CASCADE) # Use CASCADE directly
+class Follow(db.Document):
+    follower = ReferenceField('User', required=True, help_text="The user who is following")
+    followed = ReferenceField('User', required=True, help_text="The user being followed")
     timestamp = DateTimeField(default=datetime.utcnow)
 
     meta = {
-        'collection': 'follows',
         'indexes': [
-            {'fields': ('follower', 'followed'), 'unique': True} # Ensure a user can only follow another user once
+            {'fields': ('follower', 'followed'), 'unique': True}, # A user can only follow another user once
+            'follower',
+            'followed'
         ]
     }
 
     def __repr__(self):
-        return f"Follow(follower={self.follower.username}, followed={self.followed.username})"
+        return f"<Follow {self.follower.username} follows {self.followed.username}>"

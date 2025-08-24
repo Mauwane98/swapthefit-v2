@@ -5,10 +5,12 @@ from wtforms.validators import ValidationError
 from app.models.users import User
 from app.utils.emails import send_password_reset_email, send_welcome_email
 import datetime
+import secrets # For generating referral codes
 # Import the roles_required decorator from app.utils.security
  
 # Import the activity logger
 from app.utils.activity_logger import log_activity
+from app.models.referrals import Referral # Import Referral model
 
 auth_bp = Blueprint('auth', __name__, template_folder='templates')
 
@@ -53,12 +55,42 @@ def register():
             # Save the new user to the MongoDB database
             user.save()
 
+            # Generate a unique referral code for the new user
+            while True:
+                new_referral_code = secrets.token_urlsafe(8)
+                if not User.objects(referral_code=new_referral_code).first():
+                    user.referral_code = new_referral_code
+                    user.save() # Save again with the referral code
+                    break
+
+            # Process entered referral code if any
+            entered_referral_code = form.referral_code.data
+            if entered_referral_code:
+                referrer_user = User.objects(referral_code=entered_referral_code).first()
+                if referrer_user:
+                    # Create a new Referral entry
+                    referral_entry = Referral(
+                        referrer=referrer_user,
+                        referred_user=user,
+                        referral_code=entered_referral_code,
+                        status='completed',
+                        completed_at=datetime.datetime.utcnow()
+                    )
+                    referral_entry.save()
+                    flash(f'You were referred by {referrer_user.username}!', 'info')
+                    # TODO: Implement reward system for referrer (e.g., add credits)
+                    # referrer_user.credit_balance += 10.0 # Example reward
+                    # referrer_user.save()
+                    # flash(f'{referrer_user.username} received a reward for your referral!', 'info')
+                else:
+                    flash('Invalid referral code.', 'warning')
+
             # Log user registration activity
             log_activity(
                 user_id=user.id,
                 action_type='user_registered',
                 description=f"New user registered: {user.username} with role {user.role}",
-                payload={'email': user.email, 'role': user.role},
+                payload={'email': user.email, 'role': user.role, 'referred_by': entered_referral_code},
                 request_obj=request # Pass the request object to capture IP
             )
 

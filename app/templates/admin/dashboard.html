@@ -134,6 +134,17 @@
             </div>
         </div>
         {% endif %}
+        {% if current_user.show_account_summary_on_dashboard %}
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Manage Sponsored Content</h5>
+                    <p class="card-text">Create and manage sponsored advertisements.</p>
+                    <a href="{{ url_for('sponsored_content.list_sponsored_content') }}" class="btn btn-primary">Go to Sponsored Content</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
         {% if current_user.show_my_listings_on_dashboard %}
         <div class="col-md-4">
             <div class="card shadow-sm mb-4">

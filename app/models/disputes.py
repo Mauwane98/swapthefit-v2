@@ -9,6 +9,7 @@ class Dispute(db.Document):
     listing = ReferenceField('Listing')
     reason = StringField(required=True)
     status = StringField(max_length=50, default='open')
+    resolution = StringField(choices=('pending', 'resolved_in_favor_of_initiator', 'resolved_in_favor_of_respondent', 'mutually_resolved', 'rejected'), default='pending')
     date_raised = DateTimeField(default=datetime.utcnow)
     date_resolved = DateTimeField()
     resolution_notes = StringField()

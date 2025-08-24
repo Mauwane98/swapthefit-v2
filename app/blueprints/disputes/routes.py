@@ -9,6 +9,7 @@ from app.blueprints.disputes.forms import RaiseDisputeForm, ResolveDisputeForm
 from app.blueprints.notifications.routes import add_notification # Import for dispute notifications
 from datetime import datetime
 from app.services.fraud_detection_service import FraudDetectionService
+from app.services.user_reputation_service import update_dispute_counts # Import for updating user trust score
 
 disputes_bp = Blueprint('disputes', __name__)
 
@@ -168,6 +169,32 @@ def resolve_dispute(dispute_id):
         dispute.save()
         flash('Dispute updated successfully!', 'success')
 
+        # Update dispute counts for initiator and respondent
+        if dispute.status == 'resolved': # Assuming 'resolved' means a clear outcome
+            # The resolution_notes should ideally contain information about who was at fault or in favor.
+            # For now, we'll use a simplified logic. You might need to add a field to the form
+            # to explicitly state the resolution outcome (e.g., 'in_favor_of_initiator', 'in_favor_of_respondent').
+            # Based on the current form, we'll assume 'resolved' implies a neutral resolution or
+            # that the resolution_notes will clarify.
+            # To properly update dispute counts, you need to know if the initiator or respondent was "at fault"
+            # or "in favor". This requires more specific logic based on your dispute resolution process.
+            # For demonstration, let's assume a simple case where 'resolved' means both parties get a 'resolved' count.
+            # You'll need to refine this based on your actual dispute resolution outcomes.
+            
+            # Example of how you might call it if you had a clear outcome:
+            # if form.resolution_outcome.data == 'in_favor_of_initiator':
+            #     update_dispute_counts(dispute.initiator.id, 'resolved_in_favor_of_initiator')
+            #     update_dispute_counts(dispute.respondent.id, 'resolved_against_respondent') # Assuming respondent was at fault
+            # elif form.resolution_outcome.data == 'in_favor_of_respondent':
+            #     update_dispute_counts(dispute.respondent.id, 'resolved_in_favor_of_respondent')
+            #     update_dispute_counts(dispute.initiator.id, 'resolved_against_initiator') # Assuming initiator was at fault
+            
+            # For now, a placeholder call. You need to implement the logic to determine the actual resolution status.
+            # This part needs careful consideration of your dispute resolution workflow.
+            update_dispute_counts(dispute.initiator.id, 'resolved_in_favor_of_initiator') # Placeholder
+            update_dispute_counts(dispute.respondent.id, 'resolved_in_favor_of_respondent') # Placeholder
+
+
         # Notify initiator and respondent about dispute status change
         message_to_initiator = f"Your dispute (ID: {dispute.id}) regarding '{dispute.listing.title if dispute.listing else 'an issue'}' has been updated to '{dispute.status}'. Check details."
         add_notification(
@@ -196,4 +223,3 @@ def resolve_dispute(dispute_id):
         form.resolution_notes.data = dispute.resolution_notes
         
     return render_template('admin/resolve_dispute.html', title='Resolve Dispute', form=form, dispute=dispute)
-

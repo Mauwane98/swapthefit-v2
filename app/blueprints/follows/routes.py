@@ -1,4 +1,4 @@
-from flask import Blueprint, flash, redirect, url_for
+from flask import Blueprint, flash, redirect, url_for, render_template
 from flask_login import login_required, current_user
 from app.models.users import User
 from app.models.follows import Follow
@@ -46,3 +46,9 @@ def unfollow_user(user_id):
         flash(f'Error unfollowing user: {e}', 'danger')
     
     return redirect(url_for('listings.user_profile', user_id=user_id))
+
+@follows_bp.route('/feed')
+@login_required
+def feed():
+    listings = current_user.get_followed_users_listings()
+    return render_template('follows/feed.html', listings=listings, title='Your Feed')

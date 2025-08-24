@@ -77,3 +77,5 @@ requests-oauthlib==2.0.0
 oauthlib==3.2.2
 google-auth-oauthlib==1.2.0
 google-api-python-client==2.133.0
+flask-apscheduler
+

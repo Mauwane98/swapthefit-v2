@@ -1,0 +1,71 @@
+{% extends "_layouts/base.html" %}
+
+{% block content %}
+    <div class="container mt-4">
+        <h1>{{ forum.name }}</h1>
+        <p class="lead">{{ forum.description }}</p>
+        <hr>
+        <div class="d-flex justify-content-between mb-3">
+            <a href="{{ url_for('forums.new_topic', forum_id=forum.id) }}" class="btn btn-primary">Create New Topic</a>
+            <a href="{{ url_for('forums.forum_home') }}" class="btn btn-secondary">Back to Forums</a>
+        </div>
+
+        <form class="d-flex mb-4" method="GET" action="{{ url_for('forums.view_forum', forum_id=forum.id) }}">
+            <input class="form-control me-2" type="search" placeholder="Search topics..." aria-label="Search" name="q" value="{{ request.args.get('q', '') }}">
+            <button class="btn btn-outline-success" type="submit">Search</button>
+        </form>
+
+        {% if topics_pagination.items %}
+            <ul class="list-group">
+                {% for topic in topics_pagination.items %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <a href="{{ url_for('forums.view_topic', topic_id=topic.id) }}">
+                                <h5>{{ topic.title }}</h5>
+                            </a>
+                            <small class="text-muted">
+                                Started by {{ topic.author.username }} on {{ topic.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                | Posts: {{ topic.post_count }} | Views: {{ topic.views }}
+                            </small>
+                            <p class="mb-1 text-truncate" style="max-width: 80%;">{{ topic.content | striptags | truncate(150) }}</p>
+                        </div>
+                        <span class="badge bg-info rounded-pill">Last Post: {{ topic.last_post_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                    </li>
+                {% endfor %}
+            </ul>
+
+            {# Pagination Controls #}
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center mt-4">
+                    {% if topics_pagination.has_prev %}
+                        <li class="page-item"><a class="page-link" href="{{ url_for('forums.view_forum', forum_id=forum.id, page=topics_pagination.prev_num) }}">Previous</a></li>
+                    {% else %}
+                        <li class="page-item disabled"><a class="page-link" href="#">Previous</a></li>
+                    {% endif %}
+
+                    {% for page_num in topics_pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                        {% if page_num %}
+                            {% if topics_pagination.page == page_num %}
+                                <li class="page-item active"><a class="page-link" href="#">{{ page_num }}</a></li>
+                            {% else %}
+                                <li class="page-item"><a class="page-link" href="{{ url_for('forums.view_forum', forum_id=forum.id, page=page_num) }}">{{ page_num }}</a></li>
+                            {% endif %}
+                        {% else %}
+                            <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if topics_pagination.has_next %}
+                        <li class="page-item"><a class="page-link" href="{{ url_for('forums.view_forum', forum_id=forum.id, page=topics_pagination.next_num) }}">Next</a></li>
+                    {% else %}
+                        <li class="page-item disabled"><a class="page-link" href="#">Next</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% else %}
+            <div class="alert alert-info" role="alert">
+                No topics in this forum yet. Be the first to create one!
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

@@ -1,4 +1,9 @@
 # scripts/seed_db.py
+import sys
+import os
+# Add the parent directory to the Python path so that 'app' can be imported
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import secrets
 from app import create_app
 from app.models.users import User
@@ -14,11 +19,13 @@ from app.models.reports import Report
 from app.models.disputes import Dispute
 from app.models.saved_search import SavedSearch
 from app.models.user_activity import UserActivity # Import UserActivity for clearing
+from app.models.forums import Forum # Import Forum model
 from app.extensions import db, bcrypt # db is MongoEngine instance here
 from datetime import datetime, timedelta
 import random
 import os
 from bson import ObjectId # Import ObjectId for MongoEngine IDs
+from app.services.user_reputation_service import update_user_trust_score
 
 def clear_all_collections(app):
     """
@@ -40,7 +47,62 @@ def clear_all_collections(app):
         Dispute.objects.delete()
         SavedSearch.objects.delete()
         UserActivity.objects.delete() # Clear activity logs too for a fresh start
+        Forum.objects.delete() # Clear forums
         print("All collections cleared.")
+
+def seed_forums():
+    """
+    Seeds sample forum categories.
+    """
+    print("Seeding forums...")
+    forums = {}
+
+    if not Forum.objects(name="General Discussion").first():
+        general_discussion = Forum(
+            name="General Discussion",
+            description="A place for all general discussions about school uniforms and supplies.",
+            topic_count=0,
+            post_count=0,
+            last_post_at=datetime.utcnow()
+        )
+        general_discussion.save()
+        print(f"Created Forum: {general_discussion.name}")
+    else:
+        general_discussion = Forum.objects(name="General Discussion").first()
+        print(f"Forum '{general_discussion.name}' already exists.")
+    forums['general_discussion'] = general_discussion
+
+    if not Forum.objects(name="Swap & Sell Tips").first():
+        swap_sell_tips = Forum(
+            name="Swap & Sell Tips",
+            description="Share and get tips on swapping and selling uniforms effectively.",
+            topic_count=0,
+            post_count=0,
+            last_post_at=datetime.utcnow()
+        )
+        swap_sell_tips.save()
+        print(f"Created Forum: {swap_sell_tips.name}")
+    else:
+        swap_sell_tips = Forum.objects(name="Swap & Sell Tips").first()
+        print(f"Forum '{swap_sell_tips.name}' already exists.")
+    forums['swap_sell_tips'] = swap_sell_tips
+
+    if not Forum.objects(name="Donation Stories").first():
+        donation_stories = Forum(
+            name="Donation Stories",
+            description="Share heartwarming stories about donations and their impact.",
+            topic_count=0,
+            post_count=0,
+            last_post_at=datetime.utcnow()
+        )
+        donation_stories.save()
+        print(f"Created Forum: {donation_stories.name}")
+    else:
+        donation_stories = Forum.objects(name="Donation Stories").first()
+        print(f"Forum '{donation_stories.name}' already exists.")
+    forums['donation_stories'] = donation_stories
+
+    return forums
 
 def seed_users():
     """
@@ -619,70 +681,10 @@ def seed_reviews(users, listings, swaps, orders):
     # Update user trust scores after reviews
     for user_obj in users.values():
         print(f"Updating trust score for {user_obj.username}...")
-        update_user_trust_score_manual(user_obj.id)
+        update_user_trust_score(user_obj.id)
     # No db.session.commit() here, .save() commits within update_user_trust_score_manual
 
-def update_user_trust_score_manual(user_id):
-    """
-    Manually recalculates and updates a user's trust score for seeding purposes.
-    This duplicates logic from reviews.routes.py but is necessary here.
-    """
-    user = User.objects(id=user_id).first()
-    if not user:
-        return
 
-    received_reviews = Review.objects(reviewed_user=user.id).all()
-    user.positive_reviews_count = 0
-    user.negative_reviews_count = 0
-    total_overall_ratings = 0
-    sum_of_overall_ratings = 0
-    total_communication_ratings = 0
-    sum_of_communication_ratings = 0
-    total_logistics_ratings = 0
-    sum_of_logistics_ratings = 0
-    item_as_described_count = 0
-    total_item_reviews = 0
-
-    for review in received_reviews:
-        if review.is_positive:
-            user.positive_reviews_count += 1
-        else:
-            user.negative_reviews_count += 1
-        
-        total_overall_ratings += 1
-        sum_of_overall_ratings += review.rating
-        total_communication_ratings += 1
-        sum_of_communication_ratings += review.communication_rating
-        total_logistics_ratings += 1
-        sum_of_logistics_ratings += review.logistics_rating
-        total_item_reviews += 1
-        if review.item_as_described:
-            item_as_described_count += 1
-    
-    overall_score = 50.0
-    if total_overall_ratings > 0:
-        overall_score = (sum_of_overall_ratings / total_overall_ratings) * 20
-    
-    communication_score = 50.0
-    if total_communication_ratings > 0:
-        communication_score = (sum_of_communication_ratings / total_communication_ratings) * 20
-
-    logistics_score = 50.0
-    if total_logistics_ratings > 0:
-        logistics_score = (sum_of_logistics_ratings / total_logistics_ratings) * 20
-
-    item_accuracy_score = 50.0
-    if total_item_reviews > 0:
-        item_accuracy_score = (item_as_described_count / total_item_reviews) * 100
-
-    user.trust_score = (
-        overall_score * 0.4 +
-        communication_score * 0.2 +
-        logistics_score * 0.2 +
-        item_accuracy_score * 0.2
-    )
-    user.trust_score = max(0, min(100, user.trust_score))
-    user.save() # Save the user object after updating scores
 
 def seed_wishlist_items(users, listings):
     """
@@ -825,6 +827,7 @@ def seed_all_data():
         clear_all_collections(app) 
 
         users = seed_users()
+        forums = seed_forums() # Seed forums
         listings = seed_listings(users)
         seed_messages(users, listings)
         

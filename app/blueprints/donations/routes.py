@@ -8,7 +8,7 @@ from app.blueprints.donations.forms import ProposeDonationForm, ConfirmDonationR
 from app.utils.security import roles_required
 from datetime import datetime
 from mongoengine.queryset.visitor import Q # For complex queries
-
+from app.services.user_reputation_service import increment_transaction_count # Import for updating user trust score
 
 donations_bp = Blueprint('donations', __name__)
 
@@ -194,6 +194,10 @@ def confirm_receipt(donation_id):
         recipient_user.total_donations_value += donation.estimated_value
         recipient_user.save() # Save updated user metrics
 
+        # Increment transaction count for recipient and donor
+        increment_transaction_count(recipient_user.id)
+        increment_transaction_count(donation.donor.id)
+
         # Notify the donor
         notification_message = f"Your donation of '{donation.donated_listing.title}' (Quantity: {donation.quantity}, Value: R{donation.estimated_value:.2f}) has been RECEIVED by {current_user.username}! (Previously proposed: Quantity {old_quantity}, Value R{old_value:.2f})"
         notification = Notification(
@@ -242,7 +246,7 @@ def mark_distributed(donation_id):
     
     form = MarkDonationDistributedForm()
     if form.validate_on_submit():
-        donation.status = 'distributed'
+        donation.status = 'completed' # Change status to 'completed'
         # Append distribution notes to existing notes, or create if none exist
         if donation.notes:
             donation.notes += f"\nDistribution Notes: {form.distribution_notes.data}"
@@ -252,6 +256,10 @@ def mark_distributed(donation_id):
         donation.families_supported = form.families_supported.data # Update with families supported
         donation.updated_date = datetime.utcnow()
         donation.save()
+
+        # Check and award badges for both donor and recipient
+        badge_service.check_and_award_badges(donation.donor)
+        badge_service.check_and_award_badges(donation.recipient)
 
         # No change needed to listing status, it's already 'donated' and inactive
 

@@ -1,0 +1,99 @@
+{% extends "_layouts/admin_base.html" %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="h3 mb-4 text-gray-800">{{ title }}</h1>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Fraud Alerts</h6>
+        </div>
+        <div class="card-body">
+            <form class="form-inline mb-4" method="GET" action="{{ url_for('admin.manage_fraud_alerts') }}">
+                <div class="form-group mr-3">
+                    <input type="text" name="search_term" class="form-control" placeholder="Search description or type" value="{{ search_term if search_term else '' }}">
+                </div>
+                <div class="form-group mr-3">
+                    <select name="status_filter" class="form-control">
+                        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Statuses</option>
+                        <option value="unreviewed" {% if status_filter == 'unreviewed' %}selected{% endif %}>Unreviewed</option>
+                        <option value="reviewed" {% if status_filter == 'reviewed' %}selected{% endif %}>Reviewed</option>
+                    </select>
+                </div>
+                <div class="form-group mr-3">
+                    <select name="alert_type_filter" class="form-control">
+                        {% for type in distinct_alert_types %}
+                        <option value="{{ type }}" {% if alert_type_filter == type %}selected{% endif %}>{{ type|replace('_', ' ')|title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group mr-3">
+                    <select name="severity_filter" class="form-control">
+                        {% for severity in distinct_severities %}
+                        <option value="{{ severity }}" {% if severity_filter == severity %}selected{% endif %}>{{ severity|title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Apply Filters</button>
+                <a href="{{ url_for('admin.manage_fraud_alerts') }}" class="btn btn-secondary ml-2">Reset</a>
+            </form>
+
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th>Severity</th>
+                            <th>Timestamp</th>
+                            <th>Reviewed</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for alert in fraud_alerts %}
+                        <tr>
+                            <td>{{ alert.id }}</td>
+                            <td>{{ alert.alert_type|replace('_', ' ')|title }}</td>
+                            <td>{{ alert.description }}</td>
+                            <td><span class="badge badge-{{ 'danger' if alert.severity == 'high' else ('warning' if alert.severity == 'medium' else 'info') }}">{{ alert.severity|title }}</span></td>
+                            <td>{{ alert.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                            <td>
+                                {% if alert.is_reviewed %}
+                                <span class="badge badge-success">Yes</span>
+                                {% else %}
+                                <span class="badge badge-warning">No</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if not alert.is_reviewed %}
+                                <form action="{{ url_for('admin.mark_fraud_alert_reviewed', alert_id=alert.id) }}" method="POST" style="display:inline;">
+                                    <button type="submit" class="btn btn-success btn-sm">Mark Reviewed</button>
+                                </form>
+                                {% endif %}
+                                <form action="{{ url_for('admin.delete_fraud_alert', alert_id=alert.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this alert?');">
+                                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                </form>
+                                {% if alert.listing %}
+                                <a href="{{ url_for('listings.listing_detail', listing_id=alert.listing.id) }}" class="btn btn-info btn-sm" target="_blank">View Listing</a>
+                                {% elif alert.user %}
+                                <a href="{{ url_for('admin.edit_user', user_id=alert.user.id) }}" class="btn btn-info btn-sm" target="_blank">View User</a>
+                                {% elif alert.order %}
+                                <a href="{{ url_for('admin.manage_payments') }}" class="btn btn-info btn-sm" target="_blank">View Order</a> {# Link to general payments for now #}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7">No fraud alerts found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

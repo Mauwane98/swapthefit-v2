@@ -34,9 +34,8 @@ class ProposeSwapForm(FlaskForm):
             # and are not themselves donation listings (donations are one-way)
             # Listings that are for 'sale' cannot be offered for swap either.
             user_active_listings = Listing.objects(
-                owner=current_user.id,
-                is_active=True,
-                status='available',
+                user=current_user.id,
+                is_available=True,
                 listing_type='swap' # Only allow 'swap' type listings to be offered
             )
             self.your_listing_id.choices = [

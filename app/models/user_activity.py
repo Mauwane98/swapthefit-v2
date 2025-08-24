@@ -12,6 +12,14 @@ class UserActivity(db.Document):
     ip_address = StringField(max_length=45)
     payload = DictField()
 
+    meta = {
+        'collection': 'user_activities',
+        'indexes': [
+            'action_type',
+            'timestamp',
+        ]
+    }
+
     def __repr__(self):
         """
         String representation of the UserActivity object.

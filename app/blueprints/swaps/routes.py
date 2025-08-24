@@ -6,6 +6,8 @@ from app.models.notifications import Notification # For sending notifications
 from app.blueprints.swaps.forms import ProposeSwapForm, AcceptSwapForm, RejectSwapForm, CancelSwapForm, CompleteSwapForm
 from app.utils.security import roles_required
 from datetime import datetime
+from app.services.user_reputation_service import increment_transaction_count # Import for updating user trust score
+from app.services.badge_service import badge_service # Import badge_service
 
 
 swaps_bp = Blueprint('swaps', __name__)
@@ -23,20 +25,20 @@ def propose_swap(listing_id):
         abort(404)
 
     # Prevent proposing a swap for your own listing
-    if desired_listing.owner.id == current_user.id:
+    if desired_listing.user.id == current_user.id:
         flash('You cannot propose a swap for your own listing.', 'danger')
-        return redirect(url_for('listings.listing_detail', listing_id=listing_id))
+        return redirect(url_for('listings.listing_detail', listing_id=desired_listing.id))
     
     # Ensure the desired listing is actually available for swap
-    if desired_listing.listing_type != 'swap' or desired_listing.status != 'available':
+    if desired_listing.listing_type != 'swap' or not desired_listing.is_available:
         flash('This item is not available for swap.', 'danger')
-        return redirect(url_for('listings.listing_detail', listing_id=listing_id))
+        return redirect(url_for('listings.listing_detail', listing_id=desired_listing.id))
 
     form = ProposeSwapForm()
     # Populate the choices for the select field
     form.your_listing_id.choices = [
         (str(listing.id), f"{listing.title} ({listing.size}) - {listing.condition}")
-        for listing in Listing.objects(owner=current_user.id, is_active=True, status='available', listing_type='swap')
+        for listing in Listing.objects(user=current_user.id, is_available=True, listing_type='swap')
     ]
     # Add an empty default choice
     form.your_listing_id.choices.insert(0, ('', 'Select your item to offer'))
@@ -53,46 +55,49 @@ def propose_swap(listing_id):
         existing_request = SwapRequest.objects(
             requester=current_user.id,
             requester_listing=offered_listing.id,
-            responder=desired_listing.owner.id,
+            responder=desired_listing.user.id,
             responder_listing=desired_listing.id,
             status='pending'
         ).first()
 
         if existing_request:
             flash('You already have a pending swap request for these items.', 'info')
-            return redirect(url_for('listings.listing_detail', listing_id=listing_id))
+            return redirect(url_for('listings.listing_detail', listing_id=listing.id))
 
         swap_request = SwapRequest(
             requester=current_user.id,
             requester_listing=offered_listing.id,
-            responder=desired_listing.owner.id,
+            responder=desired_listing.user.id,
             responder_listing=desired_listing.id,
             message=form.message.data
         )
         swap_request.save()
 
         # Update status of both listings to 'pending_swap'
-        offered_listing.status = 'pending_swap'
+        offered_listing.is_available = False
         offered_listing.save()
-        desired_listing.status = 'pending_swap'
+        desired_listing.is_available = False
         desired_listing.save()
 
         # Create a notification for the responder
         notification = Notification(
-            recipient=desired_listing.owner.id,
-            sender=current_user.id,
+            user=desired_listing.user,
             message=f"{current_user.username} has proposed a swap for your item: '{desired_listing.title}' with their item: '{offered_listing.title}'.",
-            link=url_for('swaps.view_swap_request', swap_request_id=swap_request.id),
-            notification_type='swap_request'
+            notification_type='swap_request',
+            payload={
+                'swap_request_id': str(swap_request.id),
+                'sender_id': str(current_user.id),
+                'link': url_for('swaps.view_swap_request', swap_request_id=swap_request.id)
+            }
         )
         notification.save()
-        current_app.logger.info(f"Notification sent to {desired_listing.owner.username}")
+        current_app.logger.info(f"Notification sent to {desired_listing.user.username}")
 
         # Emit a SocketIO event to the recipient to notify them of a new swap request
         current_app.extensions['socketio'].emit(
             'new_notification',
-            {'message': notification.message, 'count': Notification.objects(recipient=desired_listing.owner.id, read=False).count()},
-            room=str(desired_listing.owner.id)
+            {'message': notification.message, 'count': Notification.objects(user=desired_listing.user, is_read=False).count()},
+            room=str(desired_listing.user.id)
         )
 
         flash('Swap request sent successfully!', 'success')
@@ -109,9 +114,12 @@ def manage_swaps():
     """
     # Swap requests where current user is the requester
     sent_requests = SwapRequest.objects(requester=current_user.id).order_by('-requested_date')
+    current_app.logger.info(f"User ID: {current_user.id}")
+    current_app.logger.info(f"Sent requests count: {sent_requests.count()}")
     
     # Swap requests where current user is the responder
     received_requests = SwapRequest.objects(responder=current_user.id).order_by('-requested_date')
+    current_app.logger.info(f"Received requests count: {received_requests.count()}")
     
     return render_template(
         'swaps/manage_swaps.html', 
@@ -177,16 +185,19 @@ def accept_swap(swap_request_id):
 
         # Notify the requester that their swap request has been accepted
         notification = Notification(
-            recipient=swap_request.requester.id,
-            sender=current_user.id,
+            user=swap_request.requester,
             message=f"Your swap request for '{swap_request.responder_listing.title}' has been ACCEPTED by {current_user.username}!",
-            link=url_for('swaps.view_swap_request', swap_request_id=swap_request.id),
-            notification_type='swap_status_update'
+            notification_type='swap_status_update',
+            payload={
+                'swap_request_id': str(swap_request.id),
+                'sender_id': str(current_user.id),
+                'link': url_for('swaps.view_swap_request', swap_request_id=swap_request.id)
+            }
         )
         notification.save()
         current_app.extensions['socketio'].emit(
             'new_notification',
-            {'message': notification.message, 'count': Notification.objects(recipient=swap_request.requester.id, read=False).count()},
+            {'message': notification.message, 'count': Notification.objects(user=swap_request.requester, is_read=False).count()},
             room=str(swap_request.requester.id)
         )
 
@@ -218,23 +229,26 @@ def reject_swap(swap_request_id):
         swap_request.save()
 
         # Change listing statuses back to 'available' as the swap is off
-        swap_request.requester_listing.status = 'available'
+        swap_request.requester_listing.is_available = True
         swap_request.requester_listing.save()
-        swap_request.responder_listing.status = 'available'
+        swap_request.responder_listing.is_available = True
         swap_request.responder_listing.save()
 
         # Notify the requester that their swap request has been rejected
         notification = Notification(
-            recipient=swap_request.requester.id,
-            sender=current_user.id,
+            user=swap_request.requester,
             message=f"Your swap request for '{swap_request.responder_listing.title}' has been REJECTED by {current_user.username}.",
-            link=url_for('swaps.view_swap_request', swap_request_id=swap_request.id),
-            notification_type='swap_status_update'
+            notification_type='swap_status_update',
+            payload={
+                'swap_request_id': str(swap_request.id),
+                'sender_id': str(current_user.id),
+                'link': url_for('swaps.view_swap_request', swap_request_id=swap_request.id)
+            }
         )
         notification.save()
         current_app.extensions['socketio'].emit(
             'new_notification',
-            {'message': notification.message, 'count': Notification.objects(recipient=swap_request.requester.id, read=False).count()},
+            {'message': notification.message, 'count': Notification.objects(user=swap_request.requester, is_read=False).count()},
             room=str(swap_request.requester.id)
         )
 
@@ -265,24 +279,27 @@ def cancel_swap(swap_request_id):
         swap_request.updated_date = datetime.utcnow()
         swap_request.save()
 
-        # Change listing statuses back to 'available'
-        swap_request.requester_listing.status = 'available'
+        # Change listing statuses back to 'available' as the swap is off
+        swap_request.requester_listing.is_available = True
         swap_request.requester_listing.save()
-        swap_request.responder_listing.status = 'available'
+        swap_request.responder_listing.is_available = True
         swap_request.responder_listing.save()
 
         # Notify the responder that the swap request has been cancelled
         notification = Notification(
-            recipient=swap_request.responder.id,
-            sender=current_user.id,
+            user=swap_request.responder,
             message=f"{current_user.username} has CANCELLED the swap request for '{swap_request.requester_listing.title}'.",
-            link=url_for('swaps.view_swap_request', swap_request_id=swap_request.id),
-            notification_type='swap_status_update'
+            notification_type='swap_status_update',
+            payload={
+                'swap_request_id': str(swap_request.id),
+                'sender_id': str(current_user.id),
+                'link': url_for('swaps.view_swap_request', swap_request_id=swap_request.id)
+            }
         )
         notification.save()
         current_app.extensions['socketio'].emit(
             'new_notification',
-            {'message': notification.message, 'count': Notification.objects(recipient=swap_request.responder.id, read=False).count()},
+            {'message': notification.message, 'count': Notification.objects(user=swap_request.responder, is_read=False).count()},
             room=str(swap_request.responder.id)
         )
 
@@ -314,43 +331,51 @@ def complete_swap(swap_request_id):
         swap_request.updated_date = datetime.utcnow()
         swap_request.save()
 
+        # Check and award badges for both requester and responder
+        badge_service.check_and_award_badges(swap_request.requester)
+        badge_service.check_and_award_badges(swap_request.responder)
+
         # Update listings status to 'swapped'
-        swap_request.requester_listing.status = 'swapped'
-        swap_request.requester_listing.is_active = False # Mark as inactive
+        swap_request.requester_listing.is_available = False
         swap_request.requester_listing.save()
-        swap_request.responder_listing.status = 'swapped'
-        swap_request.responder_listing.is_active = False # Mark as inactive
+        swap_request.responder_listing.is_available = False
         swap_request.responder_listing.save()
 
         # Notify both parties about completion
         message_to_requester = f"Your swap for '{swap_request.responder_listing.title}' with '{swap_request.requester_listing.title}' has been successfully COMPLETED!"
-        message_to_responder = f"Your swap for '{swap_request.responder_listing.title}' with '{swap_request.responder_listing.title}' has been successfully COMPLETED!"
+        message_to_responder = f"Your swap for '{swap_request.responder_listing.title}' with '{swap_request.requester_listing.title}' has been successfully COMPLETED!"
 
         notification_req = Notification(
-            recipient=swap_request.requester.id,
-            sender=current_user.id, # The user who clicked complete
+            user=swap_request.requester,
             message=message_to_requester,
-            link=url_for('swaps.view_swap_request', swap_request_id=swap_request.id),
-            notification_type='swap_status_update'
+            notification_type='swap_status_update',
+            payload={
+                'swap_request_id': str(swap_request.id),
+                'sender_id': str(current_user.id),
+                'link': url_for('swaps.view_swap_request', swap_request_id=swap_request.id)
+            }
         )
         notification_req.save()
         current_app.extensions['socketio'].emit(
             'new_notification',
-            {'message': notification_req.message, 'count': Notification.objects(recipient=swap_request.requester.id, read=False).count()},
+            {'message': notification_req.message, 'count': Notification.objects(user=swap_request.requester, is_read=False).count()},
             room=str(swap_request.requester.id)
         )
 
         notification_res = Notification(
-            recipient=swap_request.responder.id,
-            sender=current_user.id,
+            user=swap_request.responder,
             message=message_to_responder,
-            link=url_for('swaps.view_swap_request', swap_request_id=swap_request.id),
-            notification_type='swap_status_update'
+            notification_type='swap_status_update',
+            payload={
+                'swap_request_id': str(swap_request.id),
+                'sender_id': str(current_user.id),
+                'link': url_for('swaps.view_swap_request', swap_request_id=swap_request.id)
+            }
         )
         notification_res.save()
         current_app.extensions['socketio'].emit(
             'new_notification',
-            {'message': notification_res.message, 'count': Notification.objects(recipient=swap_request.responder.id, read=False).count()},
+            {'message': notification_res.message, 'count': Notification.objects(user=swap_request.responder, is_read=False).count()},
             room=str(swap_request.responder.id)
         )
 
