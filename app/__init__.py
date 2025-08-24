@@ -78,7 +78,7 @@ def create_app(config_class=None):
         try:
             return User.objects(id=ObjectId(user_id)).first()
         except Exception as e:
-            current_app.logger.error(f"Error loading user {user_id}: {e}")
+            app.logger.error(f"Error loading user {user_id}: {e}")
             return None
 
     with app.app_context():
