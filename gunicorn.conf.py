@@ -6,7 +6,7 @@ from app.config import Config # Import Config class
 
 workers = multiprocessing.cpu_count() * 2 + 1
 worker_class = 'sync'
-bind = f"0.0.0.0:{os.environ.get('PORT', '8000')}"
+bind = "0.0.0.0:$PORT"
 accesslog = 'logs/app.log'
 errorlog = 'logs/app.log'
 
