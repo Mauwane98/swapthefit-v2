@@ -19,4 +19,5 @@ def post_fork(server, worker):
     # Connect to MongoDB directly in the worker process
     connect(host=mongo_uri)
     worker.log.info("MongoDB reconnected in worker process.")
+    worker.log.info(f"Attempting to bind to port: {os.environ.get('PORT')}")
 
