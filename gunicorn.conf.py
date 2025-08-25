@@ -1,6 +1,8 @@
 import multiprocessing
 import os
-from mongoengine import connect # Import connect
+from mongoengine import connect
+from dotenv import load_dotenv # Import load_dotenv
+from app.config import Config # Import Config class
 
 workers = multiprocessing.cpu_count() * 2 + 1
 worker_class = 'eventlet'
@@ -9,12 +11,10 @@ accesslog = 'logs/app.log'
 errorlog = 'logs/app.log'
 
 def post_fork(server, worker):
-    from app import create_app
-    from app.config import Config # Import Config to get MONGO_URI
-
-    # Create a temporary app instance to access config
-    temp_app = create_app()
-    mongo_uri = temp_app.config['MONGO_URI']
+    # Load environment variables for the worker process
+    load_dotenv()
+    # Access config directly from the Config class
+    mongo_uri = Config.MONGO_URI
 
     # Connect to MongoDB directly in the worker process
     connect(host=mongo_uri)
