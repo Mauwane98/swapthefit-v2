@@ -5,7 +5,7 @@ from dotenv import load_dotenv # Import load_dotenv
 from app.config import Config # Import Config class
 
 workers = multiprocessing.cpu_count() * 2 + 1
-worker_class = 'eventlet'
+worker_class = 'sync'
 bind = '0.0.0.0:8000'
 accesslog = 'logs/app.log'
 errorlog = 'logs/app.log'
